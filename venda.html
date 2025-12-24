@@ -116,5 +116,20 @@
     </nav>
 
     <script src="scripts.js"></script>
+
+        <div id="modal-confirmacao-impressao" class="fixed inset-0 bg-black/70 z-[80] hidden items-center justify-center backdrop-blur-sm p-4">
+    <div class="bg-white rounded-[2.5rem] p-8 shadow-2xl w-full max-w-sm text-center space-y-6 animate-fade-in-up border-2 border-white">
+        <div class="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-3xl">🖨️</div>
+        <div>
+             <h3 class="font-black text-slate-800 text-lg italic uppercase leading-none mb-2">Imprimir Tickets?</h3>
+             <p class="text-slate-500 text-xs font-bold">Deseja imprimir os tickets?</p>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="fecharModalImpressao()" class="flex-1 bg-slate-100 text-slate-400 font-black py-4 rounded-2xl uppercase text-[10px] active:scale-95 transition-all">Não</button>
+            <button onclick="confirmarImpressaoAction()" class="flex-1 bg-slate-800 text-white font-black py-4 rounded-2xl shadow-lg uppercase text-[10px] active:scale-95 transition-all tracking-widest">Sim, Imprimir</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

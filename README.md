@@ -1,71 +1,61 @@
-🍢 Espetinho & Cia - Sistema de Gestão Web (PWA)
-O Espetinho & Cia é uma aplicação web completa desenvolvida para a gestão ágil de pequenos negócios de alimentação, como espetinhos e feiras livres. O sistema foi projetado para funcionar como um PWA (Progressive Web App), permitindo sua instalação em dispositivos móveis e operação otimizada para telas touch.
+🍢 Espetinho & Cia - Sistema de Gestão Web (PWA) & PDV Cloud
+O Espetinho & Cia é uma aplicação web de alta performance desenvolvida para a gestão ágil de negócios de alimentação. Evoluído de um sistema local para uma plataforma Cloud Real-Time, o projeto integra um PDV robusto com controle de mesas e segurança financeira avançada.
 
-🚀 Funcionalidades Principal
-👤 Controle de Acesso
-Sistema de login com níveis de permissão (Administrador e Vendedor).
+🚀 Funcionalidades Principais
+👤 Controle de Acesso e Gestão
+Níveis de Permissão: Diferenciação entre Administrador e Vendedor.
 
-Proteção de rotas para áreas administrativas.
+Gestão de Inventário: Catálogo de produtos com Switch de Ativação instantânea no PDV.
 
-🛒 Operação de Vendas
-Venda Direta: Carrinho de compras intuitivo para vendas rápidas de fichas.
+Dashboard em Tempo Real: Indicadores de faturamento diário e contagem de mesas ativas na tela inicial.
 
-Comandas: Abertura e gerenciamento de consumo por cliente ou mesa.
+🛒 Operação de Vendas e Mesas
+Venda Direta e Comandas: Fluxo otimizado para vendas rápidas no balcão ou monitoramento de consumo por mesa.
 
-Divisão de Conta: Lógica inteligente para pagamento parcial de itens e divisão por pessoas.
+Lógica de Divisão Inteligente: Módulo para pagamento parcial por itens selecionados ou abatimento de valor fixo.
 
-Lançamentos: Adição dinâmica de produtos a comandas abertas via interface mobile.
+Remoção Segura: Botão de exclusão de itens fixado no canto inferior direito para evitar erros operacionais.
 
-🛠️ Gestão e Retaguarda
-Catálogo de Produtos: Cadastro, edição e exclusão de itens com controle de estoque.
+🛡️ Segurança Financeira (Trava de Paridade)
+Bloqueio Universal: O sistema impede o encerramento de qualquer conta se o valor recebido for diferente (maior ou menor) do valor consumido.
 
-Fechamento de Caixa: Relatório consolidado com totais por método de pagamento (Dinheiro, Pix, Cartão) e ranking de itens mais vendidos.
+Feedback Visual: Visor de troco dinâmico que altera a cor (Vermelho/Verde) para auxiliar o operador na conferência.
 
-Estorno: Sistema de cancelamento de vendas com atualização automática do relatório financeiro.
+🖨️ Impressão Térmica Profissional (58mm)
+Tickets Individuais por Unidade: Se uma venda contém 3 itens, o sistema gera 3 tickets individuais de consumo.
 
-Configurações: Personalização do nome do evento para impressão de tickets.
+Impressão Sequencial: Emissão em fita contínua com separadores tracejados, otimizada para impressoras térmicas de 58mm.
 
-📱 Inovação Digital
-Gerador de QR Code: Criação automática de códigos QR para cada comanda, permitindo o acesso rápido ao lançamento de itens via câmera.
+Estética de Festival: Layout com bordas laterais coloridas e caixa de destaque para facilitar a leitura na produção.
 
 🛠️ Tecnologias Utilizadas
-O projeto foi construído utilizando as melhores práticas de desenvolvimento Front-End modernas:
+Frontend: HTML5 semântico e Tailwind CSS para design responsivo e moderno.
 
-HTML5 & CSS3: Estrutura semântica e estilização customizada.
+Backend & Database: Supabase (PostgreSQL) para persistência em nuvem e sincronização em tempo real.
 
-Tailwind CSS: Framework utilitário para design responsivo e moderno.
+Lógica de Negócio: Vanilla JavaScript estruturado em 48 funções modulares.
 
-JavaScript (Vanilla): Lógica de negócio centralizada e manipulação dinâmica do DOM sem dependências pesadas.
-
-LocalStorage API: Persistência de dados local, garantindo que as informações não sejam perdidas ao fechar o navegador.
-
-PWA (Progressive Web App): Utilização de Service Workers e Web Manifest para instalação e suporte offline.
-
-QRCode.js: Biblioteca para geração dinâmica de códigos QR.
+PWA (Progressive Web App): Suporte a Service Workers e Web Manifest para instalação em smartphones.
 
 📂 Estrutura do Projeto
-Para garantir a escalabilidade e facilidade de manutenção, o projeto adota a separação de responsabilidades:
-
 Bash
 
-├── index.html          # Redirecionamento inicial
-├── login.html          # Tela de autenticação
-├── home.html           # Menu principal
-├── style.css           # Estilização centralizada e variáveis de tema
-├── scripts.js          # O "Cérebro" do sistema (Lógica unificada)
-├── sw.js               # Service Worker para suporte PWA
-├── manifest.json       # Configurações de instalação no celular
-└── img/                # Assets e logotipia
-📲 Como Instalar (PWA)
-Como o sistema é um Progressive Web App, ele pode ser instalado em qualquer smartphone:
+├── index.html          # Portal de autenticação (Login)
+├── home.html           # Dashboard e indicadores principais
+├── venda.html          # Interface de PDV e Venda Direta
+├── comandas.html       # Mapa de mesas e gestão de contas abertas
+├── divisao.html        # Módulo de pagamentos parciais e abatimentos
+├── fechamento.html     # Relatórios financeiros e histórico de vendas
+├── style.css           # Estilização centralizada e regras de impressão
+├── scripts.js          # O "Cérebro" do sistema (48 funções unificadas)
+└── sw.js               # Service Worker para suporte PWA
+📲 Instalação e Uso
+Acesso Web: Acesse a URL do projeto via Chrome ou Safari.
 
-Acesse a URL do projeto através de um navegador (Chrome ou Safari).
+Instalação PWA: Selecione "Adicionar à tela inicial" para utilizar como um aplicativo nativo.
 
-Android: Clique no banner "Adicionar à tela inicial".
+Configuração de Banco: Importe as tabelas e povoamento via SQL queries fornecidas no editor do Supabase.
 
-iOS (iPhone): Toque no botão de compartilhamento e selecione "Adicionar à Tela de Início".
+Impressão: Certifique-se de configurar a impressora térmica para papel de 58mm sem margens de cabeçalho do navegador.
 
-O ícone do Espetinho & Cia aparecerá no seu menu de aplicativos, funcionando sem as barras do navegador.
-
-👨‍💻 Desenvolvedor
-Projeto desenvolvido por Cleicimar Vaz.
+Desenvolvedor: Cleicimar Vaz Sistema projetado para máxima eficiência e precisão financeira.
