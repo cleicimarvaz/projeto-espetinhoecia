@@ -218,4 +218,38 @@ function abrirModalQR(id, nome) {
     gerarQRCodeComanda(id, 'qrcode');
 }
 
+
 function fecharModalQR() { document.getElementById('modal-qr').classList.add('hidden'); }
+
+// Função para buscar e mostrar os produtos do Supabase
+async function renderizarCatalogo() {
+    const container = document.getElementById('lista-catalogo');
+    if (!container) return; // Só executa se estiver na página de produtos
+
+    // Busca os dados na nuvem
+    const produtos = await DB.getProdutos();
+    
+    if (produtos.length === 0) {
+        container.innerHTML = `
+            <div class="card-cia text-center py-10 border-dashed border-2 border-slate-200 bg-transparent shadow-none">
+                <p class="text-slate-400 text-[10px] font-bold uppercase italic">Nenhum produto cadastrado.</p>
+            </div>`;
+        return;
+    }
+
+    // Monta a lista HTML
+    container.innerHTML = produtos.map(p => `
+        <div class="card-cia flex justify-between items-center mb-2">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xl">
+                    ${p.categoria === 'Bebidas' ? '🥤' : '🍢'}
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm">${p.nome}</h4>
+                    <p class="text-[10px] font-bold text-[#e63946] uppercase">R$ ${parseFloat(p.preco).toFixed(2)}</p>
+                </div>
+            </div>
+            <button onclick="excluirProduto(${p.id})" class="text-red-400 p-2">🗑️</button>
+        </div>
+    `).join('');
+}
