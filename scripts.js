@@ -186,11 +186,27 @@ function calcularTroco() {
    MÓDULO 4: GESTÃO DE COMANDAS (7 Funções)
    ============================================================= */
 
-// 24. Renderização de Mesas em Aberto
+// 24. Renderização de Mesas em Aberto (Responsivo)
 async function renderizarComandasAtivas() {
     const container = document.getElementById('lista-comandas-ativas'); if (!container) return;
     const { data: cmds } = await _supabase.from('comandas').select('*').eq('status', 'aberta').order('aberta_em', { ascending: false });
-    container.innerHTML = (cmds || []).map(c => `<div class="bg-white p-4 rounded-[2.5rem] shadow-sm border border-white flex items-center justify-between mb-2"><div class="flex items-center space-x-3"><div class="bg-orange-50 w-10 h-10 rounded-2xl flex items-center justify-center text-xl">📋</div><h4 class="font-black text-slate-800 text-xs uppercase italic">${c.identificacao}</h4></div><div class="flex items-center space-x-4"><p class="text-[#e63946] font-black text-lg mr-2 leading-none">R$ ${parseFloat(c.total || 0).toFixed(2)}</p><div class="flex space-x-1"><button onclick="gerenciarItensComanda(${c.id})" class="h-16 w-20 bg-slate-50 text-slate-600 rounded-2xl font-black text-[8px] border">+ LANÇAR</button><button onclick="irParaDivisao(${c.id})" class="h-16 w-20 bg-orange-50 text-orange-600 rounded-2xl font-black text-[8px] border">DIVIDIR</button><button onclick="prepararFechamentoComanda(${c.id})" class="h-16 w-20 bg-emerald-500 text-white rounded-2xl font-black text-[8px] shadow-md">FECHAR</button></div></div></div>`).join('');
+    
+    // Layout otimizado para mobile: botões flexíveis, ícones e fontes menores
+    container.innerHTML = (cmds || []).map(c => `
+        <div class="bg-white p-3 rounded-[2rem] shadow-sm border border-white flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+                <div class="bg-orange-50 w-8 h-8 rounded-xl flex items-center justify-center text-lg">📋</div>
+                <h4 class="font-black text-slate-800 text-[10px] uppercase italic truncate max-w-[80px]">${c.identificacao}</h4>
+            </div>
+            <div class="flex items-center space-x-2 flex-1 justify-end">
+                <p class="text-[#e63946] font-black text-sm leading-none whitespace-nowrap">R$ ${parseFloat(c.total || 0).toFixed(2)}</p>
+                <div class="flex space-x-1 flex-1 max-w-[180px]">
+                    <button onclick="gerenciarItensComanda(${c.id})" class="flex-1 h-12 bg-slate-50 text-slate-600 rounded-xl font-black text-[8px] border truncate px-1">+ LANÇAR</button>
+                    <button onclick="irParaDivisao(${c.id})" class="flex-1 h-12 bg-orange-50 text-orange-600 rounded-xl font-black text-[8px] border truncate px-1">DIVIDIR</button>
+                    <button onclick="prepararFechamentoComanda(${c.id})" class="flex-1 h-12 bg-emerald-500 text-white rounded-xl font-black text-[8px] shadow-md truncate px-1">FECHAR</button>
+                </div>
+            </div>
+        </div>`).join('');
 }
 
 // 25. Abertura de Nova Mesa
