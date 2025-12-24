@@ -1,0 +1,83 @@
+/* --- VARIÁVEIS E TEMA --- */
+:root {
+    --primary: #e63946;
+    --primary-dark: #c12a36;
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --text: #2b2d42;
+    --muted: #8d99ae;
+    --radius: 32px;
+}
+
+/* --- ESTILOS GLOBAIS --- */
+body { 
+    background-color: var(--bg); 
+    color: var(--text); 
+    font-family: sans-serif; 
+    margin: 0; 
+    padding-bottom: 110px !important; /* Espaço para a Navbar */
+}
+
+/* --- COMPONENTES PADRÃO --- */
+.header-cia {
+    background-color: var(--primary);
+    color: white;
+    padding: 2rem 1.5rem 4.5rem;
+    border-bottom-left-radius: var(--radius);
+    border-bottom-right-radius: var(--radius);
+    box-shadow: 0 10px 20px rgba(230, 57, 70, 0.2);
+}
+
+.card-cia {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.02);
+}
+
+.btn-cia {
+    background-color: var(--primary);
+    color: white;
+    font-weight: bold;
+    padding: 1.2rem;
+    border-radius: 20px;
+    border: none;
+    width: 100%;
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+.btn-cia:active { transform: scale(0.97); }
+
+/* --- NAVBAR INFERIOR --- */
+.navbar-cia {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff !important;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 5px 25px 5px; 
+    border-top: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    z-index: 9999 !important;
+    height: 70px;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none !important;
+    color: var(--muted) !important;
+    flex: 1;
+}
+
+.nav-item span { font-size: 1.4rem; margin-bottom: 2px; }
+.nav-item p { font-size: 10px; font-weight: 800; text-transform: uppercase; margin: 0; }
+
+.nav-item.active { color: var(--primary) !important; }
+.nav-item.active span { transform: translateY(-3px); transition: 0.3s; }

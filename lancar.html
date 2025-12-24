@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espetinho & Cia - Lançar Itens</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e63946">
+</head>
+<body id="lancar-page" class="bg-slate-50 font-sans pb-40">
+
+    <header class="header-cia">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <button onclick="window.location.href='comandas.html'" class="text-2xl text-white">←</button>
+                <h1 class="text-xl font-bold italic tracking-tighter uppercase text-white">Lançar Consumo</h1>
+            </div>
+            <img src="img/logo.jpg" alt="Logo" class="w-10 h-10 rounded-full border-2 border-white/30 object-cover">
+        </div>
+        
+        <div id="info-header" class="bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
+            <p id="nome-cliente-view" class="font-black uppercase text-sm tracking-tight text-white">Carregando...</p>
+            <p id="mesa-view" class="text-[10px] font-bold text-red-100 uppercase mt-1 tracking-widest">Mesa: -</p>
+        </div>
+    </header>
+
+    <main class="-mt-6 px-4 space-y-3" id="lista-para-lancar">
+        </main>
+
+    <div id="resumo-lancamento" class="fixed bottom-20 left-4 right-4 bg-white rounded-[32px] p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] border-t-4 border-blue-600 z-50 hidden">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <span id="sessao-count" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold mr-2">0 itens</span>
+                <span class="font-bold text-slate-400 uppercase text-xs">A Adicionar</span>
+            </div>
+            <span id="total-sessao" class="text-blue-600 font-black text-2xl tracking-tighter">R$ 0,00</span>
+        </div>
+        <button onclick="confirmarLancamento()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all tracking-widest">
+            Confirmar e Salvar
+        </button>
+    </div>
+
+    <nav class="navbar-cia">
+        <a href="home.html" class="nav-item" id="nav-home"><span>🏠</span><p>Início</p></a>
+        <a href="venda.html" class="nav-item" id="nav-venda"><span>🛒</span><p>Vendas</p></a>
+        <a href="comandas.html" class="nav-item" id="nav-comandas"><span>📋</span><p>Comandas</p></a>
+        <a href="produtos.html" class="nav-item" id="nav-admin"><span>⚙️</span><p>Painel</p></a>
+    </nav>
+
+    <script src="scripts.js"></script>
+</body>
+</html>

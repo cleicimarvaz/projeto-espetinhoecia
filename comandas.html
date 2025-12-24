@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espetinho & Cia - Comandas</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e63946">
+</head>
+<body id="comandas-page" class="bg-slate-50 font-sans pb-24">
+
+    <header class="header-cia">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+                <button onclick="window.location.href='home.html'" class="text-2xl text-white">←</button>
+                <h1 class="text-xl font-bold italic tracking-tighter uppercase text-white">Comandas Ativas</h1>
+            </div>
+            <img src="img/logo.jpg" alt="Logo" class="w-10 h-10 rounded-full border-2 border-white/30 object-cover">
+        </div>
+        
+        <div class="bg-white p-2 rounded-[24px] shadow-xl flex items-center space-x-2 border-none">
+            <input type="text" id="nome-cliente" placeholder="Nome do Cliente" 
+                   class="flex-1 p-4 text-slate-800 focus:outline-none bg-transparent font-medium">
+            <button onclick="abrirNovaComanda()" class="bg-green-500 text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform shadow-lg shadow-green-100">
+                Abrir Conta
+            </button>
+        </div>
+    </header>
+
+    <main class="-mt-6 px-4 space-y-3" id="lista-comandas">
+        </main>
+
+    <div id="modal-qr" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-xs rounded-[32px] p-8 text-center shadow-2xl">
+            <h3 id="qr-nome-cliente" class="font-black uppercase text-sm mb-4 text-slate-800 tracking-tight">QR Code da Mesa</h3>
+            <div id="qrcode" class="flex justify-center mb-6"></div>
+            <button onclick="fecharModalQR()" class="btn-cia !bg-slate-800 text-xs uppercase tracking-widest">Fechar</button>
+        </div>
+    </div>
+
+    <nav class="navbar-cia">
+        <a href="home.html" class="nav-item" id="nav-home"><span>🏠</span><p>Início</p></a>
+        <a href="venda.html" class="nav-item" id="nav-venda"><span>🛒</span><p>Vendas</p></a>
+        <a href="comandas.html" class="nav-item" id="nav-comandas"><span>📋</span><p>Comandas</p></a>
+        <a href="produtos.html" class="nav-item" id="nav-admin"><span>⚙️</span><p>Painel</p></a>
+    </nav>
+
+    <script src="scripts.js"></script>
+</body>
+</html>

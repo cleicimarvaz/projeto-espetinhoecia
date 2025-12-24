@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espetinho & Cia - Login</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e63946">
+</head>
+<body id="login-page" class="bg-[#e63946] flex items-center justify-center min-h-screen p-6 font-sans">
+
+    <div class="card-cia w-full max-w-sm text-center shadow-2xl">
+        <div class="mb-6 flex justify-center">
+            <img src="img/logo.jpg" alt="Logo Espetinho & Cia" 
+                 class="w-32 h-32 object-cover rounded-full border-4 border-slate-50 shadow-md">
+        </div>
+
+        <h1 class="text-2xl font-black text-[#e63946] mb-1 italic uppercase tracking-tighter">
+            Espetinho & Cia
+        </h1>
+        <p class="text-slate-400 mb-8 text-xs uppercase font-bold tracking-widest">
+            Acesso ao Sistema
+        </p>
+
+        <div class="space-y-4 text-left">
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 ml-4 uppercase">Identificação</label>
+                <input type="text" id="user" placeholder="Usuário (admin ou vendedor)" 
+                       class="w-full p-4 bg-slate-50 rounded-2xl outline-none border-2 border-transparent focus:border-[#e63946]/20 transition-all text-slate-800">
+            </div>
+
+            <button onclick="fazerLogin()" class="btn-cia mt-2 shadow-lg hover:brightness-110 active:scale-95 transition-all">
+                Entrar no Sistema
+            </button>
+        </div>
+
+        <p class="mt-8 text-[10px] text-slate-300 font-medium">
+            Desenvolvido por Delta Telecom
+        </p>
+    </div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>

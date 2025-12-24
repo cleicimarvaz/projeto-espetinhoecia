@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delta Vendas - PDV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900">
+
+    <header class="bg-blue-600 h-40 pt-6 px-6 text-white rounded-b-3xl shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold">Delta Vendas</h1>
+            <div id="user-info" class="bg-blue-500 p-2 rounded-full">👤</div>
+        </div>
+        <input type="text" placeholder="Pesquisar itens..." 
+               class="w-full p-3 rounded-2xl text-slate-800 shadow-inner focus:outline-none">
+    </header>
+
+    <main class="-mt-10 px-6">
+        <div class="bg-white p-6 rounded-3xl shadow-xl mb-6">
+            <p class="text-slate-500 text-sm font-medium">Vendas de Hoje</p>
+            <h2 class="text-3xl font-bold text-blue-700">R$ 0,00</h2>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="abrirVenda()" class="bg-green-500 text-white p-4 rounded-3xl shadow-lg font-bold">
+                Nova Venda
+            </button>
+            <button onclick="gerenciarComandas()" class="bg-teal-500 text-white p-4 rounded-3xl shadow-lg font-bold">
+                Comandas
+            </button>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+<nav class="navbar-cia">
+    <a href="home.html" class="nav-item" id="nav-home">
+        <span>🏠</span>
+        <p>Início</p>
+    </a>
+    <a href="venda.html" class="nav-item" id="nav-venda">
+        <span>🛒</span>
+        <p>Vendas</p>
+    </a>
+    <a href="comandas.html" class="nav-item" id="nav-comandas">
+        <span>📋</span>
+        <p>Comandas</p>
+    </a>
+    <a href="produtos.html" class="nav-item" id="nav-admin">
+        <span>⚙️</span>
+        <p>Painel</p>
+    </a>
+</nav>
+
+<script>
+    // Lógica simples para destacar a página atual
+    const path = window.location.pathname;
+    const page = path.split("/").pop();
+
+    if (page === "home.html") document.getElementById('nav-home').classList.add('active');
+    if (page === "venda.html") document.getElementById('nav-venda').classList.add('active');
+    if (page === "comandas.html" || page === "lancar.html") document.getElementById('nav-comandas').classList.add('active');
+    if (page === "produtos.html" || page === "fechamento.html") document.getElementById('nav-admin').classList.add('active');
+</script>
+
+</body>
+</html>

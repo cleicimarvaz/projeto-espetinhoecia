@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espetinho & Cia - Fechamento</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body id="fechamento-page" class="bg-slate-50 font-sans pb-24">
+
+    <header class="header-cia !bg-slate-900 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <button onclick="window.location.href='home.html'" class="text-2xl text-white">←</button>
+                <h1 class="text-xl font-bold italic tracking-tighter uppercase text-white">Fechamento do Dia</h1>
+            </div>
+            <img src="img/logo.jpg" alt="Logo" class="w-10 h-10 rounded-full border-2 border-slate-700 object-cover">
+        </div>
+        <p class="text-slate-400 text-xs font-medium uppercase tracking-widest">Resumo Consolidado de Vendas</p>
+    </header>
+
+    <main class="-mt-10 px-6 space-y-6">
+        <div class="bg-white p-8 rounded-[32px] shadow-xl border border-slate-100 text-center">
+            <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Total Geral em Caixa</p>
+            <h2 id="total-geral" class="text-4xl font-black text-slate-900 tracking-tighter">R$ 0,00</h2>
+        </div>
+
+        <section class="space-y-3">
+            <h3 class="text-slate-900 font-black text-[10px] uppercase ml-2 tracking-widest">Recebimentos</h3>
+            
+            <div class="grid grid-cols-1 gap-3">
+                <div class="bg-emerald-50 p-5 rounded-3xl flex justify-between items-center border border-emerald-100">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-emerald-500 w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-lg">💵</div>
+                        <span class="font-bold text-emerald-900 text-sm">Dinheiro</span>
+                    </div>
+                    <span id="total-dinheiro" class="font-black text-emerald-700">R$ 0,00</span>
+                </div>
+                
+                <div class="bg-sky-50 p-5 rounded-3xl flex justify-between items-center border border-sky-100">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-sky-500 w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-lg">📱</div>
+                        <span class="font-bold text-sky-900 text-sm">Pix</span>
+                    </div>
+                    <span id="total-pix" class="font-black text-sky-700">R$ 0,00</span>
+                </div>
+                
+                <div class="bg-purple-50 p-5 rounded-3xl flex justify-between items-center border border-purple-100">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-purple-500 w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-lg">💳</div>
+                        <span class="font-bold text-purple-900 text-sm">Cartão</span>
+                    </div>
+                    <span id="total-cartao" class="font-black text-purple-700">R$ 0,00</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card-cia border-none shadow-md">
+            <h3 class="text-slate-900 font-black text-[10px] uppercase text-center border-b border-slate-50 pb-4 mb-4 tracking-widest">Ranking de Vendas</h3>
+            <div id="lista-itens" class="space-y-4">
+                </div>
+        </section>
+
+        <button onclick="window.print()" class="w-full bg-slate-900 text-white py-5 rounded-[24px] font-bold shadow-xl active:scale-95 transition-transform flex justify-center items-center space-x-3 uppercase text-xs tracking-widest">
+            <span>🖨️</span>
+            <span>Imprimir Relatório</span>
+        </button>
+    </main>
+
+    <nav class="navbar-cia">
+        <a href="home.html" class="nav-item" id="nav-home"><span>🏠</span><p>Início</p></a>
+        <a href="venda.html" class="nav-item" id="nav-venda"><span>🛒</span><p>Vendas</p></a>
+        <a href="comandas.html" class="nav-item" id="nav-comandas"><span>📋</span><p>Comandas</p></a>
+        <a href="produtos.html" class="nav-item" id="nav-admin"><span>⚙️</span><p>Painel</p></a>
+    </nav>
+
+    <script src="scripts.js"></script>
+</body>
+</html>

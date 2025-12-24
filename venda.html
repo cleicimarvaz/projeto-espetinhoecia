@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espetinho & Cia - Vendas</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e63946">
+</head>
+<body id="venda-page" class="bg-slate-50 font-sans pb-40">
+
+    <header class="header-cia">
+        <div class="flex items-center space-x-4 mb-4">
+            <button onclick="window.location.href='home.html'" class="text-2xl text-white">←</button>
+            <h1 class="text-xl font-bold italic tracking-tighter uppercase text-white">Fazer Pedido</h1>
+        </div>
+        <div class="relative">
+            <input type="text" id="busca-produto" oninput="filtrarProdutos()" 
+                   placeholder="Buscar espetinho ou bebida..." 
+                   class="w-full p-4 rounded-2xl text-slate-800 shadow-inner focus:outline-none focus:ring-2 focus:ring-white/50">
+        </div>
+    </header>
+
+    <main class="-mt-8 px-4 space-y-3" id="lista-venda">
+        </main>
+
+    <div id="cart" class="fixed bottom-20 left-4 right-4 bg-white rounded-[32px] p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] hidden border-t-4 border-[#e63946] z-50">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <span id="cart-count" class="bg-red-100 text-[#e63946] px-3 py-1 rounded-full text-xs font-bold mr-2">0 itens</span>
+                <span class="font-bold text-slate-400 uppercase text-xs">Total</span>
+            </div>
+            <span id="total-val" class="text-[#e63946] font-black text-2xl tracking-tighter">R$ 0,00</span>
+        </div>
+        
+        <div class="flex space-x-2">
+            <button onclick="limparCarrinho()" class="bg-slate-100 text-slate-400 px-4 rounded-2xl font-bold">🗑️</button>
+            <button onclick="finalizarVenda()" class="btn-cia flex-1 shadow-lg shadow-red-200 uppercase text-xs tracking-widest">
+                Finalizar e Imprimir
+            </button>
+        </div>
+    </div>
+
+    <nav class="navbar-cia">
+        <a href="home.html" class="nav-item" id="nav-home"><span>🏠</span><p>Início</p></a>
+        <a href="venda.html" class="nav-item" id="nav-venda"><span>🛒</span><p>Vendas</p></a>
+        <a href="comandas.html" class="nav-item" id="nav-comandas"><span>📋</span><p>Comandas</p></a>
+        <a href="produtos.html" class="nav-item" id="nav-admin"><span>⚙️</span><p>Painel</p></a>
+    </nav>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
