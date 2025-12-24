@@ -14,20 +14,21 @@
 </head>
 <body id="lancar-page" class="bg-slate-50 font-sans pb-40">
 
-    <header class="header-cia">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-3">
-                <button onclick="window.location.href='comandas.html'" class="text-2xl text-white">←</button>
-                <h1 class="text-xl font-bold italic tracking-tighter uppercase text-white">Lançar Consumo</h1>
-            </div>
-            <img src="img/logo.jpg" alt="Logo" class="w-10 h-10 rounded-full border-2 border-white/30 object-cover">
-        </div>
-        
-        <div id="info-header" class="bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
-            <p id="nome-cliente-view" class="font-black uppercase text-sm tracking-tight text-white">Carregando...</p>
-            <p id="mesa-view" class="text-[10px] font-bold text-red-100 uppercase mt-1 tracking-widest">Mesa: -</p>
-        </div>
-    </header>
+   <header class="bg-[#e63946] p-5 flex justify-between items-center shadow-md">
+    <div class="flex items-center space-x-3">
+        <button onclick="window.location.href='home.html'" class="text-white text-xl mr-1">←</button>
+        <img src="img/logo.jpg" alt="Logo" class="w-8 h-8 rounded-full border border-white/20">
+        <h1 class="text-white font-black italic text-sm uppercase leading-none tracking-tighter">ESPETINHO & CIA</h1>
+    </div>
+    
+    <div class="flex items-center space-x-3">
+        <span id="usuario-logado" class="text-white font-black text-[9px] uppercase italic opacity-80 tracking-widest">
+            </span>
+        <button onclick="logout()" class="text-white font-black text-[9px] uppercase tracking-widest bg-white/10 px-4 py-2 rounded-full active:bg-white/20 transition-all">
+            Sair
+        </button>
+    </div>
+</header>
 
     <main class="-mt-6 px-4 space-y-3" id="lista-para-lancar">
         </main>

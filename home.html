@@ -2,97 +2,79 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Espetinho & Cia - Menu</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Home - Espetinho & Cia</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#e63946">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body id="home-page" class="bg-slate-50 font-sans">
+<body id="home-page" class="bg-slate-100 font-sans pb-32">
 
-    <header class="header-cia relative">
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center space-x-3">
-                <img src="img/logo.jpg" alt="Logo" class="w-10 h-10 rounded-full border-2 border-white/30 object-cover">
-                <h1 class="text-xl font-black italic tracking-tighter uppercase">Espetinho & Cia</h1>
-            </div>
-            <button onclick="logout()" class="text-[10px] font-bold bg-white/20 px-3 py-2 rounded-xl uppercase tracking-wider backdrop-blur-sm">
+    <header class="bg-[#e63946] p-5 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <img src="img/logo.jpg" alt="Logo" class="w-8 h-8 rounded-full border border-white/20">
+            <h1 class="text-white font-black italic text-sm uppercase leading-none tracking-tighter">ESPETINHO & CIA</h1>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <span id="usuario-logado" class="text-white font-black text-[10px] uppercase italic opacity-90 tracking-widest"></span>
+            <button onclick="logout()" class="text-white font-black text-[9px] uppercase tracking-widest bg-black/20 px-4 py-2 rounded-full active:scale-95 transition-all">
                 Sair
             </button>
         </div>
-
-        <div class="absolute left-6 right-6 -bottom-6 card-cia flex justify-between items-center py-4 px-6 shadow-xl border-none">
-            <div>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Status do Caixa</p>
-                <div class="flex items-center space-x-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span class="text-green-600 font-bold text-sm">Aberto</span>
-                </div>
-            </div>
-            <div class="text-right">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Vendedor(a)</p>
-                <span id="role-badge" class="text-slate-800 font-bold text-sm capitalize">-</span>
-            </div>
-        </div>
     </header>
 
-    <main class="mt-14 px-6 space-y-6">
-        <div class="space-y-3">
-            <h3 class="text-slate-400 text-[10px] font-black uppercase ml-2 tracking-widest">Atendimento</h3>
+    <main class="p-4 space-y-6">
+        
+        <section class="bg-white p-6 rounded-[2.5rem] shadow-sm border-2 border-white flex flex-col items-center text-center">
+            <p class="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1 italic">Faturamento Hoje</p>
+            <h2 id="faturamento-hoje" class="text-[#e63946] font-black text-4xl italic tracking-tighter">R$ 0,00</h2>
+        </section>
+
+        <section class="grid grid-cols-2 gap-4">
+            <a href="venda.html" class="bg-white h-36 rounded-[2rem] shadow-sm border-2 border-white flex flex-col items-center justify-center active:scale-95 transition-all">
+                <div class="bg-orange-50 w-12 h-12 rounded-2xl flex items-center justify-center text-3xl mb-2">🍢</div>
+                <span class="text-[10px] font-black uppercase text-slate-800 tracking-widest italic text-center px-2">Nova Venda</span>
+            </a>
             
-            <a href="venda.html" class="card-cia flex items-center space-x-4 no-underline block hover:bg-slate-50 transition-colors">
-                <div class="bg-red-50 w-12 h-12 rounded-2xl flex items-center justify-center text-2xl">🔥</div>
-                <div>
-                    <h4 class="font-bold text-slate-800 text-base">Nova Venda</h4>
-                    <p class="text-slate-400 text-[11px]">Venda direta de fichas/espetos</p>
-                </div>
+            <a href="comandas.html" class="bg-white h-36 rounded-[2rem] shadow-sm border-2 border-white flex flex-col items-center justify-center relative active:scale-95 transition-all">
+                <div class="bg-blue-50 w-12 h-12 rounded-2xl flex items-center justify-center text-3xl mb-2">📋</div>
+                <span class="text-[10px] font-black uppercase text-slate-800 tracking-widest italic text-center px-2">Comandas</span>
+                <span id="qtd-comandas" class="absolute top-4 right-4 bg-[#e63946] text-white font-black text-[10px] w-7 h-7 flex items-center justify-center rounded-full shadow-lg">0</span>
             </a>
 
-            <a href="comandas.html" class="card-cia flex items-center space-x-4 no-underline block hover:bg-slate-50 transition-colors">
-                <div class="bg-blue-50 w-12 h-12 rounded-2xl flex items-center justify-center text-2xl">📝</div>
-                <div>
-                    <h4 class="font-bold text-slate-800 text-base">Comandas Ativas</h4>
-                    <p class="text-slate-400 text-[11px]">Gerenciar consumo de clientes</p>
-                </div>
-            </a>
-        </div>
-
-        <div id="admin-area" class="hidden space-y-3 pt-2">
-            <h3 class="text-slate-400 text-[10px] font-black uppercase ml-2 tracking-widest">Gestão & Retaguarda</h3>
-            
-            <a href="produtos.html" class="card-cia flex items-center space-x-4 block hover:bg-slate-50 transition-colors border-l-4 border-slate-800">
-                <div class="bg-slate-100 w-12 h-12 rounded-2xl flex items-center justify-center text-2xl">📦</div>
-                <div>
-                    <h4 class="font-bold text-slate-800 text-base">Produtos e Estoque</h4>
-                    <p class="text-slate-400 text-[11px]">Cadastrar e editar catálogo</p>
-                </div>
+            <a href="fechamento.html" class="bg-white h-36 rounded-[2rem] shadow-sm border-2 border-white flex flex-col items-center justify-center active:scale-95 transition-all">
+                <div class="bg-emerald-50 w-12 h-12 rounded-2xl flex items-center justify-center text-3xl mb-2">📊</div>
+                <span class="text-[10px] font-black uppercase text-slate-800 tracking-widest italic text-center px-2">Relatórios</span>
             </a>
 
-            <div class="grid grid-cols-2 gap-3">
-                <a href="fechamento.html" class="bg-slate-900 p-5 rounded-[24px] text-white flex flex-col items-center justify-center space-y-2 shadow-lg active:scale-95 transition-transform">
-                    <span class="text-2xl">📊</span>
-                    <span class="text-[10px] font-bold uppercase tracking-tight">Fechamento</span>
-                </a>
-                <a href="estorno.html" class="bg-white p-5 rounded-[24px] text-slate-800 border border-slate-200 flex flex-col items-center justify-center space-y-2 shadow-sm active:scale-95 transition-transform">
-                    <span class="text-2xl">↩️</span>
-                    <span class="text-[10px] font-bold uppercase tracking-tight text-red-600">Estornos</span>
-                </a>
-            </div>
-        </div>
+            <a href="produtos.html" class="bg-white h-36 rounded-[2rem] shadow-sm border-2 border-white flex flex-col items-center justify-center active:scale-95 transition-all">
+                <div class="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center text-3xl mb-2">⚙️</div>
+                <span class="text-[10px] font-black uppercase text-slate-800 tracking-widest italic text-center px-2">Produtos</span>
+            </a>
+        </section>
     </main>
 
-    <nav class="navbar-cia">
-        <a href="home.html" class="nav-item" id="nav-home"><span>🏠</span><p>Início</p></a>
-        <a href="venda.html" class="nav-item" id="nav-venda"><span>🛒</span><p>Vendas</p></a>
-        <a href="comandas.html" class="nav-item" id="nav-comandas"><span>📋</span><p>Comandas</p></a>
-        <a href="produtos.html" class="nav-item" id="nav-admin"><span>⚙️</span><p>Painel</p></a>
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-4 flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.05)] z-50">
+        <a href="home.html" id="nav-home" class="flex flex-col items-center space-y-1 text-[#e63946]">
+            <span class="text-xl">🏠</span>
+            <span class="text-[8px] font-black uppercase">Início</span>
+        </a>
+        <a href="venda.html" id="nav-venda" class="flex flex-col items-center space-y-1 text-slate-300">
+            <span class="text-xl">🛒</span>
+            <span class="text-[8px] font-black uppercase">Vendas</span>
+        </a>
+        <a href="comandas.html" id="nav-comandas" class="flex flex-col items-center space-y-1 text-slate-300">
+            <span class="text-xl">📋</span>
+            <span class="text-[8px] font-black uppercase">Contas</span>
+        </a>
+        <a href="fechamento.html" id="nav-relatorio" class="flex flex-col items-center space-y-1 text-slate-300">
+            <span class="text-xl">📊</span>
+            <span class="text-[8px] font-black uppercase">Relatórios</span>
+        </a>
     </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="scripts.js"></script>
 </body>
 </html>

@@ -1,83 +1,119 @@
-/* --- VARIÁVEIS E TEMA --- */
+/* =============================================================
+   1. CONFIGURAÇÕES BASE
+   ============================================================= */
 :root {
     --primary: #e63946;
-    --primary-dark: #c12a36;
-    --bg: #f8f9fa;
-    --card: #ffffff;
-    --text: #2b2d42;
-    --muted: #8d99ae;
-    --radius: 32px;
+    --secondary: #f8fafc;
+    --success: #10b981;
+    --warning: #f59e0b;
 }
 
-/* --- ESTILOS GLOBAIS --- */
-body { 
-    background-color: var(--bg); 
-    color: var(--text); 
-    font-family: sans-serif; 
-    margin: 0; 
-    padding-bottom: 110px !important; /* Espaço para a Navbar */
+* {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
-/* --- COMPONENTES PADRÃO --- */
-.header-cia {
-    background-color: var(--primary);
-    color: white;
-    padding: 2rem 1.5rem 4.5rem;
-    border-bottom-left-radius: var(--radius);
-    border-bottom-right-radius: var(--radius);
-    box-shadow: 0 10px 20px rgba(230, 57, 70, 0.2);
+body {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    overflow-x: hidden;
 }
 
-.card-cia {
-    background: var(--card);
-    border-radius: 24px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.02);
+/* Custom Scrollbar (Invisível mas funcional para mobile) */
+::-webkit-scrollbar {
+    display: none;
 }
 
-.btn-cia {
-    background-color: var(--primary);
-    color: white;
-    font-weight: bold;
-    padding: 1.2rem;
-    border-radius: 20px;
-    border: none;
-    width: 100%;
-    transition: 0.2s;
-    cursor: pointer;
+/* =============================================================
+   2. ANIMAÇÕES DE ENTRADA
+   ============================================================= */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.btn-cia:active { transform: scale(0.97); }
-
-/* --- NAVBAR INFERIOR --- */
-.navbar-cia {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #ffffff !important;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 10px 5px 25px 5px; 
-    border-top: 1px solid rgba(0,0,0,0.1);
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-    z-index: 9999 !important;
-    height: 70px;
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
-.nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none !important;
-    color: var(--muted) !important;
-    flex: 1;
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
 }
 
-.nav-item span { font-size: 1.4rem; margin-bottom: 2px; }
-.nav-item p { font-size: 10px; font-weight: 800; text-transform: uppercase; margin: 0; }
+.animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+}
 
-.nav-item.active { color: var(--primary) !important; }
-.nav-item.active span { transform: translateY(-3px); transition: 0.3s; }
+/* Delay escalonado para os botões do grid */
+.grid > a:nth-child(1) { animation-delay: 0.1s; }
+.grid > a:nth-child(2) { animation-delay: 0.2s; }
+.grid > a:nth-child(3) { animation-delay: 0.3s; }
+.grid > a:nth-child(4) { animation-delay: 0.4s; }
+
+/* =============================================================
+   3. ESTILO DAS "TECLAS" (BOTÕES PDV)
+   ============================================================= */
+/* Feedback visual ao tocar nos botões */
+button:active, a:active {
+    transform: scale(0.95);
+    filter: brightness(0.9);
+}
+
+/* Sombra suave para os cards e botões */
+.shadow-sm {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+/* Efeito de profundidade nas teclas das comandas */
+.h-16.w-24 {
+    border-bottom: 3px solid rgba(0,0,0,0.1);
+    transition: all 0.1s ease;
+}
+
+.h-16.w-24:active {
+    border-bottom: 0px solid transparent;
+    margin-top: 3px;
+}
+
+/* =============================================================
+   4. MODAIS E OVERLAYS
+   ============================================================= */
+#modal-resumo {
+    transition: background 0.3s ease;
+}
+
+.modal-content {
+    border-radius: 2.5rem 2.5rem 0 0;
+}
+
+/* =============================================================
+   5. UTILITÁRIOS DE TEXTO
+   ============================================================= */
+.font-black {
+    font-weight: 900;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.tracking-tighter {
+    letter-spacing: -0.05em;
+}
+
+/* Estilo para o Toast */
+.toast-success { background: #10b981; }
+.toast-error { background: #ef4444; }

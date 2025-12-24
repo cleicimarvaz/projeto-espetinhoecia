@@ -3,84 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Espetinho & Cia - Fechamento</title>
-    
+    <title>Relatórios - Espetinho & Cia</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body id="fechamento-page" class="bg-slate-50 font-sans pb-24">
-
-    <header class="header-cia !bg-slate-900 shadow-xl">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-3">
-                <button onclick="window.location.href='home.html'" class="text-2xl text-white">←</button>
-                <h1 class="text-xl font-bold italic tracking-tighter uppercase text-white">Fechamento do Dia</h1>
-            </div>
-            <img src="img/logo.jpg" alt="Logo" class="w-10 h-10 rounded-full border-2 border-slate-700 object-cover">
+<body id="fechamento-page" class="bg-slate-100 font-sans pb-32">
+    <header class="bg-[#e63946] p-5 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <button onclick="window.location.href='home.html'" class="text-white text-xl">←</button>
+            <h1 class="text-white font-black italic text-sm uppercase">FECHAMENTO</h1>
         </div>
-        <p class="text-slate-400 text-xs font-medium uppercase tracking-widest">Resumo Consolidado de Vendas</p>
+        <span id="usuario-logado" class="text-white font-black text-[10px] uppercase italic opacity-90"></span>
     </header>
 
-    <main class="-mt-10 px-6 space-y-6">
-        <div class="bg-white p-8 rounded-[32px] shadow-xl border border-slate-100 text-center">
-            <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Total Geral em Caixa</p>
-            <h2 id="total-geral" class="text-4xl font-black text-slate-900 tracking-tighter">R$ 0,00</h2>
-        </div>
-
-        <section class="space-y-3">
-            <h3 class="text-slate-900 font-black text-[10px] uppercase ml-2 tracking-widest">Recebimentos</h3>
-            
-            <div class="grid grid-cols-1 gap-3">
-                <div class="bg-emerald-50 p-5 rounded-3xl flex justify-between items-center border border-emerald-100">
-                    <div class="flex items-center space-x-3">
-                        <div class="bg-emerald-500 w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-lg">💵</div>
-                        <span class="font-bold text-emerald-900 text-sm">Dinheiro</span>
-                    </div>
-                    <span id="total-dinheiro" class="font-black text-emerald-700">R$ 0,00</span>
-                </div>
-                
-                <div class="bg-sky-50 p-5 rounded-3xl flex justify-between items-center border border-sky-100">
-                    <div class="flex items-center space-x-3">
-                        <div class="bg-sky-500 w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-lg">📱</div>
-                        <span class="font-bold text-sky-900 text-sm">Pix</span>
-                    </div>
-                    <span id="total-pix" class="font-black text-sky-700">R$ 0,00</span>
-                </div>
-                
-                <div class="bg-purple-50 p-5 rounded-3xl flex justify-between items-center border border-purple-100">
-                    <div class="flex items-center space-x-3">
-                        <div class="bg-purple-500 w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-lg">💳</div>
-                        <span class="font-bold text-purple-900 text-sm">Cartão</span>
-                    </div>
-                    <span id="total-cartao" class="font-black text-purple-700">R$ 0,00</span>
-                </div>
+    <main class="p-4 space-y-4">
+        <section class="bg-white p-6 rounded-[2.5rem] shadow-sm border-2 border-white space-y-4">
+            <p class="text-[9px] font-black text-slate-400 uppercase italic">Filtro de Período</p>
+            <div class="grid grid-cols-2 gap-3">
+                <input type="date" id="data-inicio" class="w-full bg-slate-50 border-none rounded-2xl p-3 text-xs font-bold">
+                <input type="date" id="data-fim" class="w-full bg-slate-50 border-none rounded-2xl p-3 text-xs font-bold">
             </div>
+            <button onclick="initPaginaFechamento()" class="w-full bg-[#e63946] text-white font-black py-4 rounded-2xl shadow-lg uppercase text-[10px]">Gerar Relatório</button>
         </section>
-
-        <section class="card-cia border-none shadow-md">
-            <h3 class="text-slate-900 font-black text-[10px] uppercase text-center border-b border-slate-50 pb-4 mb-4 tracking-widest">Ranking de Vendas</h3>
-            <div id="lista-itens" class="space-y-4">
-                </div>
-        </section>
-
-        <button onclick="window.print()" class="w-full bg-slate-900 text-white py-5 rounded-[24px] font-bold shadow-xl active:scale-95 transition-transform flex justify-center items-center space-x-3 uppercase text-xs tracking-widest">
-            <span>🖨️</span>
-            <span>Imprimir Relatório</span>
-        </button>
+        <section id="resumo-financeiro" class="space-y-3"></section>
     </main>
 
-    <nav class="navbar-cia">
-        <a href="home.html" class="nav-item" id="nav-home"><span>🏠</span><p>Início</p></a>
-        <a href="venda.html" class="nav-item" id="nav-venda"><span>🛒</span><p>Vendas</p></a>
-        <a href="comandas.html" class="nav-item" id="nav-comandas"><span>📋</span><p>Comandas</p></a>
-        <a href="produtos.html" class="nav-item" id="nav-admin"><span>⚙️</span><p>Painel</p></a>
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-4 flex justify-between items-center z-50">
+        <a href="home.html" id="nav-home" class="flex flex-col items-center space-y-1 text-slate-300"><span class="text-xl">🏠</span><span class="text-[8px] font-black uppercase">Início</span></a>
+        <a href="venda.html" id="nav-venda" class="flex flex-col items-center space-y-1 text-slate-300"><span class="text-xl">🛒</span><span class="text-[8px] font-black uppercase">Vendas</span></a>
+        <a href="comandas.html" id="nav-comandas" class="flex flex-col items-center space-y-1 text-slate-300"><span class="text-xl">📋</span><span class="text-[8px] font-black uppercase">Contas</span></a>
+        <a href="fechamento.html" id="nav-relatorio" class="flex flex-col items-center space-y-1 text-[#e63946]"><span class="text-xl">📊</span><span class="text-[8px] font-black uppercase">Relatórios</span></a>
     </nav>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="scripts.js"></script>
 </body>
 </html>
