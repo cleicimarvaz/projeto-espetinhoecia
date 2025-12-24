@@ -1,18 +1,18 @@
 /* =============================================================
-   CONFIGURAÇÃO GERAL E ESTADO
+   CONFIGURAÇÃO GERAL E ESTADO DO SISTEMA
    ============================================================= */
 const SUPABASE_URL = 'https://vtexlttnjzmgknmbwbwl.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_C5SP_ulU5lhJjTdokxdegA_6ZIdeGPk'; 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let carrinho = [], comandaSendoFechada = null, comandaAtualDivisao = null, itensParaAbater = [];
-let itensParaImpressaoPendente = []; //
+let itensParaImpressaoPendente = []; // Armazena itens para o modal de impressão
 
 /* =============================================================
    MÓDULO 1: ACESSO, SEGURANÇA E NAVEGAÇÃO (6 Funções)
    ============================================================= */
 
-// 1. Inicializador Geral de Ciclo de Vida do DOM
+// 1. Inicializador de Ciclo de Vida do DOM
 document.addEventListener('DOMContentLoaded', () => {
     initNavbar(); exibirNomeUsuario();
     if (document.getElementById('home-page')) initHome();
@@ -29,15 +29,17 @@ function exibirNomeUsuario() {
     if (el && n) el.innerText = `Olá, ${n}`;
 }
 
-// 3. Processamento de Autenticação (Login)
+// 3. Processamento de Login Robusto (Multi-IDs)
 async function fazerLogin() {
-    const u = document.getElementById('user'), p = document.getElementById('pass');
-    if (!u || !p) return;
-    const { data: usr } = await _supabase.from('usuarios').select('*').eq('usuario', u.value.toLowerCase().trim()).eq('senha', p.value).single();
+    const uInp = document.getElementById('user') || document.getElementById('username');
+    const pInp = document.getElementById('pass') || document.getElementById('password') || document.getElementById('senha');
+    if (!uInp || !pInp) return;
+    const { data: usr } = await _supabase.from('usuarios').select('*')
+        .eq('usuario', uInp.value.toLowerCase().trim()).eq('senha', pInp.value).single();
     if (usr) {
         localStorage.setItem('userRole', usr.cargo); localStorage.setItem('userName', usr.nome);
         window.location.replace('home.html');
-    } else { showToast("Dados Inválidos", "erro"); }
+    } else { showToast("Acesso Negado", "erro"); }
 }
 
 // 4. Encerramento de Sessão (Logout)
@@ -49,7 +51,7 @@ function verificarPermissoesAdmin() {
     if (localStorage.getItem('userRole') !== 'admin' && s) s.classList.add('hidden');
 }
 
-// 6. Sincronização de Estado da Navbar
+// 6. Sincronização de Estado da Navbar Ativa
 function initNavbar() {
     const p = window.location.pathname.split("/").pop() || "home.html", l = { 'home.html': 'nav-home', 'venda.html': 'nav-venda', 'comandas.html': 'nav-comandas', 'fechamento.html': 'nav-relatorio' };
     if (l[p] && document.getElementById(l[p])) document.getElementById(l[p]).classList.add('text-[#e63946]');
@@ -59,7 +61,7 @@ function initNavbar() {
    MÓDULO 2: DASHBOARD E GESTÃO DE PRODUTOS (7 Funções)
    ============================================================= */
 
-// 7. Consolidação de Dados na Home (Faturamento e Mesas)
+// 7. Consolidação de Dados na Home
 async function initHome() {
     const [v, c] = await Promise.all([_supabase.from('historico_vendas').select('*'), _supabase.from('comandas').select('*').eq('status', 'aberta')]);
     const t = (v.data || []).reduce((acc, sale) => acc + (parseFloat(sale.total) || 0), 0);
@@ -67,7 +69,7 @@ async function initHome() {
     if(document.getElementById('qtd-comandas')) document.getElementById('qtd-comandas').innerText = (c.data || []).length;
 }
 
-// 8. Renderização do Catálogo com Switch de Status
+// 8. Renderização do Catálogo Admin com Switch
 async function renderizarCatalogo() {
     const container = document.getElementById('lista-catalogo'); if (!container) return;
     const { data: pds } = await _supabase.from('produtos').select('*').order('nome');
@@ -89,20 +91,20 @@ async function renderizarCatalogo() {
 // 9. Alternância Rápida de Ativo/Inativo
 async function alternarStatusProduto(id, s) {
     const { error } = await _supabase.from('produtos').update({ status: !s }).eq('id', id);
-    if (!error) { showToast("Status Alterado"); renderizarCatalogo(); }
+    if (!error) { showToast("Status Atualizado"); renderizarCatalogo(); }
 }
 
-// 10. Exclusão Permanente de Produto do Banco
-async function removerProduto(id) { if (confirm("Remover permanentemente?")) { await _supabase.from('produtos').delete().eq('id', id); renderizarCatalogo(); } }
+// 10. Exclusão Permanente de Produto
+async function removerProduto(id) { if (confirm("Remover?")) { await _supabase.from('produtos').delete().eq('id', id); renderizarCatalogo(); } }
 
-// 11. Gravação de Dados de Produto (Novo/Edição)
+// 11. Gravação de Dados de Produto
 async function salvarProduto() {
     const d = { nome: document.getElementById('p-nome').value, preco: parseFloat(document.getElementById('p-preco').value), categoria: document.getElementById('p-categoria').value, status: document.getElementById('p-status').checked }, id = document.getElementById('p-id').value;
     if (id) await _supabase.from('produtos').update(d).eq('id', id); else await _supabase.from('produtos').insert([d]);
     showToast("Salvo!"); renderizarCatalogo(); alternarAbas('lista');
 }
 
-// 12. Carregar Dados do Produto para o Formulário
+// 12. Carregar Dados para Edição
 function prepararEdicao(id) {
     _supabase.from('produtos').select('*').eq('id', id).single().then(({data: p}) => {
         document.getElementById('p-id').value = p.id; document.getElementById('p-nome').value = p.nome; document.getElementById('p-preco').value = p.preco;
@@ -118,10 +120,10 @@ function alternarAbas(aba) {
 }
 
 /* =============================================================
-   MÓDULO 3: OPERAÇÕES DE VENDA E CARRINHO (10 Funções)
+   MÓDULO 3: VENDAS, CARRINHO E IMPRESSÃO (12 Funções)
    ============================================================= */
 
-// 14. Renderização do PDV com Botão Remover no Canto Inferior Direito
+// 14. Renderização do PDV com Botão Remover Seguro
 async function renderizarVenda() {
     const container = document.getElementById('lista-venda'); if (!container) return;
     const { data: todos } = await _supabase.from('produtos').select('*').order('nome');
@@ -132,10 +134,8 @@ async function renderizarVenda() {
     atualizarBotaoFinalizar();
 }
 
-// 15. Inclusão de Item no Carrinho
+// 15. Somar Item / 16. Subtrair Item do Carrinho
 function adicionarAoCarrinho(id) { _supabase.from('produtos').select('*').eq('id', id).single().then(({data: p}) => { const item = carrinho.find(i => i.id === id); if (item) item.qtd++; else carrinho.push({ ...p, qtd: 1 }); renderizarVenda(); }); }
-
-// 16. Remoção de Item do Carrinho
 function removerUmDoCarrinho(id) { const idx = carrinho.findIndex(i => i.id === id); if (idx > -1) { if (carrinho[idx].qtd > 1) carrinho[idx].qtd--; else carrinho.splice(idx, 1); renderizarVenda(); } }
 
 // 17. Sincronização do Botão Flutuante (FAB) de Venda
@@ -147,14 +147,14 @@ function abrirResumoPedido() {
     const t = carrinho.reduce((acc, i) => acc + (parseFloat(i.preco) * i.qtd), 0);
     if(lista) lista.innerHTML = carrinho.map(i => `<div class="flex justify-between p-2 bg-slate-50 rounded-xl mb-1 text-[10px] font-bold"><span>${i.qtd}x ${i.nome}</span><span>R$ ${(parseFloat(i.preco) * i.qtd).toFixed(2)}</span></div>`).join('');
     if(document.getElementById('total-modal')) document.getElementById('total-modal').innerText = `R$ ${t.toFixed(2)}`;
-    if(document.querySelector('.financeiro-container')) document.querySelector('.financeiro-container').classList.toggle('hidden', !!sessionStorage.getItem('comandaAtivaId'));
+    const finCont = document.querySelector('.financeiro-container'); if(finCont) finCont.classList.toggle('hidden', !!sessionStorage.getItem('comandaAtivaId'));
     modal.classList.remove('hidden'); modal.classList.add('flex'); handlePagamentoChange(); 
 }
 
-// 19. Ajuste de Contexto Visual (Venda vs Mesa)
+// 19. Ajuste de Contexto Visual (Venda vs Lançamento em Mesa)
 function verificarContextoVenda() { const title = document.querySelector('#venda-page h1'); if (sessionStorage.getItem('comandaAtivaId') && title) title.innerText = "LANÇAR NA MESA"; }
 
-// 20. Confirmação com TRAVA DE PARIDADE UNIVERSAL
+// 20. Confirmação com TRAVA DE PARIDADE UNIVERSAL E IMPRESSÃO
 async function confirmarVenda() {
     const cId = sessionStorage.getItem('comandaAtivaId'); if (carrinho.length === 0) return;
     const t = carrinho.reduce((acc, i) => acc + (parseFloat(i.preco) * i.qtd), 0);
@@ -167,59 +167,53 @@ async function confirmarVenda() {
     }
     const { data: c } = await _supabase.from('comandas').select('*').eq('id', cId).single(), nI = [...(c.itens || []), ...carrinho], nT = nI.reduce((acc, i) => acc + (parseFloat(i.preco) * i.qtd), 0);
     await _supabase.from('comandas').update({ itens: nI, total: nT }).eq('id', cId);
-    showToast("LANÇADO!"); sessionStorage.removeItem('comandaAtivaId'); carrinho = []; window.location.href = 'comandas.html';
+    showToast("LANÇADO COM SUCESSO!"); sessionStorage.removeItem('comandaAtivaId'); carrinho = []; window.location.href = 'comandas.html';
 }
 
-// 21. Fechar Modal de Checkout
+// 21. Fechar Modal / 22. Toggle Campo Financeiro
 function fecharResumoPedido() { const m = document.getElementById('modal-resumo'); if(m) m.classList.add('hidden'); }
-
-// 22. Forçar Exibição de Campo Financeiro para Conferência
 function handlePagamentoChange() { const s = document.getElementById('sessao-troco'); if(s) s.classList.remove('hidden'); }
 
-// 23. Cálculo de Troco com Alerta de Cor
+// 23. Cálculo de Troco com Alerta de Cor (Paridade Total)
 function calcularTroco() {
     const t = carrinho.reduce((acc, i) => acc + (parseFloat(i.preco) * i.qtd), 0), rec = parseFloat(document.getElementById('valor-recebido').value) || 0, troco = rec - t, el = document.getElementById('valor-troco');
     if(el) { el.innerText = `R$ ${troco.toFixed(2)}`; el.className = `p-4 font-black text-xl italic ${troco !== 0 ? 'text-red-500' : 'text-emerald-500'}`; }
 }
 
 /* =============================================================
-   MÓDULO 4: GESTÃO DE COMANDAS (7 Funções)
+   MÓDULO 4: GESTÃO DE COMANDAS E MESAS (7 Funções)
    ============================================================= */
 
-// 24. Renderização de Mesas em Aberto (Responsivo)
+// 24. Renderização de Mesas (LAYOUT RESPONSIVO MOBILE)
 async function renderizarComandasAtivas() {
     const container = document.getElementById('lista-comandas-ativas'); if (!container) return;
     const { data: cmds } = await _supabase.from('comandas').select('*').eq('status', 'aberta').order('aberta_em', { ascending: false });
-    
-    // Layout otimizado para mobile: botões flexíveis, ícones e fontes menores
     container.innerHTML = (cmds || []).map(c => `
-        <div class="bg-white p-3 rounded-[2rem] shadow-sm border border-white flex items-center justify-between mb-2">
-            <div class="flex items-center space-x-2">
-                <div class="bg-orange-50 w-8 h-8 rounded-xl flex items-center justify-center text-lg">📋</div>
-                <h4 class="font-black text-slate-800 text-[10px] uppercase italic truncate max-w-[80px]">${c.identificacao}</h4>
-            </div>
-            <div class="flex items-center space-x-2 flex-1 justify-end">
-                <p class="text-[#e63946] font-black text-sm leading-none whitespace-nowrap">R$ ${parseFloat(c.total || 0).toFixed(2)}</p>
-                <div class="flex space-x-1 flex-1 max-w-[180px]">
-                    <button onclick="gerenciarItensComanda(${c.id})" class="flex-1 h-12 bg-slate-50 text-slate-600 rounded-xl font-black text-[8px] border truncate px-1">+ LANÇAR</button>
-                    <button onclick="irParaDivisao(${c.id})" class="flex-1 h-12 bg-orange-50 text-orange-600 rounded-xl font-black text-[8px] border truncate px-1">DIVIDIR</button>
-                    <button onclick="prepararFechamentoComanda(${c.id})" class="flex-1 h-12 bg-emerald-500 text-white rounded-xl font-black text-[8px] shadow-md truncate px-1">FECHAR</button>
+        <div class="bg-white p-4 rounded-[2.5rem] shadow-sm border border-white flex flex-col space-y-3 mb-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="bg-orange-50 w-10 h-10 rounded-2xl flex items-center justify-center text-xl">📋</div>
+                    <h4 class="font-black text-slate-800 text-xs uppercase italic truncate max-w-[120px]">${c.identificacao}</h4>
                 </div>
+                <p class="text-[#e63946] font-black text-lg italic leading-none whitespace-nowrap">R$ ${parseFloat(c.total || 0).toFixed(2)}</p>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="gerenciarItensComanda(${c.id})" class="flex-1 h-12 bg-slate-50 text-slate-600 rounded-2xl font-black text-[9px] border uppercase">+ Lançar</button>
+                <button onclick="irParaDivisao(${c.id})" class="flex-1 h-12 bg-orange-50 text-orange-600 rounded-2xl font-black text-[9px] border uppercase">Dividir</button>
+                <button onclick="prepararFechamentoComanda(${c.id})" class="flex-1 h-12 bg-emerald-500 text-white rounded-2xl font-black text-[9px] shadow-md uppercase">Fechar</button>
             </div>
         </div>`).join('');
 }
 
-// 25. Abertura de Nova Mesa
+// 25. Abrir Nova Comanda
 async function abrirNovaComanda() {
     const iden = document.getElementById('c-identificacao').value.trim(); if (!iden) return showToast("Mesa?", "erro");
     await _supabase.from('comandas').insert([{ identificacao: iden, itens: [], total: 0, status: 'aberta', aberta_em: new Date().toISOString() }]);
     showToast(`Mesa ${iden} aberta!`); renderizarComandasAtivas(); alternarAbasComanda('lista');
 }
 
-// 26. Vínculo de Mesa para Pedido
+// 26. Vínculo de Mesa / 27. Direcionamento Divisão
 function gerenciarItensComanda(id) { sessionStorage.setItem('comandaAtivaId', id); window.location.href = 'venda.html'; }
-
-// 27. Direcionamento para Divisão de Conta
 function irParaDivisao(id) { sessionStorage.setItem('comandaDivisaoId', id); window.location.href = 'divisao.html'; }
 
 // 28. Alternância de Abas de Comandas
@@ -229,7 +223,7 @@ function alternarAbasComanda(aba) {
     else { a.classList.add('hidden'); l.classList.remove('hidden'); if(bl) bl.className = "flex-1 py-3 rounded-[1.5rem] bg-[#e63946] text-white"; if(ba) ba.className = "flex-1 py-3 text-slate-400"; }
 }
 
-// 29. Preparação de Dados para Encerramento Total
+// 29. Preparar Encerramento Total (Abrir Modal)
 async function prepararFechamentoComanda(id) {
     _supabase.from('comandas').select('*').eq('id', id).single().then(({data: c}) => { 
         comandaSendoFechada = c; carrinho = c.itens; const modal = document.getElementById('modal-resumo'), lista = document.getElementById('itens-carrinho-modal');
@@ -239,10 +233,10 @@ async function prepararFechamentoComanda(id) {
     });
 }
 
-// 30. Encerramento Total com TRAVA DE PARIDADE
+// 30. Confirmar Fechamento Total com Trava de Paridade
 async function confirmarFechamentoComanda() {
     if (!comandaSendoFechada) return; const rec = parseFloat(document.getElementById('valor-recebido').value) || 0;
-    if (rec.toFixed(2) !== comandaSendoFechada.total.toFixed(2)) return showToast("VALOR DIVERGENTE!", "erro");
+    if (rec.toFixed(2) !== comandaSendoFechada.total.toFixed(2)) return showToast("VALOR PAGO É DIFERENTE!", "erro");
     await _supabase.from('historico_vendas').insert([{ itens: comandaSendoFechada.itens, total: comandaSendoFechada.total, forma_pagamento: document.getElementById('forma-pagamento').value, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]);
     await _supabase.from('comandas').update({ status: 'fechada', fechada_em: new Date().toISOString() }).eq('id', comandaSendoFechada.id);
     showToast("MESA FECHADA!"); fecharResumoPedido(); renderizarComandasAtivas();
@@ -252,22 +246,12 @@ async function confirmarFechamentoComanda() {
    MÓDULO 5: DIVISÃO DE CONTA E ABATIMENTOS (11 Funções)
    ============================================================= */
 
-// 31. Inicialização da Divisão por Itens
-async function initPaginaDivisao() {
-    const id = sessionStorage.getItem('comandaDivisaoId'); if (!id) return;
-    const { data: c } = await _supabase.from('comandas').select('*').eq('id', id).single();
-    comandaAtualDivisao = c; itensParaAbater = [];
-    if (document.getElementById('total-restante')) document.getElementById('total-restante').innerText = `R$ ${parseFloat(c.total).toFixed(2)}`;
-    renderizarItensParaAbate(c.itens);
-}
-
-// 32. Injeção Visual dos Itens da Mesa
+// 31. Init Divisão / 32. Injetar Itens
+async function initPaginaDivisao() { const id = sessionStorage.getItem('comandaDivisaoId'); if (!id) return; const { data: c } = await _supabase.from('comandas').select('*').eq('id', id).single(); comandaAtualDivisao = c; itensParaAbater = []; if (document.getElementById('total-restante')) document.getElementById('total-restante').innerText = `R$ ${parseFloat(c.total).toFixed(2)}`; renderizarItensParaAbate(c.itens); }
 function renderizarItensParaAbate(itens) { const container = document.getElementById('lista-itens-divisao'); if (!container) return; container.innerHTML = (itens || []).map((item, idx) => `<div onclick="selecionarItemAbate(${idx})" id="item-abate-${idx}" class="bg-white p-4 rounded-2xl border-2 border-white flex justify-between items-center transition-all shadow-sm active:scale-95"><p class="text-[10px] font-black uppercase italic">${item.nome}</p><p class="font-black text-slate-800 text-[10px]">R$ ${parseFloat(item.preco).toFixed(2)}</p></div>`).join(''); }
 
-// 33. Seleção de Item para Pagamento Parcial
+// 33. Seleção / 34. Controle FAB Divisão
 function selecionarItemAbate(idx) { const el = document.getElementById(`item-abate-${idx}`), pos = itensParaAbater.indexOf(idx); if (pos > -1) { itensParaAbater.splice(pos, 1); el.classList.remove('border-emerald-500', 'bg-emerald-50'); } else { itensParaAbater.push(idx); el.classList.add('border-emerald-500', 'bg-emerald-50'); } atualizarFABDivisao(); }
-
-// 34. Controle do FAB de Divisão
 function atualizarFABDivisao() { const fab = document.getElementById('fab-divisao'); if (!fab) return; if (itensParaAbater.length > 0) { fab.classList.remove('hidden'); if(document.getElementById('fab-div-count')) document.getElementById('fab-div-count').innerText = `${itensParaAbater.length} itens`; } else { fab.classList.add('hidden'); } }
 
 // 35. Abrir Resumo Parcial
@@ -279,19 +263,12 @@ function abrirResumoDivisao() {
     modal.classList.remove('hidden'); modal.classList.add('flex'); handlePagamentoParcialChange();
 }
 
-// 36. Fechar Modal Parcial
+// 36. Fechar Modal / 37. Visibilidade Troco Parcial
 function fecharModalDivisao() { if(document.getElementById('modal-divisao')) document.getElementById('modal-divisao').classList.add('hidden'); }
-
-// 37. Visibilidade Obrigatória do Troco Parcial
 function handlePagamentoParcialChange() { const s = document.getElementById('sessao-troco-divisao'); if(s) s.classList.remove('hidden'); }
 
-// 38. Cálculo de Troco Parcial com Cor
-function calcularTrocoDivisao() {
-    const total = comandaAtualDivisao.itens.filter((_, i) => itensParaAbater.includes(i)).reduce((acc, i) => acc + parseFloat(i.preco), 0), rec = parseFloat(document.getElementById('recebido-divisao').value) || 0, troco = rec - total, el = document.getElementById('troco-divisao');
-    if(el) { el.innerText = `R$ ${troco.toFixed(2)}`; el.className = `p-4 font-black text-xl italic ${troco !== 0 ? 'text-red-500' : 'text-emerald-500'}`; }
-}
-
-// 39. Efetivar Abate por Itens com TRAVA DE PARIDADE
+// 38. Cálculo Troco Parcial / 39. Confirmar Abate Itens (Trava Paridade)
+function calcularTrocoDivisao() { const total = comandaAtualDivisao.itens.filter((_, i) => itensParaAbater.includes(i)).reduce((acc, i) => acc + parseFloat(i.preco), 0), rec = parseFloat(document.getElementById('recebido-divisao').value) || 0, troco = rec - total, el = document.getElementById('troco-divisao'); if(el) { el.innerText = `R$ ${troco.toFixed(2)}`; el.className = `p-4 font-black text-xl italic ${troco !== 0 ? 'text-red-500' : 'text-emerald-500'}`; } }
 async function confirmarAbateItens() {
     const f = document.getElementById('forma-parcial-itens').value, pagos = comandaAtualDivisao.itens.filter((_, i) => itensParaAbater.includes(i)), rest = comandaAtualDivisao.itens.filter((_, i) => !itensParaAbater.includes(i)), tP = pagos.reduce((acc, i) => acc + parseFloat(i.preco), 0);
     if ((parseFloat(document.getElementById('recebido-divisao').value) || 0).toFixed(2) !== tP.toFixed(2)) return showToast("VALOR DIVERGENTE!", "erro");
@@ -300,27 +277,15 @@ async function confirmarAbateItens() {
     showToast("ITENS PAGOS!"); fecharModalDivisao(); if (rest.length === 0) finalizarComandaTotal(comandaAtualDivisao.id); else initPaginaDivisao();
 }
 
-// 40. Abate Manual por Valor Definido
-async function confirmarAbateValor() {
-    const v = parseFloat(document.getElementById('valor-parcial').value), f = document.getElementById('forma-parcial-valor').value; if (v <= 0) return;
-    await _supabase.from('historico_vendas').insert([{ itens: [{nome: `ABATE: ${comandaAtualDivisao.identificacao}`, preco: v, qtd: 1}], total: v, forma_pagamento: f, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]);
-    const nT = comandaAtualDivisao.total - v; await _supabase.from('comandas').update({ total: nT }).eq('id', comandaAtualDivisao.id);
-    showToast("ABATIDO!"); if (nT <= 0.05) finalizarComandaTotal(comandaAtualDivisao.id); else initPaginaDivisao();
-}
-
-// 41. Alternância entre Abas de Divisão
-function alternarAbasDivisao(aba) {
-    const v = document.getElementById('aba-div-valor'), i = document.getElementById('aba-div-itens'), bv = document.getElementById('btn-div-valor'), bi = document.getElementById('btn-div-itens');
-    if (!v || !i) return;
-    if (aba === 'itens') { v.classList.add('hidden'); i.classList.remove('hidden'); if(bi) bi.className = "flex-1 py-3 rounded-[1.5rem] bg-[#e63946] text-white"; if(bv) bv.className = "flex-1 py-3 text-slate-400"; }
-    else { i.classList.add('hidden'); v.classList.remove('hidden'); if(bv) bv.className = "flex-1 py-3 rounded-[1.5rem] bg-[#e63946] text-white"; if(bi) bi.className = "flex-1 py-3 text-slate-400"; }
-}
+// 40. Abate Manual por Valor / 41. Alternar Abas Divisão
+async function confirmarAbateValor() { const v = parseFloat(document.getElementById('valor-parcial').value), f = document.getElementById('forma-parcial-valor').value; if (v <= 0) return; await _supabase.from('historico_vendas').insert([{ itens: [{nome: `ABATE: ${comandaAtualDivisao.identificacao}`, preco: v, qtd: 1}], total: v, forma_pagamento: f, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]); const nT = comandaAtualDivisao.total - v; await _supabase.from('comandas').update({ total: nT }).eq('id', comandaAtualDivisao.id); showToast("ABATIDO!"); if (nT <= 0.05) finalizarComandaTotal(comandaAtualDivisao.id); else initPaginaDivisao(); }
+function alternarAbasDivisao(aba) { const v = document.getElementById('aba-div-valor'), i = document.getElementById('aba-div-itens'), bv = document.getElementById('btn-div-valor'), bi = document.getElementById('btn-div-itens'); if (!v || !i) return; if (aba === 'itens') { v.classList.add('hidden'); i.classList.remove('hidden'); if(bi) bi.className = "flex-1 py-3 rounded-[1.5rem] bg-[#e63946] text-white"; if(bv) bv.className = "flex-1 py-3 text-slate-400"; } else { i.classList.add('hidden'); v.classList.remove('hidden'); if(bv) bv.className = "flex-1 py-3 rounded-[1.5rem] bg-[#e63946] text-white"; if(bi) bi.className = "flex-1 py-3 text-slate-400"; } }
 
 /* =============================================================
-   MÓDULO 6: RELATÓRIOS E FINALIZAÇÃO (3 Funções)
+   MÓDULO 6: RELATÓRIOS E FINALIZAÇÃO AUTOMÁTICA (3 Funções)
    ============================================================= */
 
-// 42. Processamento de Relatório Financeiro por Período
+// 42. Relatório Financeiro por Período
 async function initPaginaFechamento() {
     const container = document.getElementById('resumo-financeiro'); if (!container) return;
     const dIEl = document.getElementById('data-inicio'), dFEl = document.getElementById('data-fim'); if(!dIEl || !dFEl) return;
@@ -331,76 +296,42 @@ async function initPaginaFechamento() {
     container.innerHTML = `<div class="grid grid-cols-1 gap-4 animate-fade-in-up">${Object.entries(porF).map(([f, val]) => `<div class="bg-white p-6 rounded-[2.5rem] shadow-sm border-2 border-white flex justify-between items-center"><span class="text-[11px] font-black text-slate-500 uppercase italic">${f}</span><span class="text-[#e63946] font-black text-xl italic">R$ ${val.toFixed(2)}</span></div>`).join('')}</div>`;
 }
 
-// 43. Baixa Automática de Mesa Quitada
+// 43. Baixa de Comanda Liquidada
 function finalizarComandaTotal(id) { _supabase.from('comandas').update({ status: 'fechada', fechada_em: new Date().toISOString() }).eq('id', id).then(() => window.location.href = 'comandas.html'); }
 
 /* =============================================================
-   MÓDULO 7: UTILITÁRIOS VISUAIS E IMPRESSÃO (5 Funções)
+   MÓDULO 7: UTILITÁRIOS E IMPRESSÃO PREMIUM (5 Funções)
    ============================================================= */
 
-// 44. Notificações Toast do Sistema
-function showToast(m, tipo = 'sucesso') {
-    const t = document.createElement('div'); t.className = `fixed top-10 left-1/2 -translate-x-1/2 ${tipo === 'sucesso' ? 'bg-emerald-500' : 'bg-red-500'} text-white px-6 py-3 rounded-full z-[10000] font-black text-[9px] uppercase animate-bounce text-center shadow-2xl`;
-    t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
-}
+// 44. Toast / 45. Abrir Modal Impressão / 46. Fechar Modal
+function showToast(m, tipo = 'sucesso') { const t = document.createElement('div'); t.className = `fixed top-10 left-1/2 -translate-x-1/2 ${tipo === 'sucesso' ? 'bg-emerald-500' : 'bg-red-500'} text-white px-6 py-3 rounded-full z-[10000] font-black text-[9px] uppercase animate-bounce text-center shadow-2xl`; t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+function abrirModalImpressao(itens) { itensParaImpressaoPendente = itens; const m = document.getElementById('modal-confirmacao-impressao'); if(m) { m.classList.remove('hidden'); m.classList.add('flex'); } }
+function fecharModalImpressao() { const m = document.getElementById('modal-confirmacao-impressao'); if(m) m.classList.add('hidden'); itensParaImpressaoPendente = []; }
 
-// 45. Abrir Modal de Confirmação de Impressão
-function abrirModalImpressao(itens) {
-    itensParaImpressaoPendente = itens;
-    const m = document.getElementById('modal-confirmacao-impressao');
-    if(m) { m.classList.remove('hidden'); m.classList.add('flex'); }
-}
-
-// 46. Fechar Modal de Confirmação de Impressão
-function fecharModalImpressao() {
-     const m = document.getElementById('modal-confirmacao-impressao');
-     if(m) m.classList.add('hidden'); itensParaImpressaoPendente = [];
-}
-
-// 47. Gatilho de Impressão a partir do Modal
+// 47. Gatilho Impressão / 48. Geração de Tickets 58mm Individuais
 function confirmarImpressaoAction() { if(itensParaImpressaoPendente.length > 0) imprimirTickets(itensParaImpressaoPendente); fecharModalImpressao(); }
 
-// 48. GERAÇÃO DE TICKETS ESTÉTICOS (Baseado nos modelos de Festival)
 function imprimirTickets(itens) {
     let container = document.getElementById('secao-impressao');
-    if (!container) { 
-        container = document.createElement('div'); 
-        container.id = 'secao-impressao'; 
-        document.body.appendChild(container); 
-    }
-    
+    if (!container) { container = document.createElement('div'); container.id = 'secao-impressao'; document.body.appendChild(container); }
     let html = '';
-    const operator = localStorage.getItem('userName') || 'Caixa';
-    const dateStr = new Date().toLocaleDateString('pt-BR');
-    const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const op = localStorage.getItem('userName') || 'Caixa', dateStr = new Date().toLocaleDateString('pt-BR'), timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     itens.forEach(item => {
-        // Explode a quantidade em tickets individuais
+        // CORREÇÃO: Gera 1 ticket independente para cada unidade do item
         for (let k = 0; k < item.qtd; k++) {
              const transactionID = Math.floor(1000 + Math.random() * 9000);
              html += `
                 <div class="ticket">
                     <p class="ticket-header">ESPETINHO & CIA</p>
                     <p style="font-size: 7px; font-weight: bold;">Data: ${dateStr} - ${timeStr}</p>
-                    
-                    <div class="ticket-box">
-                        <p class="ticket-item">${item.nome}</p>
-                        <p class="ticket-value">VALOR: R$ ${parseFloat(item.preco).toFixed(2)}</p>
-                    </div>
-                    
+                    <div class="ticket-box"><p class="ticket-item">${item.nome}</p><p class="ticket-value">VALOR: R$ ${parseFloat(item.preco).toFixed(2)}</p></div>
                     <p style="font-size: 9px; font-weight: 900; margin-bottom: 2mm;">RETIRAR NO BALCÃO</p>
-                    
-                    <div class="ticket-footer-info">
-                        Transação N. ${transactionID} | Emissão: ${timeStr}<br>
-                        Operador: ${operator} | Via 01 de 01
-                    </div>
-                    
+                    <div class="ticket-footer-info">Transação N. ${transactionID} | Operador: ${op}<br>Via Única | Consumo Local</div>
                     <p style="font-size: 7px; font-weight: bold; margin-top: 2mm;">*** SE BEBER NÃO DIRIJA ***</p>
                 </div>`;
         }
     });
-
-    container.innerHTML = html;
-    window.print();
+    container.innerHTML = html; window.print();
     setTimeout(() => { container.innerHTML = ""; }, 1000);
 }
