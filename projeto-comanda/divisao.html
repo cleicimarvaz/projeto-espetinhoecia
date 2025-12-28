@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Divisão - Espetinho & Cia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .logo-depth { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); }
+    </style>
+</head>
+<body id="divisao-page" class="bg-slate-50 font-sans pb-32">
+
+    <header class="bg-[#e63946] fixed top-0 w-full z-50 px-5 py-4 shadow-xl flex justify-between items-center h-20 rounded-b-[1.5rem]">
+        <div class="flex items-center gap-2">
+            <button onclick="window.location.href='comandas.html'" class="text-white text-2xl font-black mr-2 active:scale-95 transition-all">←</button>
+            <img src="img/logo.jpg" alt="Logo" class="w-12 h-12 rounded-full border-2 border-white/30 logo-depth object-cover">
+            <h1 class="text-white font-black italic text-sm uppercase leading-none tracking-tighter drop-shadow-md">
+                RECEBIMENTO PARCIAL
+            </h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="header-usuario" class="text-white font-black text-[10px] uppercase italic opacity-90 tracking-wider text-right"></span>
+            
+            </div>
+    </header>
+
+    <div class="pt-28 px-6">
+        
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 text-center mb-6">
+            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1 italic">RESTANTE DA MESA</p>
+            <h3 id="total-restante" class="text-4xl font-black italic text-[#e63946] tracking-tighter">R$ 0,00</h3>
+        </div>
+
+        <div class="flex bg-white p-1 rounded-full shadow-sm border border-slate-100 mb-4">
+            <button id="btn-div-itens" onclick="alternarAbasDivisao('itens')" class="flex-1 py-3 rounded-full bg-[#e63946] text-white text-[9px] font-black uppercase transition-all font-sans italic tracking-widest shadow-sm">POR ITENS</button>
+            <button id="btn-div-valor" onclick="alternarAbasDivisao('valor')" class="flex-1 py-3 text-slate-400 text-[9px] font-black uppercase transition-all font-sans italic tracking-widest">POR VALOR</button>
+        </div>
+
+        <div id="aba-div-itens" class="pb-20 space-y-2">
+            <p class="text-[9px] font-black text-slate-400 uppercase italic ml-2">SELECIONE O QUE SERÁ PAGO</p>
+            <div id="lista-itens-divisao" class="grid gap-2"></div>
+        </div>
+
+        <div id="aba-div-valor" class="hidden bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
+            <div>
+                <label class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 font-sans">Valor a Abater</label>
+                <input type="tel" id="valor-parcial" placeholder="0,00" oninput="mascaraMoeda(event)"
+    class="w-full bg-white p-4 rounded-2xl text-xl font-black text-slate-800 outline-none border-2 border-slate-100 focus:border-[#e63946] text-center shadow-inner placeholder:text-slate-200">
+            </div>
+            <div>
+                <label class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 font-sans">Forma de Pagamento</label>
+                <select id="forma-parcial-valor" class="w-full bg-slate-50 p-4 rounded-xl text-xs font-bold text-slate-700 border-2 border-slate-100 outline-none uppercase font-sans transition-all focus:border-[#e63946]">
+    <option value="Pix">💠 Pix</option>
+    <option value="Dinheiro">💵 Dinheiro</option>
+    <option value="Credito">💳 Crédito</option>
+    <option value="Debito">💳 Débito</option>
+</select>
+            </div>
+            <button onclick="confirmarAbateValor()" class="w-full bg-[#e63946] text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg mt-2 active:scale-95 transition-all font-sans italic">
+                CONFIRMAR ABATE
+            </button>
+        </div>
+    </div>
+
+    <div id="fab-divisao" class="hidden fixed bottom-28 left-0 w-full px-6 z-40">
+        <button onclick="abrirResumoDivisao()" class="w-full bg-emerald-500 text-white py-4 rounded-[2rem] shadow-2xl flex items-center justify-between px-8 active:scale-95 transition-all border-2 border-white/20">
+            <span class="text-xs font-black uppercase italic tracking-widest">PAGAR SELEÇÃO</span>
+            <div class="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black" id="fab-div-count">0 itens</div>
+        </button>
+    </div>
+
+    <div id="modal-divisao" class="hidden fixed inset-0 bg-slate-900/90 z-[60] flex items-end sm:items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-full sm:w-96 rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 animate-slide-up">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-emerald-500 font-black text-lg italic uppercase">PAGAMENTO</h3>
+                <button onclick="fecharModalDivisao()" class="bg-slate-100 w-8 h-8 rounded-full text-slate-500 font-bold">✕</button>
+            </div>
+            
+            <div id="itens-divisao-modal" class="space-y-2 mb-6 max-h-32 overflow-y-auto bg-slate-50 p-4 rounded-2xl"></div>
+            
+            <div class="flex justify-between items-center mb-6 px-2">
+                <span class="text-xs font-black text-slate-400 uppercase">SUBTOTAL</span>
+                <span id="total-divisao-modal" class="text-2xl font-black text-slate-800">R$ 0,00</span>
+            </div>
+
+            <div class="space-y-3">
+<select id="forma-parcial-itens" onchange="handlePagamentoParcialChange()" class="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none uppercase border-2 border-slate-100 font-sans transition-all focus:border-[#e63946]">
+    <option value="Pix">💠 Pix</option>
+    <option value="Dinheiro">💵 Dinheiro</option>
+    <option value="Credito">💳 Crédito</option>
+    <option value="Debito">💳 Débito</option>
+</select>
+                
+                <div id="sessao-troco-divisao" class="hidden flex gap-2">
+                    <input type="number" id="recebido-divisao" oninput="calcularTrocoDivisao()" class="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none border-2 border-slate-100 font-sans" placeholder="R$ RECEBIDO">
+                    <div id="troco-divisao" class="bg-slate-100 p-4 rounded-2xl text-xs font-black text-slate-400 min-w-[80px] flex justify-center items-center">---</div>
+                </div>
+                
+                <button onclick="confirmarAbateItens()" class="w-full bg-emerald-500 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all font-sans italic">
+                    CONFIRMAR PAGAMENTO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 w-full bg-white p-4 pb-6 rounded-t-[2.5rem] shadow-[0_-5px_20px_rgba(0,0,0,0.1)] border-t border-slate-100 z-50">
+        <div class="flex justify-around items-center">
+            <a href="home.html" id="nav-home" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500"><span class="text-xl">🏠</span><span class="text-[9px] font-black uppercase tracking-wide font-sans">Início</span></a>
+            <a href="venda.html" id="nav-venda" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500"><span class="text-xl">🛒</span><span class="text-[9px] font-black uppercase tracking-wide font-sans">Vendas</span></a>
+            <a href="comandas.html" id="nav-comandas" class="flex flex-col items-center gap-1 transition-all text-[#e63946]"><span class="text-xl">📋</span><span class="text-[9px] font-bold uppercase tracking-wide font-sans">Comandas</span></a>
+            <a href="configuracoes.html" id="nav-admin" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500"><span class="text-xl">⚙️</span><span class="text-[9px] font-black uppercase tracking-wide font-sans">Painel</span></a>
+        </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts.js"></script>
+</body>
+</html>

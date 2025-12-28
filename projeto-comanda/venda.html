@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Venda - Espetinho & Cia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .logo-depth { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); }
+    </style>
+</head>
+<body id="venda-page" class="bg-slate-50 font-sans pb-40">
+
+    <header class="bg-[#e63946] fixed top-0 w-full z-50 px-5 py-4 shadow-xl flex justify-between items-center h-20 rounded-b-[1.5rem]">
+        <div class="flex items-center gap-2">
+            <button onclick="voltarDaVenda()" class="text-white text-2xl font-black mr-2 active:scale-95 transition-all">←</button>
+            
+            <img src="img/logo.jpg" alt="Logo" class="w-12 h-12 rounded-full border-2 border-white/30 logo-depth object-cover">
+            <h1 class="text-white font-black italic text-sm uppercase leading-none tracking-tighter drop-shadow-md">
+                NOVA VENDA
+            </h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="header-usuario" class="text-white font-black text-[10px] uppercase italic opacity-90 tracking-wider text-right"></span>
+            
+            <button onclick="logout()" class="bg-white/20 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm active:bg-white/30 transition-all border border-white/10">
+                SAIR
+            </button>
+        </div>
+    </header>
+
+    <div class="pt-28 px-4">
+        <div id="lista-venda" class="grid grid-cols-2 gap-3 pb-10">
+            <p class="col-span-2 text-center text-slate-300 text-[10px] font-bold uppercase tracking-widest animate-pulse mt-10">
+                Carregando cardápio...
+            </p>
+        </div>
+    </div>
+
+    <button id="fab-finalizar" onclick="abrirResumoPedido()" 
+        class="fixed bottom-24 right-6 bg-emerald-500 text-white p-5 rounded-[2.5rem] shadow-2xl z-40 hidden animate-scale-in border-4 border-white/20 active:scale-95 transition-all">
+        <div class="flex items-center space-x-4">
+            <div class="bg-white/20 w-10 h-10 rounded-2xl flex items-center justify-center text-xl">🛒</div>
+            <div class="text-left">
+                <p id="fab-count" class="text-[9px] font-black uppercase leading-none opacity-80">0 itens</p>
+                <p id="btn-finalizar-texto" class="text-[11px] font-black uppercase italic tracking-tight">Finalizar Venda</p>
+            </div>
+        </div>
+    </button>
+
+    <div id="modal-resumo" class="hidden fixed inset-0 bg-slate-900/90 z-[60] flex items-end sm:items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-full sm:w-96 rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-[#e63946] font-black text-lg italic uppercase">RESUMO</h3>
+                <button onclick="fecharResumoPedido()" class="bg-slate-100 w-8 h-8 rounded-full text-slate-500 font-bold">✕</button>
+            </div>
+            
+            <div id="itens-carrinho-modal" class="space-y-2 mb-6 max-h-40 overflow-y-auto pr-2"></div>
+            
+            <div class="flex justify-between items-center border-t border-dashed border-slate-200 pt-4 mb-6">
+                <span class="text-xs font-black text-slate-400 uppercase">TOTAL A PAGAR</span>
+                <span id="total-modal" class="text-2xl font-black text-slate-800">R$ 0,00</span>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Forma de Pagamento</label>
+<select id="forma-pagamento" onchange="handlePagamentoChange()" class="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none uppercase border-2 border-slate-100 font-sans transition-all focus:border-[#e63946]">
+    <option value="Pix">💠 Pix</option>
+    <option value="Dinheiro">💵 Dinheiro</option>
+    <option value="Credito">💳 Crédito</option>
+    <option value="Debito">💳 Débito</option>
+</select>
+                </div>
+
+                <div id="sessao-troco" class="hidden">
+                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Valor Recebido</label>
+                    <div class="flex gap-2">
+                        <input type="tel" id="valor-recebido" placeholder="0,00" oninput="mascaraMoeda(event); calcularTroco()"
+    class="w-full bg-slate-50 p-4 rounded-xl text-2xl font-black text-slate-800 outline-none border-2 border-slate-100 focus:border-[#e63946] text-center shadow-inner placeholder:text-slate-200 mb-4">
+                        <div id="valor-troco" class="bg-slate-100 p-4 rounded-2xl text-xs font-black text-slate-400 flex items-center min-w-[80px] justify-center">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <button onclick="confirmarVenda()" class="w-full bg-emerald-500 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg mt-2 active:scale-95 transition-all font-sans italic">
+                    CONFIRMAR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-confirmacao-impressao" class="hidden fixed inset-0 bg-black/80 z-[70] flex items-center justify-center">
+        <div class="bg-white p-8 rounded-[2rem] text-center w-80 animate-fade-in-up">
+            <div class="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-3xl mb-4">🖨️</div>
+            <h3 class="font-black text-slate-800 text-lg italic uppercase leading-none mb-2">Imprimir Via?</h3>
+            <p class="text-xs text-slate-400 font-bold mb-6">Deseja emitir o comprovante agora?</p>
+            <div class="flex gap-3">
+                <button onclick="fecharModalImpressao()" class="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black uppercase active:scale-95 transition-all">NÃO</button>
+                <button onclick="confirmarImpressaoAction()" class="flex-1 py-4 bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg">SIM, IMPRIMIR</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 w-full bg-white p-4 pb-6 rounded-t-[2.5rem] shadow-[0_-5px_20px_rgba(0,0,0,0.1)] border-t border-slate-100 z-50">
+        <div class="flex justify-around items-center">
+            <a href="home.html" id="nav-home" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500">
+                <span class="text-xl">🏠</span>
+                <span class="text-[9px] font-black uppercase tracking-wide">Início</span>
+            </a>
+            <a href="venda.html" id="nav-venda" class="flex flex-col items-center gap-1 transition-all text-[#e63946]">
+                <span class="text-xl">🛒</span>
+                <span class="text-[9px] font-black uppercase tracking-wide">Vendas</span>
+            </a>
+            <a href="comandas.html" id="nav-comandas" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500">
+                <span class="text-xl">📋</span>
+                <span class="text-[9px] font-bold uppercase tracking-wide">Comandas</span>
+            </a>
+            <a href="configuracoes.html" id="nav-admin" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500">
+                <span class="text-xl">⚙️</span>
+                <span class="text-[9px] font-black uppercase tracking-wide">Painel</span>
+            </a>
+        </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts.js"></script>
+
+<div id="modal-confirmacao-comanda" class="hidden fixed inset-0 bg-slate-900/90 z-[70] flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-full sm:w-80 rounded-[2.5rem] p-6 animate-slide-up m-4 relative">
+            
+            <div class="text-center mb-6">
+                <div class="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-2 text-[#e63946] border-2 border-red-100">📝</div>
+                <h3 class="text-[#e63946] font-black text-lg italic uppercase font-sans leading-none">CONFIRMAR PEDIDO</h3>
+                <p id="titulo-confirmacao-mesa" class="text-[10px] font-bold text-slate-400 uppercase font-sans mt-1">MESA X</p>
+            </div>
+
+            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-2">ITENS A ADICIONAR:</p>
+            
+            <div id="itens-confirmacao-comanda" class="space-y-2 mb-6 max-h-40 overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                </div>
+
+            <div class="flex gap-3">
+                <button onclick="fecharConfirmacaoComanda()" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all border border-slate-200">
+                    CANCELAR
+                </button>
+                
+                <button onclick="concluirLancamentoComanda()" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200 active:scale-95 transition-all border-2 border-white">
+                    CONFIRMAR
+                </button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Estorno - Espetinho & Cia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .logo-depth { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body id="estorno-page" class="bg-slate-50 font-sans pb-32">
+
+    <header class="bg-[#e63946] fixed top-0 w-full z-50 px-5 py-4 shadow-xl flex justify-between items-center h-20 rounded-b-[1.5rem]">
+        <div class="flex items-center gap-2">
+            <button onclick="window.location.href='home.html'" class="text-white text-2xl font-black mr-2 active:scale-95 transition-all">←</button>
+            <img src="img/logo.jpg" alt="Logo" class="w-12 h-12 rounded-full border-2 border-white/30 logo-depth object-cover">
+            <h1 class="text-white font-black italic text-sm uppercase leading-none tracking-tighter drop-shadow-md">
+                ESTORNO
+            </h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="header-usuario" class="text-white font-black text-[10px] uppercase italic opacity-90 tracking-wider text-right"></span>
+            <button onclick="logout()" class="bg-white/20 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm active:bg-white/30 transition-all border border-white/10">
+                SAIR
+            </button>
+        </div>
+    </header>
+
+    <div class="pt-28 px-6">
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-3 italic text-center">ÚLTIMAS VENDAS REALIZADAS</p>
+            
+            <div id="lista-vendas-estorno" class="space-y-3 max-h-[70vh] overflow-y-auto">
+                <p class="text-center text-slate-300 text-[10px] font-bold uppercase tracking-widest mt-4">Carregando histórico...</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 w-full bg-white p-4 pb-6 rounded-t-[2.5rem] shadow-[0_-5px_20px_rgba(0,0,0,0.1)] border-t border-slate-100 z-50">
+        <div class="flex justify-around items-center">
+            <a href="home.html" id="nav-home" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500">
+                <span class="text-xl">🏠</span>
+                <span class="text-[9px] font-black uppercase tracking-wide font-sans">Início</span>
+            </a>
+            <a href="venda.html" id="nav-venda" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500">
+                <span class="text-xl">🛒</span>
+                <span class="text-[9px] font-black uppercase tracking-wide font-sans">Vendas</span>
+            </a>
+            <a href="comandas.html" id="nav-comandas" class="flex flex-col items-center gap-1 transition-all text-slate-300 hover:text-slate-500">
+                <span class="text-xl">📋</span>
+                <span class="text-[9px] font-bold uppercase tracking-wide font-sans">Comandas</span>
+            </a>
+            <a href="configuracoes.html" id="nav-admin" class="flex flex-col items-center gap-1 transition-all text-[#e63946]">
+                <span class="text-xl">⚙️</span>
+                <span class="text-[9px] font-black uppercase tracking-wide font-sans">Painel</span>
+            </a>
+        </div>
+    </nav>
+
+    <script src="scripts.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Garante que a lista carregue se abrir esta página diretamente
+            if(typeof carregarHistoricoEstorno === 'function') {
+                carregarHistoricoEstorno();
+            }
+            // Verifica permissão (pois é página administrativa)
+            if(typeof verificarPermissoesAdmin === 'function') {
+                verificarPermissoesAdmin();
+            }
+        });
+    </script>
+</body>
+</html>

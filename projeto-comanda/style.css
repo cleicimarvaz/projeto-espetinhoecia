@@ -1,0 +1,178 @@
+/* =============================================================
+   1. CONFIGURAÇÕES BASE
+   ============================================================= */
+:root {
+    --primary: #e63946;
+    --secondary: #f8fafc;
+    --success: #10b981;
+    --warning: #f59e0b;
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+body {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    overflow-x: hidden;
+}
+
+/* Custom Scrollbar (Invisível mas funcional para mobile) */
+::-webkit-scrollbar {
+    display: none;
+}
+
+/* =============================================================
+   2. ANIMAÇÕES DE ENTRADA
+   ============================================================= */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+}
+
+/* Delay escalonado para os botões do grid */
+.grid > a:nth-child(1) { animation-delay: 0.1s; }
+.grid > a:nth-child(2) { animation-delay: 0.2s; }
+.grid > a:nth-child(3) { animation-delay: 0.3s; }
+.grid > a:nth-child(4) { animation-delay: 0.4s; }
+
+/* =============================================================
+   3. ESTILO DAS "TECLAS" (BOTÕES PDV)
+   ============================================================= */
+/* Feedback visual ao tocar nos botões */
+button:active, a:active {
+    transform: scale(0.95);
+    filter: brightness(0.9);
+}
+
+/* Sombra suave para os cards e botões */
+.shadow-sm {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+/* Efeito de profundidade nas teclas das comandas */
+.h-16.w-24 {
+    border-bottom: 3px solid rgba(0,0,0,0.1);
+    transition: all 0.1s ease;
+}
+
+.h-16.w-24:active {
+    border-bottom: 0px solid transparent;
+    margin-top: 3px;
+}
+
+/* =============================================================
+   4. MODAIS E OVERLAYS
+   ============================================================= */
+#modal-resumo {
+    transition: background 0.3s ease;
+}
+
+.modal-content {
+    border-radius: 2.5rem 2.5rem 0 0;
+}
+
+/* =============================================================
+   5. UTILITÁRIOS DE TEXTO
+   ============================================================= */
+.font-black {
+    font-weight: 900;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.tracking-tighter {
+    letter-spacing: -0.05em;
+}
+
+/* Estilo para o Toast */
+.toast-success { background: #10b981; }
+.toast-error { background: #ef4444; }
+
+/* =============================================================
+   LAYOUT DE TICKET PROFISSIONAL (ESTILO FESTIVAL 58mm)
+   ============================================================= */
+@media print {
+    body * { visibility: hidden; height: 0; }
+    #secao-impressao, #secao-impressao * { visibility: visible; height: auto; }
+    
+    #secao-impressao {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 58mm;
+        padding: 0;
+        margin: 0;
+        background: white;
+    }
+
+    .ticket {
+        width: 100%;
+        text-align: center;
+        font-family: 'Arial', sans-serif;
+        padding: 4mm 0;
+        border-bottom: 2px dashed #000;
+        /* Bordas laterais no estilo dos modelos enviados */
+        border-left: 4mm solid #e63946;
+        border-right: 4mm solid #e63946;
+        box-sizing: border-box;
+        background-color: #fff;
+    }
+
+    .ticket:last-child { border-bottom: none; }
+
+    .ticket-logo { width: 12mm; height: 12mm; margin-bottom: 2mm; border-radius: 50%; }
+    
+    .ticket-header { font-size: 8px; font-weight: 900; color: #333; text-transform: uppercase; margin-bottom: 1mm; }
+    
+    /* Caixa de destaque para o produto */
+    .ticket-box {
+        border: 0.5mm solid #000;
+        margin: 2mm 3mm;
+        padding: 3mm 1mm;
+        background-color: #f9f9f9;
+    }
+
+    .ticket-item { font-size: 14px; font-weight: 900; text-transform: uppercase; color: #000; }
+    
+    .ticket-value { font-size: 10px; font-weight: bold; margin-top: 1mm; }
+
+    .ticket-footer-info { 
+        font-size: 7px; 
+        font-weight: bold; 
+        border-top: 0.2mm solid #ccc; 
+        margin: 2mm 3mm 0 3mm; 
+        padding-top: 2mm;
+        text-align: left;
+        line-height: 1.4;
+    }
+}
