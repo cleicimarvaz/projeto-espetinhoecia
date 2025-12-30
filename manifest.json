@@ -1,10 +1,9 @@
 {
-  "name": "Espetinho & Cia - Gestão",
-  "short_name": "EspetinhoCia",
-  "description": "Sistema de gestão para espetinhos e eventos.",
-  "start_url": "login.html",
+  "name": "Espetinho & Cia - Sistema",
+  "short_name": "Espetinho",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f8f9fa",
+  "background_color": "#f8fafc",
   "theme_color": "#e63946",
   "orientation": "portrait",
   "icons": [

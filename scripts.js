@@ -1,7 +1,7 @@
 /* =================================================================================
    MÓDULO 1: CONFIGURAÇÃO E VARIÁVEIS
    ================================================================================= */
-console.log(">>> SISTEMA INICIANDO...");
+console.log(">>> SISTEMA INICIANDO (V2.4 - DASHBOARD ADMIN)...");
 
 const SUPABASE_URL = 'https://vtexlttnjzmgknmbwbwl.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_C5SP_ulU5lhJjTdokxdegA_6ZIdeGPk';
@@ -42,17 +42,32 @@ async function registrarLog(tipo, descricao) {
     await _supabase.from('auditoria_sistema').insert([{ usuario: usuario, acao: textoLog, created_at: new Date().toISOString() }]);
 }
 
+function setLoading(btnId, isLoading, text = "CONFIRMAR") {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (isLoading) {
+        btn.dataset.originalText = btn.innerText;
+        btn.innerText = "⏳ PROCESSANDO...";
+        btn.disabled = true;
+        btn.classList.add("opacity-50", "cursor-not-allowed");
+    } else {
+        btn.innerText = text || btn.dataset.originalText || "CONFIRMAR";
+        btn.disabled = false;
+        btn.classList.remove("opacity-50", "cursor-not-allowed");
+    }
+}
+
 function solicitarAutenticacao(acao) {
     callbackAuth = acao;
     document.getElementById('input-auth-senha').value = '';
     document.getElementById('modal-auth-admin').classList.remove('hidden');
     document.getElementById('modal-auth-admin').classList.add('flex');
     
-    // Reset visual do botão
     const btn = document.getElementById('btn-confirma-auth');
     if(btn) {
         btn.innerText = "CONFIRMAR";
         btn.disabled = false;
+        btn.classList.remove("opacity-50", "cursor-not-allowed");
     }
     
     setTimeout(() => document.getElementById('input-auth-senha').focus(), 100);
@@ -60,82 +75,67 @@ function solicitarAutenticacao(acao) {
 
 function fecharModalAuth() {
     document.getElementById('modal-auth-admin').classList.add('hidden');
-    // Não limpa callbackAuth aqui para permitir a execução no sucesso
 }
 
 async function confirmarAuth() {
     const senhaDigitada = document.getElementById('input-auth-senha').value;
     if (!senhaDigitada) return showToast("DIGITE A SENHA", "erro");
 
-    const btn = document.getElementById('btn-confirma-auth');
-    const txtOriginal = btn.innerText;
-    btn.innerText = "VERIFICANDO...";
-    btn.disabled = true;
+    setLoading('btn-confirma-auth', true);
 
     try {
         const usuarioAtual = localStorage.getItem('userName');
-        
-        // Busca usuário no banco (garantindo lowercase na busca por segurança)
-        const { data: users, error } = await _supabase.from('usuarios')
-            .select('*')
-            .eq('usuario', usuarioAtual.toLowerCase()); 
-
-        // Verifica a senha localmente
+        const { data: users, error } = await _supabase.from('usuarios').select('*').eq('usuario', usuarioAtual.toLowerCase()); 
         const user = users ? users.find(u => u.senha === senhaDigitada) : null;
 
         if (error || !user) {
             showToast("SENHA INCORRETA", "erro");
-            btn.innerText = txtOriginal;
-            btn.disabled = false;
+            setLoading('btn-confirma-auth', false, "CONFIRMAR");
             document.getElementById('input-auth-senha').value = '';
             document.getElementById('input-auth-senha').focus();
         } else {
             fecharModalAuth();
-            if (callbackAuth) {
-                await callbackAuth();
-                callbackAuth = null;
-            }
+            if (callbackAuth) { await callbackAuth(); callbackAuth = null; }
         }
     } catch (e) {
         console.error(e);
         showToast("ERRO DE CONEXÃO", "erro");
-        btn.innerText = txtOriginal;
-        btn.disabled = false;
+        setLoading('btn-confirma-auth', false, "CONFIRMAR");
     }
 }
 
 window.fazerLogin = async function() {
     if (!_supabase) return showToast("SISTEMA OFFLINE", "erro");
-    
-    // CONVERTE PARA MINÚSCULO NA HORA DO LOGIN TAMBÉM
     const u = document.getElementById('user').value.trim().toLowerCase();
     const s = document.getElementById('pass').value.trim();
-    
     if (!u || !s) return showToast("PREENCHA TUDO", "erro");
 
     const btn = document.querySelector('button');
-    const txt = btn.innerText; btn.innerText = "VERIFICANDO..."; btn.disabled = true;
+    const txtOriginal = btn.innerText;
+    btn.innerText = "VERIFICANDO..."; 
+    btn.disabled = true;
+    btn.classList.add("opacity-70");
 
     try {
-        // Busca exata pelo usuário em minúsculo
-        const { data: user, error } = await _supabase.from('usuarios')
-            .select('*')
-            .eq('usuario', u)
-            .eq('senha', s)
-            .single();
-
+        const { data: user, error } = await _supabase.from('usuarios').select('*').eq('usuario', u).eq('senha', s).single();
         if (error || !user) { 
             showToast("DADOS INVÁLIDOS", "erro"); 
-            btn.innerText = txt; 
-            btn.disabled = false; 
-        }
-        else {
+            btn.innerText = txtOriginal; 
+            btn.disabled = false;
+            btn.classList.remove("opacity-70");
+        } else {
             localStorage.setItem('userRole', user.role || 'admin');
-            localStorage.setItem('userName', user.usuario); // Salva minúsculo
+            localStorage.setItem('userName', user.usuario); 
+            localStorage.setItem('userRealName', user.nome || user.usuario);
             registrarLog('LOGIN', 'Acesso realizado ao sistema');
             atualizarUltimoAcesso(); window.location.href = 'home.html';
         }
-    } catch (e) { showToast("ERRO REDE", "erro"); btn.innerText = txt; btn.disabled = false; }
+    } catch (e) { 
+        showToast("ERRO REDE", "erro"); 
+        btn.innerText = txtOriginal; 
+        btn.disabled = false;
+        btn.classList.remove("opacity-70");
+    }
 };
 
 function verificarAuth() {
@@ -146,13 +146,14 @@ function verificarAuth() {
     if (!user && !loginPage) { window.location.href = 'index.html'; return; }
     if (user) {
         const ultimo = parseInt(localStorage.getItem('ultimoAcesso')||0);
-        if (Date.now() - ultimo > TEMPO_LIMITE_INATIVIDADE) {
-            alert("Sessão expirada."); logout();
-        }
+        if (Date.now() - ultimo > TEMPO_LIMITE_INATIVIDADE) { alert("Sessão expirada."); logout(); }
     }
+    
     const h = document.getElementById('header-usuario');
-    // Exibe em maiúsculo no header só para ficar bonito, mas no sistema é minúsculo
-    if (h && user) h.innerText = `OLÁ, ${localStorage.getItem('userName')?.toUpperCase() || 'ADMIN'}`;
+    if (h && user) {
+        const nomeExibicao = localStorage.getItem('userRealName') || localStorage.getItem('userName') || 'ADMIN';
+        h.innerText = `OLÁ, ${nomeExibicao.toUpperCase()}`;
+    }
 }
 
 function iniciarMonitoramento() {
@@ -167,11 +168,7 @@ function logout() {
 window.logout = logout;
 
 function goBack() {
-    if (document.referrer && document.referrer.includes(window.location.host)) {
-        window.history.back();
-    } else {
-        window.location.href = 'home.html';
-    }
+    if (document.referrer && document.referrer.includes(window.location.host)) { window.history.back(); } else { window.location.href = 'home.html'; }
 }
 
 function configurarBotaoVoltar() {
@@ -179,11 +176,7 @@ function configurarBotaoVoltar() {
     headers.forEach(header => {
         const btn = header.querySelector('button');
         if (btn && (btn.innerText.includes('←') || btn.innerHTML.includes('←'))) {
-            btn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                goBack();
-            };
+            btn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); goBack(); };
         }
     });
 }
@@ -207,11 +200,8 @@ function initSistema() {
     const p = window.location.pathname;
     if (p.includes('venda.html')) { renderizarVenda(); verificarContextoVenda(); }
     else if (p.includes('configuracoes.html')) { 
-        renderizarCatalogo(); 
-        carregarAuditoria(); 
-        carregarFiltroUsuarios(); 
-        const nomeSalvo = localStorage.getItem('nomeLoja');
-        if(nomeSalvo) document.getElementById('cfg-nome-loja').value = nomeSalvo;
+        renderizarCatalogo(); carregarAuditoria(); carregarFiltroUsuarios(); 
+        const nomeSalvo = localStorage.getItem('nomeLoja'); if(nomeSalvo) document.getElementById('cfg-nome-loja').value = nomeSalvo;
     }
     else if (p.includes('comandas.html')) { carregarComandas(); }
     else if (p.includes('divisao.html')) { initPaginaDivisao(); }
@@ -230,18 +220,22 @@ function atualizarEstiloAba(btnAtivo, btnInativo) {
    ================================================================================= */
 async function carregarResumoHome() {
     if(!_supabase) return;
+    
+    // 1. Pega dados de hoje para o Card Principal
     const hoje = new Date().toISOString().split('T')[0];
-    const { data: v } = await _supabase.from('historico_vendas').select('total').gte('created_at', `${hoje}T00:00:00`).lte('created_at', `${hoje}T23:59:59`);
-    const total = (v||[]).reduce((acc, i) => acc + (parseFloat(i.total)||0), 0);
-    const el = document.getElementById('faturamento-hoje'); if(el) el.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    const { data: vHoje } = await _supabase.from('historico_vendas').select('total').gte('created_at', `${hoje}T00:00:00`).lte('created_at', `${hoje}T23:59:59`);
+    const totalHoje = (vHoje||[]).reduce((acc, i) => acc + (parseFloat(i.total)||0), 0);
+    const el = document.getElementById('faturamento-hoje'); 
+    if(el) el.innerText = `R$ ${totalHoje.toFixed(2).replace('.', ',')}`;
 
+    // 2. Badge de Comandas
     const { count } = await _supabase.from('comandas').select('*', { count: 'exact', head: true }).eq('status', 'aberta');
     const badge = document.getElementById('badge-comandas');
     if(badge) { badge.innerText = count; badge.classList.toggle('hidden', count === 0); }
 }
 
 /* =================================================================================
-   MÓDULO 4: VENDAS
+   MÓDULO 4: VENDAS (MANTIDO IGUAL)
    ================================================================================= */
 async function renderizarVenda() {
     if(!_supabase) return;
@@ -304,6 +298,7 @@ function abrirResumoPedido() {
         const lista = document.getElementById('itens-carrinho-modal');
         lista.innerHTML = carrinho.map(i => `<div class="flex justify-between p-2 text-[10px] border-b border-slate-50 last:border-0"><span>${i.qtd}x ${i.nome}</span><span>R$ ${(i.preco*i.qtd).toFixed(2)}</span></div>`).join('');
         document.getElementById('total-modal').innerText = `R$ ${carrinho.reduce((a,i)=>a+(i.preco*i.qtd),0).toFixed(2)}`;
+        setLoading('btn-confirmar-venda-balcao', false, "CONFIRMAR E PAGAR");
         document.getElementById('modal-resumo').classList.remove('hidden'); document.getElementById('modal-resumo').classList.add('flex');
     }
 }
@@ -316,6 +311,7 @@ function calcularTroco() {
     const el = document.getElementById('valor-troco');
     if(el) { el.innerText = `R$ ${(rec-total).toFixed(2)}`; el.className = `p-4 font-black text-center rounded-xl ${(rec-total)<0?'text-red-500 bg-red-50':'text-emerald-500 bg-emerald-50'}`; }
 }
+
 async function confirmarVenda() {
     const total = carrinho.reduce((a,i) => a+(i.preco*i.qtd), 0);
     const pag = document.getElementById('forma-pagamento').value;
@@ -324,37 +320,57 @@ async function confirmarVenda() {
         const recebido = convMoedaFloat(document.getElementById('valor-recebido').value);
         if (recebido < total) { return showToast("VALOR INSUFICIENTE", "erro"); }
     }
-    
-    dadosUltimaVenda = { tipo: 'BALCÃO', itens: [...carrinho], total: total, pagamento: pag, data: new Date() };
 
-    await _supabase.from('historico_vendas').insert([{ itens: carrinho, total: total, forma_pagamento: pag, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]);
-    
-    const resumoItens = carrinho.map(i => `${i.qtd}x ${i.nome}`).join(', ');
-    registrarLog('VENDA BALCÃO', `${resumoItens} | Total: R$ ${total.toFixed(2)} | Pag: ${pag}`);
+    setLoading('btn-confirmar-venda-balcao', true);
 
-    showToast("VENDA REALIZADA!"); fecharResumoPedido(); carrinho = []; renderizarVenda();
-    document.getElementById('modal-confirmacao-impressao').classList.remove('hidden');
+    try {
+        dadosUltimaVenda = { tipo: 'BALCÃO', itens: [...carrinho], total: total, pagamento: pag, data: new Date() };
+
+        await _supabase.from('historico_vendas').insert([{ itens: carrinho, total: total, forma_pagamento: pag, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]);
+        
+        const resumoItens = carrinho.map(i => `${i.qtd}x ${i.nome}`).join(', ');
+        registrarLog('VENDA BALCÃO', `${resumoItens} | Total: R$ ${total.toFixed(2)} | Pag: ${pag}`);
+
+        showToast("VENDA REALIZADA!"); 
+        fecharResumoPedido(); 
+        carrinho = []; 
+        renderizarVenda();
+        document.getElementById('modal-confirmacao-impressao').classList.remove('hidden');
+    } catch (e) {
+        console.error(e);
+        showToast("ERRO AO PROCESSAR", "erro");
+        setLoading('btn-confirmar-venda-balcao', false, "CONFIRMAR E PAGAR");
+    }
 }
 
 async function abrirConfirmacaoComanda(id) {
     const { data: c } = await _supabase.from('comandas').select('*').eq('id', id).single();
     document.getElementById('titulo-confirmacao-mesa').innerText = c.identificacao;
     document.getElementById('itens-confirmacao-comanda').innerHTML = carrinho.map(i => `<div class="flex justify-between text-[10px] font-bold text-slate-600"><span>${i.qtd}x ${i.nome}</span><span>R$ ${(i.preco*i.qtd).toFixed(2)}</span></div>`).join('');
+    setLoading('btn-lancar-comanda', false, "LANÇAR PEDIDO");
     document.getElementById('modal-confirmacao-comanda').classList.remove('hidden'); document.getElementById('modal-confirmacao-comanda').classList.add('flex');
 }
 function fecharConfirmacaoComanda() { document.getElementById('modal-confirmacao-comanda').classList.add('hidden'); }
-async function concluirLancamentoComanda() {
-    const id = sessionStorage.getItem('comandaAtivaId');
-    const { data: c } = await _supabase.from('comandas').select('*').eq('id', id).single();
-    const novosItens = [...c.itens, ...carrinho];
-    const novoTotal = novosItens.reduce((a,i) => a+(parseFloat(i.preco)*i.qtd), 0);
-    await _supabase.from('comandas').update({ itens: novosItens, total: novoTotal }).eq('id', id);
-    
-    const resumoItens = carrinho.map(i => `${i.qtd}x ${i.nome}`).join(', ');
-    registrarLog('PEDIDO MESA', `Mesa: ${c.identificacao} | Itens: ${resumoItens}`);
 
-    showToast("LANÇADO NA COMANDA!"); carrinho = []; sessionStorage.removeItem('comandaAtivaId'); 
-    window.location.href = 'comandas.html';
+async function concluirLancamentoComanda() {
+    setLoading('btn-lancar-comanda', true);
+
+    try {
+        const id = sessionStorage.getItem('comandaAtivaId');
+        const { data: c } = await _supabase.from('comandas').select('*').eq('id', id).single();
+        const novosItens = [...c.itens, ...carrinho];
+        const novoTotal = novosItens.reduce((a,i) => a+(parseFloat(i.preco)*i.qtd), 0);
+        await _supabase.from('comandas').update({ itens: novosItens, total: novoTotal }).eq('id', id);
+        
+        const resumoItens = carrinho.map(i => `${i.qtd}x ${i.nome}`).join(', ');
+        registrarLog('PEDIDO MESA', `Mesa: ${c.identificacao} | Itens: ${resumoItens}`);
+
+        showToast("LANÇADO NA COMANDA!"); carrinho = []; sessionStorage.removeItem('comandaAtivaId'); 
+        window.location.href = 'comandas.html';
+    } catch (e) {
+        showToast("ERRO AO LANÇAR", "erro");
+        setLoading('btn-lancar-comanda', false, "LANÇAR PEDIDO");
+    }
 }
 
 function voltarDaVenda() { goBack(); }
@@ -365,7 +381,6 @@ function verificarContextoVenda() {
     }
 }
 
-// IMPRESSÃO DE CUPOM + VISUALIZAÇÃO DE TESTE
 function fecharModalImpressao() { document.getElementById('modal-confirmacao-impressao').classList.add('hidden'); }
 function confirmarImpressaoAction() { if (!dadosUltimaVenda) return showToast("NADA PARA IMPRIMIR", "erro"); imprimirCupom(dadosUltimaVenda); fecharModalImpressao(); }
 
@@ -471,6 +486,7 @@ async function abrirModalFechamento(id) {
     document.getElementById('lista-itens-fechamento').innerHTML = c.itens.map(i => `<div class="flex justify-between py-2 border-b text-[10px]"><span class="uppercase">${i.qtd}x ${i.nome}</span><span class="font-black">R$ ${(parseFloat(i.preco)*i.qtd).toFixed(2)}</span></div>`).join('');
     document.getElementById('forma-pagamento-fechamento').value = 'Pix';
     handlePagamentoFechamentoChange();
+    setLoading('btn-fechar-comanda', false, "RECEBER E FINALIZAR");
     document.getElementById('modal-fechamento').classList.remove('hidden'); document.getElementById('modal-fechamento').classList.add('flex');
 }
 function fecharModalFechamento() { document.getElementById('modal-fechamento').classList.add('hidden'); }
@@ -518,20 +534,32 @@ function calcularTrocoFechamento() {
 
 window.confirmarFechamento = async function() {
     const f = document.getElementById('forma-pagamento-fechamento').value;
-    const { data: c } = await _supabase.from('comandas').select('*').eq('id', comandaEmFechamentoId).single();
     
-    if (f === 'Dinheiro') {
-        const recebido = convMoedaFloat(document.getElementById('valor-recebido-fechamento').value);
-        if (recebido < c.total) { return showToast("VALOR INSUFICIENTE", "erro"); }
-    }
-    
-    await _supabase.from('historico_vendas').insert([{ itens: c.itens, total: c.total, forma_pagamento: f, vendedor: localStorage.getItem('userName'), comanda_id: c.id, created_at: new Date().toISOString() }]);
-    await _supabase.from('comandas').update({ status: 'fechada', fechada_em: new Date().toISOString() }).eq('id', comandaEmFechamentoId);
-    
-    const resumoItens = c.itens.map(i => `${i.qtd}x ${i.nome}`).join(', ');
-    registrarLog('FECHAMENTO DE MESA', `Mesa: ${c.identificacao} | Total: R$ ${c.total} | Pag: ${f} | Itens: ${resumoItens}`);
+    setLoading('btn-fechar-comanda', true);
 
-    showToast("COMANDA FECHADA!"); fecharModalFechamento(); carregarComandas();
+    try {
+        const { data: c } = await _supabase.from('comandas').select('*').eq('id', comandaEmFechamentoId).single();
+        
+        if (f === 'Dinheiro') {
+            const recebido = convMoedaFloat(document.getElementById('valor-recebido-fechamento').value);
+            if (recebido < c.total) { 
+                showToast("VALOR INSUFICIENTE", "erro"); 
+                setLoading('btn-fechar-comanda', false, "RECEBER E FINALIZAR"); 
+                return;
+            }
+        }
+        
+        await _supabase.from('historico_vendas').insert([{ itens: c.itens, total: c.total, forma_pagamento: f, vendedor: localStorage.getItem('userName'), comanda_id: c.id, created_at: new Date().toISOString() }]);
+        await _supabase.from('comandas').update({ status: 'fechada', fechada_em: new Date().toISOString() }).eq('id', comandaEmFechamentoId);
+        
+        const resumoItens = c.itens.map(i => `${i.qtd}x ${i.nome}`).join(', ');
+        registrarLog('FECHAMENTO DE MESA', `Mesa: ${c.identificacao} | Total: R$ ${c.total} | Pag: ${f} | Itens: ${resumoItens}`);
+
+        showToast("COMANDA FECHADA!"); fecharModalFechamento(); carregarComandas();
+    } catch (e) {
+        showToast("ERRO AO FECHAR", "erro");
+        setLoading('btn-fechar-comanda', false, "RECEBER E FINALIZAR");
+    }
 };
 
 /* =================================================================================
@@ -650,6 +678,8 @@ function abrirResumoDivisao() {
     const total = itensParaAbater.reduce((acc, idx) => acc + parseFloat(itensExpandidosDivisao[idx].preco), 0);
     document.getElementById('itens-divisao-modal').innerHTML = itensParaAbater.map(idx => { const item = itensExpandidosDivisao[idx]; return `<div class="flex justify-between text-[10px] font-bold"><span>${item.nome}</span><span>R$ ${parseFloat(item.preco).toFixed(2)}</span></div>`; }).join('');
     document.getElementById('total-divisao-modal').innerText = `R$ ${total.toFixed(2)}`;
+    // Reseta botões
+    setLoading('btn-pagar-itens', false, "CONFIRMAR PAGAMENTO");
     document.getElementById('modal-divisao').classList.remove('hidden'); document.getElementById('modal-divisao').classList.add('flex');
 }
 function fecharModalDivisao() { document.getElementById('modal-divisao').classList.add('hidden'); }
@@ -660,34 +690,56 @@ function calcularTrocoDivisao() {
     const el = document.getElementById('troco-divisao');
     el.innerText = `R$ ${(rec-total).toFixed(2)}`; el.className = `bg-slate-100 p-4 rounded-2xl text-xs font-black min-w-[80px] flex justify-center items-center ${(rec-total)<0?'text-red-500':'text-emerald-500'}`;
 }
+
+// CORREÇÃO: BLINDAGEM DIVISÃO (ITENS)
 async function confirmarAbateItens() {
     const total = itensParaAbater.reduce((acc, idx) => acc + parseFloat(itensExpandidosDivisao[idx].preco), 0);
     const forma = document.getElementById('forma-parcial-itens').value;
-    if (forma === 'Dinheiro') { const recebido = convMoedaFloat(document.getElementById('recebido-divisao').value); if (recebido < total) { return showToast("VALOR INSUFICIENTE", "erro"); } }
-
-    const itensNegativos = itensParaAbater.map(idx => { const item = itensExpandidosDivisao[idx]; return { nome: `PGTO PARCIAL (${item.nome})`, preco: -Math.abs(item.preco), qtd: 1 }; });
-    const novosItens = [...comandaAtualDivisao.itens, ...itensNegativos];
-    const novoTotal = Math.max(0, novosItens.reduce((a, i) => a + (parseFloat(i.preco)*i.qtd), 0));
-    await _supabase.from('historico_vendas').insert([{ itens: itensNegativos, total: total, forma_pagamento: forma, comanda_id: comandaAtualDivisao.id, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]);
-    await _supabase.from('comandas').update({ itens: novosItens, total: parseFloat(novoTotal.toFixed(2)), status: novoTotal < 0.05 ? 'fechada' : 'aberta' }).eq('id', comandaAtualDivisao.id);
     
-    registrarLog('PAGAMENTO PARCIAL (ITEM)', `Mesa: ${comandaAtualDivisao.identificacao} | Valor: R$ ${total} | Itens Pagos: ${itensParaAbater.length}`);
+    // TRAVA
+    setLoading('btn-pagar-itens', true);
 
-    showToast("PAGAMENTO REALIZADO!"); window.location.href = 'comandas.html';
+    try {
+        if (forma === 'Dinheiro') { const recebido = convMoedaFloat(document.getElementById('recebido-divisao').value); if (recebido < total) { showToast("VALOR INSUFICIENTE", "erro"); setLoading('btn-pagar-itens', false, "CONFIRMAR PAGAMENTO"); return; } }
+
+        const itensNegativos = itensParaAbater.map(idx => { const item = itensExpandidosDivisao[idx]; return { nome: `PGTO PARCIAL (${item.nome})`, preco: -Math.abs(item.preco), qtd: 1 }; });
+        const novosItens = [...comandaAtualDivisao.itens, ...itensNegativos];
+        const novoTotal = Math.max(0, novosItens.reduce((a, i) => a + (parseFloat(i.preco)*i.qtd), 0));
+        await _supabase.from('historico_vendas').insert([{ itens: itensNegativos, total: total, forma_pagamento: forma, comanda_id: comandaAtualDivisao.id, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]);
+        await _supabase.from('comandas').update({ itens: novosItens, total: parseFloat(novoTotal.toFixed(2)), status: novoTotal < 0.05 ? 'fechada' : 'aberta' }).eq('id', comandaAtualDivisao.id);
+        
+        registrarLog('PAGAMENTO PARCIAL (ITEM)', `Mesa: ${comandaAtualDivisao.identificacao} | Valor: R$ ${total} | Itens Pagos: ${itensParaAbater.length}`);
+
+        showToast("PAGAMENTO REALIZADO!"); window.location.href = 'comandas.html';
+    } catch (e) {
+        showToast("ERRO", "erro");
+        setLoading('btn-pagar-itens', false, "CONFIRMAR PAGAMENTO");
+    }
 }
-async function confirmarAbateValor() {
-    const v = convMoedaFloat(document.getElementById('valor-parcial').value);
-    const f = document.getElementById('forma-parcial-valor').value;
-    if(v <= 0) return showToast("INVÁLIDO", "erro");
-    const itemNeg = { nome: `PAGAMENTO ADIANTADO (${f})`, preco: -Math.abs(v), qtd: 1 };
-    const novosItens = [...comandaAtualDivisao.itens, itemNeg];
-    const novoT = Math.max(0, novosItens.reduce((a, i) => a + (parseFloat(i.preco)*i.qtd), 0));
-    await _supabase.from('historico_vendas').insert([{ itens: [itemNeg], total: v, forma_pagamento: f, comanda_id: comandaAtualDivisao.id, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]);
-    await _supabase.from('comandas').update({ itens: novosItens, total: parseFloat(novoT.toFixed(2)), status: novoT < 0.05 ? 'fechada' : 'aberta' }).eq('id', comandaAtualDivisao.id);
-    
-    registrarLog('PAGAMENTO ADIANTADO (VALOR)', `Mesa: ${comandaAtualDivisao.identificacao} | Valor: R$ ${v} | Forma: ${f}`);
 
-    showToast("ABATIDO!"); window.location.href = 'comandas.html';
+// CORREÇÃO: BLINDAGEM DIVISÃO (VALOR)
+async function confirmarAbateValor() {
+    // TRAVA
+    setLoading('btn-pagar-valor', true);
+
+    try {
+        const v = convMoedaFloat(document.getElementById('valor-parcial').value);
+        const f = document.getElementById('forma-parcial-valor').value;
+        if(v <= 0) { showToast("INVÁLIDO", "erro"); setLoading('btn-pagar-valor', false, "CONFIRMAR PAGAMENTO"); return; }
+
+        const itemNeg = { nome: `PAGAMENTO ADIANTADO (${f})`, preco: -Math.abs(v), qtd: 1 };
+        const novosItens = [...comandaAtualDivisao.itens, itemNeg];
+        const novoT = Math.max(0, novosItens.reduce((a, i) => a + (parseFloat(i.preco)*i.qtd), 0));
+        await _supabase.from('historico_vendas').insert([{ itens: [itemNeg], total: v, forma_pagamento: f, comanda_id: comandaAtualDivisao.id, vendedor: localStorage.getItem('userName'), created_at: new Date().toISOString() }]);
+        await _supabase.from('comandas').update({ itens: novosItens, total: parseFloat(novoT.toFixed(2)), status: novoT < 0.05 ? 'fechada' : 'aberta' }).eq('id', comandaAtualDivisao.id);
+        
+        registrarLog('PAGAMENTO ADIANTADO (VALOR)', `Mesa: ${comandaAtualDivisao.identificacao} | Valor: R$ ${v} | Forma: ${f}`);
+
+        showToast("ABATIDO!"); window.location.href = 'comandas.html';
+    } catch (e) {
+        showToast("ERRO", "erro");
+        setLoading('btn-pagar-valor', false, "CONFIRMAR PAGAMENTO");
+    }
 }
 function irParaDivisao(id) { sessionStorage.setItem('comandaDivisaoId', id); window.location.href = 'divisao.html'; }
 
@@ -740,7 +792,7 @@ function abrirSubSecao(s) {
     if (s === 'relatorios') {
         const menuRel = document.getElementById('menu-relatorios-cards');
         if(menuRel) menuRel.classList.remove('hidden');
-        ['view-financeiro', 'view-produtos', 'view-comandas'].forEach(id => {
+        ['view-financeiro', 'view-produtos', 'view-comandas', 'view-dashboard'].forEach(id => {
             const el = document.getElementById(id);
             if(el) el.classList.add('hidden');
         });
@@ -773,10 +825,16 @@ function voltarAoMenuAdmin() {
 
 function abrirRelatorioEspecifico(t) { 
     document.getElementById('menu-relatorios-cards').classList.add('hidden'); 
-    ['view-financeiro', 'view-produtos', 'view-comandas'].forEach(id => document.getElementById(id).classList.add('hidden')); 
+    ['view-financeiro', 'view-produtos', 'view-comandas', 'view-dashboard'].forEach(id => document.getElementById(id).classList.add('hidden')); 
+    
     const el = document.getElementById(`view-${t}`);
     if(el) el.classList.remove('hidden'); 
     
+    if (t === 'dashboard') {
+        gerarDashboard();
+        return;
+    }
+
     // DEFINE AUTOMATICAMENTE A DATA DE INÍCIO COMO 7 DIAS ATRÁS
     const hoje = new Date();
     const passado = new Date();
@@ -795,7 +853,70 @@ function abrirRelatorioEspecifico(t) {
     }
 }
 
-function voltarMenuRelatorios() { ['view-financeiro', 'view-produtos', 'view-comandas'].forEach(id => document.getElementById(id).classList.add('hidden')); document.getElementById('menu-relatorios-cards').classList.remove('hidden'); }
+function voltarMenuRelatorios() { ['view-financeiro', 'view-produtos', 'view-comandas', 'view-dashboard'].forEach(id => document.getElementById(id).classList.add('hidden')); document.getElementById('menu-relatorios-cards').classList.remove('hidden'); }
+
+// LÓGICA DO DASHBOARD (MOVIDA PARA CÁ)
+async function gerarDashboard() {
+    if(!_supabase) return;
+    const seteDiasAtras = new Date();
+    seteDiasAtras.setDate(seteDiasAtras.getDate() - 6);
+    const inicioDash = seteDiasAtras.toISOString().split('T')[0];
+
+    const { data: vDash } = await _supabase.from('historico_vendas')
+        .select('*')
+        .gte('created_at', `${inicioDash}T00:00:00`)
+        .order('created_at', {ascending: true});
+
+    if(vDash && vDash.length > 0) renderizarGraficosAdmin(vDash);
+}
+
+function renderizarGraficosAdmin(vendas) {
+    if(typeof Chart === 'undefined') return;
+
+    // Destrói gráficos antigos se existirem para não bugar
+    Chart.getChart("chart-semana")?.destroy();
+    Chart.getChart("chart-categorias")?.destroy();
+    Chart.getChart("chart-pagamentos")?.destroy();
+
+    const dias = {};
+    const categorias = {};
+    const pagamentos = {};
+
+    vendas.forEach(v => {
+        const dataFormatada = new Date(v.created_at).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'});
+        dias[dataFormatada] = (dias[dataFormatada] || 0) + parseFloat(v.total);
+        pagamentos[v.forma_pagamento] = (pagamentos[v.forma_pagamento] || 0) + 1;
+        if(v.itens) {
+            v.itens.forEach(item => {
+                if(parseFloat(item.preco) > 0 && !item.nome.includes('PAGAMENTO')) {
+                    const cat = item.categoria ? item.categoria.toUpperCase() : 'OUTROS';
+                    categorias[cat] = (categorias[cat] || 0) + (item.qtd || 1);
+                }
+            });
+        }
+    });
+
+    new Chart(document.getElementById('chart-semana'), {
+        type: 'line',
+        data: {
+            labels: Object.keys(dias),
+            datasets: [{ label: 'Vendas (R$)', data: Object.values(dias), borderColor: '#e63946', backgroundColor: 'rgba(230, 57, 70, 0.1)', tension: 0.4, fill: true }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById('chart-categorias'), {
+        type: 'doughnut',
+        data: { labels: Object.keys(categorias), datasets: [{ data: Object.values(categorias), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById('chart-pagamentos'), {
+        type: 'bar',
+        data: { labels: Object.keys(pagamentos), datasets: [{ label: 'Qtd', data: Object.values(pagamentos), backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'], borderRadius: 5 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { display: false } } }
+    });
+}
 
 function alternarAbas(a) { 
     const lista = document.getElementById('aba-lista');
@@ -957,28 +1078,31 @@ async function carregarAuditoria() {
 async function carregarListaUsuarios() {
     const { data: users } = await _supabase.from('usuarios').select('*');
     const lista = document.getElementById('lista-usuarios-sistema');
-    lista.innerHTML = (users||[]).map(u => `
+    lista.innerHTML = (users||[]).map(u => {
+        // Exibe o nome real se tiver, senão o login
+        const nomeExibicao = u.nome ? `${u.nome} (${u.usuario})` : u.usuario;
+        return `
         <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <span class="text-[10px] font-bold uppercase text-slate-700">${u.usuario}</span>
+            <span class="text-[10px] font-bold uppercase text-slate-700">${nomeExibicao}</span>
             <button onclick="excluirUsuario('${u.id}')" class="bg-red-50 text-red-500 px-3 py-2 rounded-xl text-[9px] font-black uppercase border border-red-100 flex items-center gap-1 active:scale-95 transition-all hover:bg-red-100">
                 🗑️ EXCLUIR
             </button>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // CORREÇÃO CRÍTICA: Tratamento de erro e feedback no cadastro
 async function salvarNovoUsuario() {
-    // CONVERTE PARA MINÚSCULO ANTES DE SALVAR
     const u = document.getElementById('novo-user-nome').value.trim().toLowerCase();
     const s = document.getElementById('novo-user-pass').value.trim();
+    // NOVO: Captura o nome completo
+    const n = document.getElementById('novo-user-completo').value.trim().toUpperCase();
     
     if(!u || !s) {
         showToast("PREENCHA TUDO", "erro");
         return;
     }
     
-    // Verifica se usuário já existe
     const { data: existente } = await _supabase.from('usuarios').select('*').eq('usuario', u).single();
     if (existente) {
         showToast("USUÁRIO JÁ EXISTE", "erro");
@@ -986,15 +1110,17 @@ async function salvarNovoUsuario() {
     }
 
     solicitarAutenticacao(async () => {
-        const { error } = await _supabase.from('usuarios').insert([{ usuario: u, senha: s, role: 'admin' }]);
+        // NOVO: Inclui o campo 'nome' no insert
+        const { error } = await _supabase.from('usuarios').insert([{ usuario: u, senha: s, nome: n, role: 'admin' }]);
         
         if (error) {
             console.error(error);
             showToast("ERRO AO SALVAR", "erro");
         } else {
-            registrarLog('NOVO USUÁRIO', `Usuário criado: ${u}`);
+            registrarLog('NOVO USUÁRIO', `Usuário criado: ${u} (${n})`);
             document.getElementById('novo-user-nome').value = '';
             document.getElementById('novo-user-pass').value = '';
+            document.getElementById('novo-user-completo').value = '';
             showToast("USUÁRIO CRIADO!");
             carregarListaUsuarios();
         }
