@@ -161,7 +161,11 @@ window.salvarEdicaoUsuario = async function() {
 
     try {
         const dadosAtualizados = { nome, usuario: login, recebe_notificacoes: recebeNotificacoes };
-        if (novaSenha && novaSenha.trim() !== '') dadosAtualizados.senha = btoa(novaSenha);
+        
+        // CORREÇÃO: Removido o btoa para salvar a senha como texto comum
+        if (novaSenha && novaSenha.trim() !== '') {
+            dadosAtualizados.senha = novaSenha; 
+        }
 
         const { error } = await _supabase.from('usuarios').update(dadosAtualizados).eq('id', id);
         if (error) throw error;
