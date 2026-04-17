@@ -140,11 +140,9 @@ window.carregarDespesas = async function() {
     const lista = document.getElementById('lista-despesas');
     if (!lista) return;
 
-    // 1. Puxa as datas do novo filtro global (definidas no aplicarFiltroDespesas)
     let dataInicio = window.filtroDespesasDataInicio;
     let dataFim = window.filtroDespesasDataFim;
 
-    // Fallback de segurança: Se for o primeiro carregamento e não tiver filtro ativo, puxa os últimos 30 dias
     if (!dataInicio || !dataFim) {
         const hoje = new Date();
         dataFim = hoje.toISOString().split('T')[0];
@@ -156,7 +154,6 @@ window.carregarDespesas = async function() {
     try {
         lista.innerHTML = `<p class="text-center text-[10px] font-black text-slate-400 uppercase animate-pulse py-8">Carregando contas...</p>`;
 
-        // 2. Busca no banco usando o novo intervalo de datas
         const { data, error } = await _supabase
             .from('despesas')
             .select('*')
@@ -166,7 +163,6 @@ window.carregarDespesas = async function() {
 
         if (error) throw error;
 
-        // 3. Filtra localmente baseado na aba ativa (Pendente ou Paga)
         const isPagaFiltro = window.filtroStatusDespesa === 'paga';
         const despesasFiltradas = data.filter(d => d.paga === isPagaFiltro);
 
@@ -181,13 +177,9 @@ window.carregarDespesas = async function() {
 
         const hojeObj = new Date();
         hojeObj.setHours(0,0,0,0);
-        
-        // Formata moeda usando a utilidade global ou fallback
         const formatMoeda = typeof window.formatarMoeda === 'function' ? window.formatarMoeda : val => parseFloat(val).toFixed(2);
 
-        // 4. Renderiza a lista intocada
         lista.innerHTML = despesasFiltradas.map(d => {
-            // Lógica de Alerta de Vencimento (Apenas para pendentes)
             let statusAtrasoHtml = '';
             if (!d.paga) {
                 const partesData = d.vencimento.split('-');
@@ -220,29 +212,24 @@ window.carregarDespesas = async function() {
                         </div>
                     </div>
                     
-                    <div class="flex flex-wrap gap-2 border-t border-slate-200 dark:border-slate-700 pt-3 mt-1">
+                    <div class="flex flex-wrap gap-1 border-t border-slate-200 dark:border-slate-700 pt-3 mt-1">
                         ${!d.paga ? `
-// --- BOTÃO PAGAR AGORA ---
-// Adicionamos whitespace-nowrap e tracking-tighter para o texto não quebrar
-<button onclick="marcarComoPaga(${d.id})" class="flex-[2] min-w-[90px] whitespace-nowrap bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 py-2 px-1 rounded-lg text-[8px] font-black uppercase active:scale-95 transition-all border border-emerald-200 dark:border-emerald-800 tracking-tighter">
-    💸 Pagar Agora
-</button>
+                            <button onclick="marcarComoPaga(${d.id})" class="flex-[2] min-w-[90px] whitespace-nowrap bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 py-2 px-1 rounded-lg text-[8px] font-black uppercase active:scale-95 transition-all border border-emerald-200 dark:border-emerald-800 tracking-tighter">
+                                💸 Pagar Agora
+                            </button>
+                        ` : `
+                            <button onclick="imprimirComprovanteDespesa(${d.id})" class="flex-[2] min-w-[90px] whitespace-nowrap bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-2 px-1 rounded-lg text-[8px] font-black uppercase active:scale-95 transition-all border border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center gap-1 tracking-tighter">
+                                🖨️ Comprovante
+                            </button>
+                        `}
 
-// --- BOTÃO COMPROVANTE ---
-// Adicionamos whitespace-nowrap e diminuímos levemente a fonte para 8px
-<button onclick="imprimirComprovanteDespesa(${d.id})" class="flex-1 whitespace-nowrap bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-2 px-1 rounded-lg text-[8px] font-black uppercase active:scale-95 transition-all border border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center gap-1 tracking-tighter">
-    🖨️ Comprovante
-</button>
+                        <button onclick="abrirFormDespesa(${d.id})" class="flex-1 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-2 rounded-lg text-[8px] font-black uppercase active:scale-95 transition-all border border-slate-200 dark:border-slate-600 shadow-sm">
+                            ✏️ Editar
+                        </button>
 
-// --- BOTÃO EDITAR ---
-<button onclick="abrirFormDespesa(${d.id})" class="flex-1 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-2 rounded-lg text-[8px] font-black uppercase active:scale-95 transition-all border border-slate-200 dark:border-slate-600 shadow-sm">
-    ✏️ Editar
-</button>
-
-// --- BOTÃO EXCLUIR ---
-<button onclick="excluirDespesa(${d.id})" class="flex-none w-8 bg-red-50 dark:bg-red-900/20 text-red-500 py-2 rounded-lg text-[9px] font-black uppercase active:scale-95 transition-all border border-red-100 dark:border-red-900/30">
-    🗑️
-</button>
+                        <button onclick="excluirDespesa(${d.id})" class="flex-none w-8 bg-red-50 dark:bg-red-900/20 text-red-500 py-2 rounded-lg text-[9px] font-black uppercase active:scale-95 transition-all border border-red-100 dark:border-red-900/30">
+                            🗑️
+                        </button>
                     </div>
                 </div>
             `;
