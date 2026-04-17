@@ -672,6 +672,19 @@ window.verificarNotificacoesGlobais = async function() {
 };
 
 window.abrirNotificacoes = async function() {
+    // --- 🛡️ TRAVA DE SEGURANÇA: APENAS ADMIN ---
+    const usuarioAtivo = JSON.parse(localStorage.getItem('usuario_logado'));
+    
+    if (!usuarioAtivo || usuarioAtivo.perfil !== 'ADMIN') {
+        if (typeof window.showToast === 'function') {
+            window.showToast('ACESSO RESTRITO AO ADMINISTRADOR', 'erro');
+        } else {
+            alert('Acesso restrito ao administrador.');
+        }
+        return; // Encerra a função aqui mesmo
+    }
+    // ------------------------------------------
+
     const modal = document.getElementById('modal-notificacoes');
     const container = document.getElementById('lista-contas-vencidas');
     
@@ -682,7 +695,6 @@ window.abrirNotificacoes = async function() {
     modal.classList.add('flex');
     
     try {
-        // Pede os mesmos dados exatos para a fonte da verdade
         const { contas, hojeObj } = await window._buscarContasVencidas();
         
         if (!contas || contas.length === 0) {
@@ -693,7 +705,6 @@ window.abrirNotificacoes = async function() {
                     <span class="text-sm text-slate-500 text-center mt-1">Nenhuma conta vencida encontrada. Excelente gestão!</span>
                 </div>`;
             
-            // Se abriu a lista vazia, garante que a bolinha suma
             const badge = document.getElementById('badge-notificacoes');
             if(badge) { badge.classList.add('hidden'); badge.classList.remove('flex'); }
             
@@ -724,7 +735,6 @@ window.abrirNotificacoes = async function() {
         
         container.innerHTML = html;
         
-        // Atualiza a bolinha com o número exato dos itens da lista
         const badge = document.getElementById('badge-notificacoes');
         if (badge) {
             badge.innerText = contas.length > 99 ? '99+' : contas.length;
@@ -737,6 +747,18 @@ window.abrirNotificacoes = async function() {
         container.innerHTML = '<div class="text-center p-6 text-red-500 font-bold">Erro ao carregar as informações do banco de dados.</div>';
     }
 };
+
+// Exemplo de como esconder o botão de notificações globalmente
+function ajustarInterfacePorPerfil() {
+    const usuarioAtivo = JSON.parse(localStorage.getItem('usuario_logado'));
+    const btnNotificacao = document.getElementById('btn-abrir-notificacoes'); // Use o ID real do seu botão
+
+    if (usuarioAtivo && usuarioAtivo.perfil !== 'ADMIN') {
+        if (btnNotificacao) btnNotificacao.classList.add('hidden');
+    } else {
+        if (btnNotificacao) btnNotificacao.classList.remove('hidden');
+    }
+}
 
 window.fecharModalNotificacoes = function() {
     const modal = document.getElementById('modal-notificacoes');
