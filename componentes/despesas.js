@@ -20,33 +20,38 @@ window.aplicarFiltroDespesas = function(dias) {
     const painel = document.getElementById('container-periodo-despesas');
 
     const hoje = new Date();
-    // Formato YYYY-MM-DD (padrão para input type="date")
     const dataFimStr = hoje.toISOString().split('T')[0];
     let dataIniStr = dataFimStr;
 
-    // 1. Lógica de cálculo
+    // 1. LÓGICA DE CÁLCULO E VISIBILIDADE
     if (dias === 'custom') {
-        // Se for a lupa, só fecha o painel se quiser, mas mantém as datas que o usuário digitou
-    } else if (dias === 0) {
-        dataIniStr = dataFimStr;
-        if (painel) painel.classList.add('hidden');
+        // Clicou na Lupa 🔍: Não fazemos nada com os inputs, apenas filtramos
+        // O painel continua aberto para o usuário ver o que filtrou
+    } else if (dias === 99) {
+        // Clicou em "PERÍODO": Apenas destaca o botão, não altera datas nem esconde o painel
     } else {
+        // Clicou em HOJE (0), 7 ou 30 dias:
         const passada = new Date();
         passada.setDate(hoje.getDate() - dias);
         dataIniStr = passada.toISOString().split('T')[0];
+        
+        // Injeta as datas calculadas
+        if (inputIni) inputIni.value = dataIniStr;
+        if (inputFim) inputFim.value = dataFimStr;
+        
+        // Esconde o painel pois é um filtro rápido
         if (painel) painel.classList.add('hidden');
     }
 
-    // 2. O PULO DO GATO: Injeta as datas nos campos para a impressora ler
-    if (inputIni) inputIni.value = dataIniStr;
-    if (inputFim) inputFim.value = dataFimStr;
-
-    // 3. Atualiza o visual dos botões (Pinta o ativo)
+    // 2. ATUALIZA O VISUAL DOS BOTÕES
     const opcoes = [0, 7, 30, 'periodo'];
     opcoes.forEach(id => {
         const btn = document.getElementById(`btn-desp-${id}`);
         if (btn) {
-            if (id === dias || (dias === 99 && id === 'periodo')) {
+            // Se for 99 ou 'custom', o botão 'periodo' fica ativo
+            const isActive = (id === dias) || ((dias === 99 || dias === 'custom') && id === 'periodo');
+            
+            if (isActive) {
                 btn.className = "flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-600";
             } else {
                 btn.className = "flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700";
@@ -54,21 +59,37 @@ window.aplicarFiltroDespesas = function(dias) {
         }
     });
 
-    // 4. Chama a sua função de carregar os dados no banco
-    if (typeof carregarDespesas === 'function') {
+    // 3. EXECUTA A BUSCA (Apenas se não for o 99, pois o 99 é só para abrir a gaveta)
+    if (dias !== 99 && typeof carregarDespesas === 'function') {
         carregarDespesas(); 
     }
 };
 
 window.toggleFiltroPeriodoDespesas = function() {
     const painel = document.getElementById('container-periodo-despesas');
+    const btnPeriodo = document.getElementById('btn-desp-periodo');
+
     if (painel) {
         const estaEscondido = painel.classList.contains('hidden');
-        painel.classList.toggle('hidden');
         
+        // 1. Alterna a visibilidade
+        painel.classList.toggle('hidden');
+
+        // 2. Se abriu o painel, destacamos o botão visualmente
         if (estaEscondido) {
-            // Se abriu o painel, marcamos o botão como ativo
-            window.aplicarFiltroDespesas(99); 
+            // Remove destaque de outros botões (0, 7, 30) para focar no período
+            document.querySelectorAll('[id^="btn-desp-"]').forEach(btn => {
+                btn.classList.remove('bg-white', 'dark:bg-slate-700', 'shadow-sm', 'text-slate-900', 'dark:text-white');
+            });
+            
+            // Adiciona destaque ao botão de período
+            if (btnPeriodo) {
+                btnPeriodo.classList.add('bg-white', 'dark:bg-slate-700', 'shadow-sm', 'text-slate-900', 'dark:text-white');
+                btnPeriodo.innerHTML = 'PERÍODO ▲'; // Muda a seta para cima
+            }
+        } else {
+            // Se fechou, apenas volta a seta ao normal
+            if (btnPeriodo) btnPeriodo.innerHTML = 'PERÍODO ▼';
         }
     }
 };
