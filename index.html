@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - Espetinho & Cia</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="img/logo.jpg">
+    <meta name="theme-color" id="meta-theme-color" content="#e63946">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Espetinho & Cia">
+    <link rel="apple-touch-icon" href="img/logo.jpg">
+    
+    <style>
+        /* Sombra suave para dar profundidade na logo igual ao app */
+        .logo-depth { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
+        
+        /* Animação suave de entrada */
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Melhoria no toque para mobile */
+        button:active { transform: scale(0.96); }
+    </style>
+</head>
+<body class="bg-[#e63946] flex items-center justify-center min-h-screen p-6 font-sans">
+
+    <div class="bg-white w-full max-w-[340px] rounded-[2.5rem] p-8 pt-12 shadow-2xl flex flex-col items-center relative animate-fade-in-up">
+        
+        <div class="absolute -top-12 bg-white p-2 rounded-full shadow-lg">
+            <img src="img/logo.jpg" alt="Logo Espetinho & Cia" class="w-24 h-24 rounded-full border-4 border-slate-50 object-cover logo-depth">
+        </div>
+
+        <h1 class="mt-10 text-[#e63946] text-2xl font-black italic tracking-tighter mb-1 uppercase drop-shadow-sm">ESPETINHO & CIA</h1>
+        <p class="text-slate-300 text-[9px] font-black uppercase tracking-[0.2em] mb-8">Sistema de Gestão</p>
+
+        <div class="w-full space-y-4">
+            <div>
+                <label for="user" class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-3 italic">Usuário</label>
+                <input type="text" id="user" autocomplete="username" placeholder="SEU USUÁRIO" 
+                    class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-700 outline-none focus:border-[#e63946] focus:ring-1 focus:ring-[#e63946]/20 transition-all uppercase font-sans placeholder:text-slate-300">
+            </div>
+
+            <div>
+                <label for="pass" class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-3 italic">Senha</label>
+                <input type="password" id="pass" autocomplete="current-password" placeholder="••••••••" 
+                    onkeydown="if(event.key === 'Enter') fazerLogin()"
+                    class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-700 outline-none focus:border-[#e63946] focus:ring-1 focus:ring-[#e63946]/20 transition-all font-sans placeholder:text-slate-300">
+            </div>
+
+            <button id="btn-entrar" onclick="fazerLogin()" 
+                class="w-full bg-[#e63946] text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-red-200 transition-all mt-4 border-2 border-white hover:brightness-110">
+                ENTRAR NO SISTEMA
+            </button>
+        </div>
+
+        <p class="text-slate-300 text-[8px] mt-10 font-black uppercase tracking-widest opacity-60">
+            Desenvolvido por Cleicimar Vaz
+        </p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="componentes/config.js"></script>
+    <script src="componentes/database.js"></script>
+    <script src="componentes/utils.js"></script>
+    <script src="componentes/login.js"></script>
+    <script src="componentes/audit.js"></script>
+
+    <script>
+        // Sincroniza a cor do tema com a configuração global (Opcional, mas mantém a identidade)
+        if (typeof PRIMARY_COLOR !== 'undefined') {
+            document.getElementById('meta-theme-color').setAttribute('content', PRIMARY_COLOR);
+        }
+    </script>
+          
+</body>
+</html>

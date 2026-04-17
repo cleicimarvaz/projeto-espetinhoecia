@@ -1,0 +1,429 @@
+/* =============================================================
+   1. CONFIGURAÇÕES BASE
+   ============================================================= */
+:root {
+    --primary-color: #e63946;
+    --secondary-color: #f8fafc;
+    --bg-color: #f1f5f9;
+    --text-color: #1e293b;
+    --success: #10b981;
+    --warning: #f59e0b;
+    
+    --card-radius: 16px;
+    --font-stack: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    box-sizing: border-box;
+}
+
+input, textarea {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+}
+
+body {
+    font-family: var(--font-stack);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding-bottom: 90px;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+}
+
+::-webkit-scrollbar { display: none; }
+
+/* =============================================================
+   2. ANIMAÇÕES
+   ============================================================= */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade { animation: fadeInUp 0.4s ease-out forwards; }
+.animate-pop { animation: scaleIn 0.3s ease-out forwards; }
+
+.product-card, .card-cozinha {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* =============================================================
+   3. COMPONENTES DE INTERFACE (UI)
+   ============================================================= */
+.app-header {
+    background: white;
+    padding: 15px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand-logo {
+    font-weight: 900;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    font-size: 1.2rem;
+    letter-spacing: -0.05em;
+    text-decoration: none;
+}
+
+.bottom-navbar {
+    position: fixed;
+    bottom: 0; left: 0; width: 100%;
+    background: white;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+    display: flex; justify-content: space-around;
+    padding: 12px 0; z-index: 1000;
+    border-radius: 20px 20px 0 0;
+}
+
+.nav-item-app {
+    display: flex; flex-direction: column; align-items: center;
+    text-decoration: none; color: #94a3b8;
+    font-size: 0.75rem; font-weight: 600;
+    position: relative; transition: 0.3s;
+}
+
+.nav-item-app.active { color: var(--primary-color); }
+.nav-item-app i { font-size: 1.5rem; margin-bottom: 4px; }
+.nav-item-app:active i { transform: scale(0.8); }
+
+.nav-badge {
+    position: absolute; top: -2px; right: 5px;
+    background: var(--primary-color); color: white;
+    font-size: 0.6rem; padding: 2px 6px; border-radius: 10px;
+    border: 2px solid white;
+}
+
+.product-card {
+    background: white;
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    border: 1px solid white;
+    height: 100%;
+    transition: transform 0.2s;
+}
+
+.product-card:active, button:active, .btn:active {
+    transform: scale(0.95);
+    filter: brightness(0.95);
+}
+
+.card-img-top {
+    height: 150px; width: 100%; object-fit: cover;
+    background-color: #e2e8f0;
+}
+
+.price-tag {
+    color: var(--primary-color);
+    font-weight: 900;
+    font-size: 1.1rem;
+}
+
+/* =============================================================
+   4. TELA DA COZINHA & MODAIS (PADRÃO ANTIGO/GERAL)
+   ============================================================= */
+body.page-cozinha {
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+.header-cozinha {
+    background-color: #1e293b;
+    border-bottom: 1px solid #334155;
+    padding: 15px 20px;
+}
+
+.card-cozinha {
+    background-color: var(--warning);
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+.kds-status-Pendente { border-left: 8px solid #b91c1c; } 
+.kds-status-EmPreparo { border-left: 8px solid #c2410c; }
+.kds-status-EmRota { border-left: 8px solid #0369a1; background-color: #bae6fd; }
+
+.modal-bottom-sheet .modal-dialog {
+    position: fixed; bottom: 0; left: 0; right: 0; margin: 0;
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal.show .modal-bottom-sheet .modal-dialog { transform: translateY(0); }
+
+/* =============================================================
+   5. CONFIGURAÇÃO DEFINITIVA PARA IMPRESSORA TÉRMICA (58mm)
+   ============================================================= */
+#area-impressao-termica { display: none; }
+
+@media print {
+    @page { margin: 0 !important; }
+    body * { visibility: hidden; }
+
+    #area-impressao-termica {
+        visibility: visible !important; display: block !important;
+        position: absolute !important; top: 0 !important; left: 0 !important;
+        width: 200px !important; max-width: 200px !important;
+        padding-left: 15px !important; padding-right: 5px !important;
+        margin: 0 !important; background-color: white !important;
+    }
+
+    #area-impressao-termica * {
+        visibility: visible !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 11px !important; line-height: 1.1 !important; text-align: left !important;
+    }
+
+    .linha-tracejada, .linha-continua {
+        width: 100% !important; border-bottom: 1px dashed #000 !important;
+    }
+}
+
+/* =========================================================================
+   6. KDS PREMIUM CSS (LAYOUT ESPETINHO & CIA) - MÁXIMA PRECISÃO
+   ========================================================================= */
+
+/* O Card Principal da Comanda */
+.card-pedido-kds { 
+    position: relative; display: flex; flex-direction: column; height: 100%;
+    background: white; border-radius: 2rem; padding: 1.5rem; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; 
+    animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.dark .card-pedido-kds { background: #0f172a; border-color: #1e293b; }
+
+/* Área do Título Blindada (Evita sobreposição com os botões) */
+.kds-header-area {
+    position: relative; 
+    margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f5f9;
+    padding-right: 170px; /* ZONA SEGURA PARA A PÍLULA E A IMPRESSORA */
+    min-height: 70px;
+}
+.dark .kds-header-area { border-color: #1e293b; }
+
+.kds-titulo { 
+    font-size: 26px; font-weight: 900; color: #e63946; font-style: italic; 
+    text-transform: uppercase; letter-spacing: -0.05em; line-height: 1.1; 
+    white-space: normal; word-break: break-word; /* Força quebra de linha em nomes grandes */
+    margin-bottom: 4px;
+}
+.dark .kds-titulo { color: #f87171; }
+.kds-subtitulo { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 4px; }
+
+/* Pílula de Status (Novo / Produzindo) */
+.badge-kds { 
+    position: absolute; top: 0; right: 55px; /* Ao lado exato da impressora */
+    font-weight: 900; font-size: 10px; text-transform: uppercase; font-style: italic; 
+    padding: 6px 14px; border-radius: 999px; display: flex; align-items: center; gap: 6px; 
+    white-space: nowrap; z-index: 10;
+}
+
+.badge-novo { background: #ffedd5; color: #ea580c; border: 1px solid #fed7aa; animation: kds-pulse 1.5s infinite; }
+.badge-produzindo { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+.dark .badge-novo { background: rgba(234, 88, 12, 0.1); color: #fb923c; border-color: rgba(234, 88, 12, 0.2); }
+.dark .badge-produzindo { background: rgba(2, 132, 199, 0.1); color: #7dd3fc; border-color: rgba(2, 132, 199, 0.2); }
+
+/* Botão de Impressora no Card */
+.btn-print-kds {
+    position: absolute; top: -5px; right: 0; width: 46px; height: 46px; 
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; 
+    display: flex; align-items: center; justify-content: center; color: #94a3b8; z-index: 10; cursor: pointer;
+}
+.dark .btn-print-kds { background: #1e293b; border-color: #334155; }
+.btn-print-kds:active { transform: scale(0.9); }
+
+/* Estilo da caixa de Itens */
+.kds-item-box { 
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px; 
+    border-radius: 16px; border-width: 1px; border-style: solid; margin-bottom: 12px; 
+}
+
+.cat-espetos { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+.cat-refeicao { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
+.cat-acompanhamentos { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.cat-default { background: #f8fafc; border-color: #e2e8f0; color: #475569; }
+
+/* Categorias no Modo Escuro */
+.dark .cat-espetos { background: rgba(255, 237, 213, 0.05); border-color: rgba(255, 237, 213, 0.15); color: #fdba74; }
+.dark .cat-refeicao { background: rgba(239, 246, 255, 0.05); border-color: rgba(239, 246, 255, 0.15); color: #93c5fd; }
+.dark .cat-acompanhamentos { background: rgba(240, 253, 244, 0.05); border-color: rgba(240, 253, 244, 0.15); color: #86efac; }
+.dark .cat-default { background: rgba(248, 250, 252, 0.05); border-color: rgba(248, 250, 252, 0.15); color: #cbd5e1; }
+
+@keyframes kds-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+
+/* Modais da Cozinha Z-Index Rules */
+#modal-historico-cozinha { z-index: 99999 !important; }
+#modal-previa-pedido { z-index: 99998 !important; }
+
+/* Estilos específicos para os botões do modal de comanda */
+.comanda-modal .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.comanda-modal .modal-footer .btn-voltar {
+    background-color: #334155; /* Cinza-médio (Slate 700), bom contraste no fundo escuro */
+    color: #fff;
+    padding: 1rem 2rem;
+    border-radius: 1.5rem;
+    text-transform: uppercase;
+    font-weight: 900;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex-grow: 1; /* Ocupa espaço proporcional */
+    text-align: center;
+}
+
+.comanda-modal .modal-footer .btn-voltar:hover {
+    background-color: #1e293b; /* Escurece no hover */
+}
+
+.comanda-modal .modal-footer .btn-pronto {
+    background-color: #1e293b; /* Azul-escuro profundo (Slate 800) para ação principal, mais legível */
+    color: #fff;
+    padding: 1rem 2rem;
+    border-radius: 1.5rem;
+    text-transform: uppercase;
+    font-weight: 900;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s;
+    flex-grow: 2; /* Ação principal maior */
+}
+
+.comanda-modal .modal-footer .btn-pronto:hover {
+    background-color: #0f172a; /* Escurece no hover */
+}
+
+.comanda-modal .modal-footer .btn-pronto i {
+    color: #fff; /* Garante que o ícone seja branco puro */
+    font-size: 1.25rem;
+}
+
+/* Estilos extraídos do historico-caixas.html / configuracoes.html */
+.logo-depth { 
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); 
+}
+
+.no-scrollbar::-webkit-scrollbar { 
+    display: none; 
+}
+.no-scrollbar { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+.custom-scrollbar::-webkit-scrollbar { 
+    width: 4px; 
+}
+.custom-scrollbar::-webkit-scrollbar-track { 
+    background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+    background: #cbd5e1; 
+    border-radius: 10px; 
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { 
+    background: #334155; 
+}
+
+/* Evita que o texto empurre o botão para fora */
+.card-pedido-kds p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Animação suave para a ampulheta */
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+}
+
+/* Garante que o container de itens tenha um tamanho fixo ou flexível correto */
+.card-pedido-kds .flex-1 {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Ajuste do botão para não estourar em telas menores */
+.card-pedido-kds button {
+    white-space: nowrap;
+}
+
+/* Animação da Ampulheta */
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+}
+
+/* Garante que o texto não empurre o botão pra fora */
+.card-pedido-kds .truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ajuste de scroll interno se o card tiver muitos itens */
+.card-pedido-kds .overflow-y-auto::-webkit-scrollbar {
+    width: 4px;
+}
+.card-pedido-kds .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 10px;
+}
+
+/* Garante que o modal ignore qualquer overflow e fique no topo */
+#modal-excluir {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+}
+
+/* Animação de Surgimento (Fade + Scale) */
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.animate-modal-in {
+    animation: modalIn 0.2s ease-out forwards;
+}
+
+/* Cor do Tema (Red Premium) */
+#btn-confirmar-exclusao {
+    background: #e63946; /* Vermelho exato do seu tema */
+    border: 1px solid rgba(255,255,255,0.1);
+}

@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Painel Administrativo - Espetinho & Cia</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="img/logo.jpg">
+    <meta name="theme-color" content="#e63946">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Espetinho & Cia">
+    <link rel="apple-touch-icon" href="img/logo.jpg">
+    
+    <style>
+        .logo-depth { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+    </style>
+
+    <script>
+        tailwind.config = { darkMode: 'class' };
+        if (localStorage.getItem('temaSistema') === 'dark' || (!('temaSistema' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-300">
+
+    <header class="bg-[#e63946] dark:bg-slate-900 fixed top-0 w-full z-[100] px-5 py-4 shadow-xl flex justify-between items-center h-20 rounded-b-[1.5rem] border-b border-red-500/50 dark:border-slate-800 transition-colors duration-300">
+        <div class="flex items-center gap-3">
+            <img src="img/logo.jpg" alt="Logo" class="w-12 h-12 rounded-full border-2 border-white/30 dark:border-slate-700 object-cover shadow-[0_4px_6px_-1px_rgba(0,0,0,0.5)]">
+            <h1 class="text-white font-black italic text-sm uppercase leading-none tracking-tighter drop-shadow-md">WEBCOMANDA <br>ESPETINHO & CIA</h1>
+        </div>
+        
+        <div class="flex items-center gap-2 sm:gap-3">
+            <div class="text-right hidden sm:block">
+                <span id="header-usuario" class="text-white font-black text-[10px] uppercase italic opacity-90 tracking-wider block leading-none"></span>
+                <span class="text-[8px] text-white/70 uppercase font-bold tracking-widest">Online</span>
+            </div>
+            
+            <button onclick="abrirNotificacoes()" aria-label="Notificações" class="relative bg-white/20 dark:bg-slate-800 w-11 h-11 rounded-full flex items-center justify-center text-lg shadow-sm border border-white/30 dark:border-slate-700 active:scale-95 transition-all text-white hover:bg-white/30">
+                🔔
+                <span id="badge-notificacoes" class="hidden absolute top-0 right-0 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#e63946] dark:border-slate-800 shadow-md animate-pulse">1</span>
+            </button>
+
+            <button onclick="window.toggleModalPerfilGlobal()" aria-label="Perfil do Usuário" class="bg-white/20 dark:bg-slate-800 w-11 h-11 rounded-full flex items-center justify-center text-xl shadow-sm border border-white/30 dark:border-slate-700 active:scale-95 transition-all text-white hover:bg-white/30">
+                👤
+            </button>
+        </div>
+    </header>
+
+    <main class="pt-28 px-6 pb-32">
+
+        <div id="admin-menu-principal" class="grid grid-cols-2 gap-4">
+            <button onclick="abrirSubSecao('produtos')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">📦</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Produtos</span>
+            </button>
+            <button onclick="abrirSubSecao('relatorios')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">📊</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Relatórios</span>
+            </button>
+            <button onclick="abrirSubSecao('despesas');" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">🧾</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Despesas</span>
+            </button>
+            <button onclick="abrirSubSecao('movimentacoes')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">🏧</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Caixa & Movimentações</span>
+            </button>
+            <button onclick="window.location.href='historico-caixas.html'" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">📜</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Histórico Caixas</span>
+            </button>
+            <button onclick="abrirSubSecao('configuracoes')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">⚙️</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Sistema</span>
+            </button>
+            <button onclick="abrirTelaEstorno()" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">💸</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Estorno</span>
+            </button>
+            <button onclick="window.open('cozinha.html', '_blank')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">👨‍🍳</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Cozinha</span>
+            </button>
+            <button onclick="logout()" class="bg-red-50 dark:bg-red-950/20 p-6 rounded-[2rem] shadow-sm border border-red-100 dark:border-red-900/50 flex flex-col items-center gap-2 active:scale-95 transition-all col-span-2">
+                <span class="text-4xl">🚪</span>
+                <span class="text-[10px] font-black uppercase text-red-500 dark:text-red-400">Sair do Painel</span>
+            </button>
+        </div>
+
+
+<div id="secao-despesas" class="hidden space-y-4">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-lg font-black text-slate-700 dark:text-white italic tracking-tighter uppercase">CONTAS A PAGAR</h2>
+        <div class="flex items-center gap-2">
+            <button onclick="imprimirRelatorioAtual('despesas')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
+                <span class="text-sm">🖨️</span>
+                <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
+            </button>
+            <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+        </div>
+    </div>
+
+    <div id="view-lista-despesas">
+        <button onclick="abrirFormDespesa()" class="w-full bg-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all mb-4 flex items-center justify-center gap-2 border border-emerald-400 dark:border-emerald-600">
+            <span class="text-lg leading-none">➕</span> NOVA CONTA / DESPESA
+        </button>
+        
+        <div class="flex gap-2 mb-4">
+            <button id="btn-filtro-despesa-pendente" onclick="filtrarDespesas('pendente')" class="flex-1 py-3 rounded-xl bg-orange-500 text-white text-[9px] font-black uppercase transition-all shadow-sm">PENDENTES</button>
+            <button id="btn-filtro-despesa-paga" onclick="filtrarDespesas('paga')" class="flex-1 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase transition-all hover:bg-slate-300 dark:hover:bg-slate-700">PAGAS</button>
+        </div>
+        
+        <div id="alerta-vencimento-hoje" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 p-4 rounded-2xl mb-4 flex items-center gap-3 animate-pulse">
+            <span class="text-2xl">⚠️</span>
+            <div>
+                <h4 class="text-[10px] font-black uppercase">Atenção Administrador!</h4>
+                <p class="text-[9px] font-bold uppercase mt-1">Existem contas com vencimento para HOJE ou ATRASADAS.</p>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-6 transition-colors duration-300 min-h-[55vh] flex flex-col">
+            <div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full mb-4">
+                <button onclick="aplicarFiltroDespesas(0)" id="btn-desp-0" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 shadow-sm bg-white dark:bg-slate-700">HOJE</button>
+                <button onclick="aplicarFiltroDespesas(7)" id="btn-desp-7" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">7 DIAS</button>
+                <button onclick="aplicarFiltroDespesas(30)" id="btn-desp-30" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">30 DIAS</button>
+                <button onclick="toggleFiltroPeriodoDespesas()" id="btn-desp-periodo" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">PERÍODO ▼</button>
+            </div>
+
+            <div id="container-periodo-despesas" class="hidden mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex gap-2 items-center">
+                    <div class="flex-1">
+                        <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
+                        <input type="date" id="data-inicio-despesas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                    </div>
+                    <span class="text-slate-300 dark:text-slate-600 font-bold mt-4">-</span>
+                    <div class="flex-1">
+                        <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
+                        <input type="date" id="data-fim-despesas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                    </div>
+                    <button onclick="aplicarFiltroDespesas('custom')" class="bg-blue-600 text-white mt-4 h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+                </div>
+            </div>
+            
+            <h3 class="font-black text-[10px] text-slate-400 dark:text-slate-500 uppercase italic tracking-widest mb-4 px-2">Lançamentos</h3>
+            <div id="lista-despesas" class="space-y-3 pb-10 flex-1 overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+    </div>
+
+    <div id="view-form-despesa" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 pb-10">
+        <h3 id="titulo-form-despesa" class="font-black text-emerald-500 uppercase italic mb-4 text-sm">NOVA DESPESA</h3>
+        <input type="hidden" id="d-id">
+        <div>
+            <label for="d-descricao" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Descrição da Conta</label>
+            <input type="text" id="d-descricao" placeholder="EX: CONTA DE LUZ, FORNECEDOR CARNES..." class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="d-valor" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Valor (R$)</label>
+                <input type="tel" id="d-valor" inputmode="decimal" oninput="mascaraMoeda(event)" placeholder="0,00" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none text-center focus:border-emerald-200">
+            </div>
+            <div>
+                <label for="d-vencimento" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Vencimento</label>
+                <input type="date" id="d-vencimento" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
+            </div>
+        </div>
+        <div>
+            <label for="d-categoria" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Categoria</label>
+            <select id="d-categoria" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
+                <option value="FORNECEDORES">📦 Fornecedores (Carnes, Bebidas)</option>
+                <option value="OPERACIONAL">⚡ Operacional (Água, Luz, Internet)</option>
+                <option value="FUNCIONARIOS">👥 Funcionários (Salários, Diárias)</option>
+                <option value="IMPOSTOS">🏛️ Impostos e Taxas</option>
+                <option value="OUTROS">Outros</option>
+            </select>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
+            <div>
+                <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Conta Paga?</label>
+                <p class="text-[8px] font-bold text-slate-400 uppercase mt-1 leading-none tracking-tighter">Marcar como liquidada / dar baixa</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="d-paga" class="sr-only peer" onchange="toggleDataPagamento()">
+                <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+        </div>
+        <div id="container-data-pagamento" class="hidden">
+            <label for="d-data-pagamento" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Data do Pagamento</label>
+            <input type="date" id="d-data-pagamento" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
+        </div>
+        <div class="flex gap-3 pt-4">
+            <button onclick="fecharFormDespesa()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all">Cancelar</button>
+            <button id="btn-salvar-despesa" onclick="salvarDespesa()" class="flex-[2] bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all">SALVAR CONTA</button>
+        </div>
+    </div>
+</div>
+
+        <div id="secao-movimentacoes" class="hidden space-y-4 pb-20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-black text-slate-700 dark:text-white italic uppercase tracking-tighter">CAIXA & MOVIMENTAÇÕES</h2>
+                <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+            </div>
+            <div class="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <h3 class="font-black text-xs text-slate-400 dark:text-slate-500 uppercase italic tracking-widest text-center mb-6">Nova Movimentação</h3>
+                <div class="space-y-4">
+                    <div class="text-left">
+                        <label for="mov-tipo" class="block text-[8px] font-black text-slate-400 uppercase italic ml-2">TIPO:</label>
+                        <select id="mov-tipo" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-[10px] font-black border-2 border-slate-100 dark:border-slate-700 outline-none focus:border-slate-400 dark:focus:border-slate-500 uppercase italic text-slate-700 dark:text-slate-200">
+                            <option value="SANGRIA">🔴 SANGRIA (RETIRADA DE DINHEIRO)</option>
+                            <option value="SUPRIMENTO">🟢 SUPRIMENTO (ENTRADA / TROCO)</option>
+                        </select>
+                    </div>
+                    <div class="text-left">
+                        <label for="mov-valor" class="block text-[8px] font-black text-slate-400 uppercase italic ml-2">VALOR (R$):</label>
+                        <input type="tel" id="mov-valor" inputmode="decimal" oninput="mascaraMoeda(event)" placeholder="0,00" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-center text-lg font-black border-2 border-slate-100 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-700 dark:text-slate-200">
+                    </div>
+                    <div class="text-left">
+                        <label for="mov-motivo" class="block text-[8px] font-black text-slate-400 uppercase italic ml-2">MOTIVO / OBSERVAÇÃO:</label>
+                        <input type="text" id="mov-motivo" placeholder="EX: PAGAMENTO GELO, RETIRADA PARA BANCO..." class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-[10px] font-black border-2 border-slate-100 dark:border-slate-700 outline-none uppercase italic text-slate-700 dark:text-slate-200">
+                    </div>
+                    <button id="btn-confirmar-mov" onclick="registrarMovimentacaoBotao()" class="w-full bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 py-4 rounded-[1.5rem] text-[10px] font-black shadow-lg active:scale-95 transition-all uppercase italic mt-4 border border-slate-700">Confirmar Movimentação</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <button onclick="abrirModalSenhaAdmin()" class="bg-slate-800 p-5 rounded-[2rem] shadow-lg flex flex-col items-center justify-center active:scale-95 transition-all border border-slate-700 gap-2">
+                    <div class="bg-white/20 w-10 h-10 rounded-full flex items-center justify-center text-lg text-white">💵</div>
+                    <span class="text-[9px] font-black text-white uppercase tracking-widest text-center">Fechar Caixa<br>do Dia</span>
+                </button>
+                <button onclick="encerrarTurnoParcial()" class="bg-red-600 p-5 rounded-[2rem] shadow-lg flex flex-col items-center justify-center active:scale-95 transition-all border border-red-500 gap-2 hover:bg-red-700">
+                    <div class="bg-white/20 w-10 h-10 rounded-full flex items-center justify-center text-lg text-white">🛑</div>
+                    <span class="text-[9px] font-black text-white uppercase tracking-widest text-center">Encerrar<br>Turno</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="secao-produtos" class="hidden space-y-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-black text-slate-700 dark:text-white italic tracking-tighter uppercase">PRODUTOS</h2>
+                <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+            </div>
+            <div class="flex bg-white dark:bg-slate-900 p-1 rounded-full shadow-sm border border-slate-100 dark:border-slate-800 mb-4">
+                <button id="btn-aba-lista" onclick="alternarAbasAdminProdutos('lista')" class="flex-1 py-3 rounded-full bg-[#e63946] text-white text-[9px] font-black uppercase transition-all font-sans italic tracking-widest shadow-sm">LISTA</button>
+                <button id="btn-aba-estoque" onclick="alternarAbasAdminProdutos('estoque')" class="flex-1 py-3 rounded-full bg-transparent text-slate-400 dark:text-slate-500 text-[9px] font-black uppercase transition-all font-sans italic tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800">ESTOQUE</button>
+                <button id="btn-aba-cadastro" onclick="alternarAbasAdminProdutos('cadastro')" class="flex-1 py-3 rounded-full bg-transparent text-slate-400 dark:text-slate-500 text-[9px] font-black uppercase transition-all font-sans italic tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800">NOVO</button>
+            </div>
+            <div id="aba-lista" class="pb-20 space-y-4">
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
+                    <div>
+                        <label for="filtro-pesquisa-catalogo" class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Pesquisar Produto</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 text-xs">🔍</span>
+                            <input type="text" id="filtro-pesquisa-catalogo" oninput="renderizarCatalogo()" placeholder="EX: ESPETINHO DE CARNE..." class="w-full bg-slate-50 dark:bg-slate-800 pl-10 pr-4 py-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-red-100 dark:focus:border-red-900 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600">
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label for="ordem-catalogo" class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Organizar por</label>
+                            <select id="ordem-catalogo" onchange="renderizarCatalogo()" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase appearance-none cursor-pointer">
+                                <option value="nome-asc">🔤 Nome (A-Z)</option>
+                                <option value="nome-desc">🔤 Nome (Z-A)</option>
+                                <option value="preco-asc">💰 Menor Preço</option>
+                                <option value="preco-desc">💰 Maior Preço</option>
+                                <option value="categoria">📦 Categoria</option>
+                            </select>
+                        </div>
+                        <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 flex items-center h-[46px]">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="filtro-ocultar-inativos" class="sr-only peer" onchange="renderizarCatalogo()" checked>
+                                <div class="w-9 h-5 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#e63946]"></div>
+                                <span class="ml-2 text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase italic whitespace-nowrap">Ativos</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div id="lista-catalogo" class="space-y-2"></div>
+            </div>
+            <div id="aba-estoque" class="hidden pb-20 space-y-4">
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-[2rem] border border-blue-100 dark:border-blue-800/50 flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="font-black text-blue-800 dark:text-blue-400 uppercase italic">Inventário</h3>
+                        <p class="text-[10px] text-blue-600 dark:text-blue-500 uppercase">Gerencie entradas e saídas</p>
+                    </div>
+                    <span class="text-3xl">📦</span>
+                </div>
+                <div id="lista-estoque" class="space-y-2"></div>
+            </div>
+            <div id="aba-cadastro" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <div>
+                    <label for="p-nome" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Nome do Produto</label>
+                    <input type="text" id="p-nome" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="p-categoria" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Categoria</label>
+                        <select id="p-categoria" onchange="atualizarToggleCozinha()" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
+                            <option value="espetos">🍢 Espetos</option>
+                            <option value="bebidas">🥤 Bebidas</option>
+                            <option value="cervejas">🍺 Cervejas</option>
+                            <option value="refeicao">🍽️ Refeição</option>
+                            <option value="acompanhamentos">🍚 Acompanhamento</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="p-preco" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Preço (R$)</label>
+                        <input type="tel" id="p-preco" inputmode="decimal" oninput="mascaraMoeda(event)" placeholder="0,00" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none text-center">
+                    </div>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Enviar p/ Produção?</label>
+                        <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 leading-none tracking-tighter">Aparece na tela da churrasqueira</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="p-preparo" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Controlar Estoque?</label>
+                        <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 leading-none tracking-tighter">Exige inventário para este item</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="p-controla-estoque" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="cancelarEdicao()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all">Cancelar</button>
+                    <button id="btn-salvar-produto" onclick="salvarProduto()" class="flex-[2] bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all">SALVAR PRODUTO</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="secao-relatorios" class="hidden space-y-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-black text-slate-700 dark:text-white italic uppercase tracking-tighter">RELATÓRIOS</h2>
+                <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+            </div>
+            
+            <div id="menu-relatorios-cards" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button onclick="abrirRelatorioEspecifico('dashboard')" class="bg-[#e63946] p-5 rounded-2xl shadow-lg shadow-red-200 dark:shadow-red-950/30 flex items-center justify-between active:scale-95 transition-all md:col-span-2 group">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white/20 w-10 h-10 rounded-full flex items-center justify-center text-lg text-white group-hover:scale-110 transition-transform">📈</div>
+                        <span class="text-xs font-black text-white uppercase tracking-wider">Dashboard Visual</span>
+                    </div>
+                    <span class="text-white font-black">→</span>
+                </button>
+                
+                <button onclick="gerarCardapioPDF()" class="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all hover:border-red-100 dark:hover:border-red-900/30">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-red-100 dark:bg-red-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">📜</div>
+                        <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase italic">Gerar Cardápio</span>
+                    </div>
+                    <span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
+
+                <button onclick="abrirRelatorioEspecifico('estoque')" class="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-purple-100 dark:bg-purple-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">📦</div>
+                        <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Estoque Atual</span>
+                    </div>
+                    <span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
+
+                <button onclick="abrirRelatorioEspecifico('financeiro')" class="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">💰</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Fluxo de Caixa</span></div><span class="text-slate-300">→</span>
+                </button>
+
+                <button onclick="abrirRelatorioEspecifico('produtos')" class="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-blue-100 dark:bg-blue-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🏆</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Ranking Produtos</span></div><span class="text-slate-300">→</span>
+                </button>
+
+                <button onclick="abrirRelatorioEspecifico('comandas')" class="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-orange-100 dark:bg-orange-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">📝</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Histórico Comandas</span></div><span class="text-slate-300">→</span>
+                </button>
+            </div>
+
+            <div id="view-dashboard" class="hidden space-y-4 pb-20 w-full overflow-hidden">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-black text-[#e63946] dark:text-red-400 uppercase italic">BI - INTELIGÊNCIA DE NEGÓCIO</h3>
+                    <button onclick="voltarMenuRelatorios()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg font-bold text-slate-400 dark:text-slate-500 text-[10px] active:scale-95 transition-all hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500">FECHAR ✕</button>
+                </div>
+                <div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+                    <div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full">
+                        <button id="btn-dash-0" onclick="mudarFiltro(0, 'dash')" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
+                        <button id="btn-dash-7" onclick="mudarFiltro(7, 'dash')" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">7 DIAS</button>
+                        <button id="btn-dash-30" onclick="mudarFiltro(30, 'dash')" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">30 DIAS</button>
+                        <button id="btn-dash-99" onclick="togglePeriodo('dash')" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">PERÍODO ▼</button>
+                    </div>
+                    <div id="container-periodo-dash" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <div class="flex gap-2 items-center">
+                            <div class="flex-1">
+                                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
+                                <input type="date" id="data-inicio-dash" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                            </div>
+                            <span class="text-slate-300 dark:text-slate-600 font-bold mt-4">-</span>
+                            <div class="flex-1">
+                                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
+                                <input type="date" id="data-fim-dash" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                            </div>
+                            <button onclick="mudarFiltro('custom', 'dash')" class="bg-blue-600 text-white mt-4 h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border-2 border-emerald-100 dark:border-emerald-900/30 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">💰 Lucro Líquido</p>
+                        <p class="text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none truncate" id="kpi-lucro">R$ 0,00</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">📈 Fat. Bruto</p>
+                        <p class="text-lg font-black text-slate-700 dark:text-slate-300 leading-none truncate" id="kpi-faturamento">R$ 0,00</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">💸 Despesas Pagas</p>
+                        <p class="text-lg font-black text-red-500 leading-none truncate" id="kpi-despesas">R$ 0,00</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">⚠️ Risco Fiado</p>
+                        <p class="text-lg font-black text-orange-500 leading-none truncate" id="kpi-fiado">R$ 0,00</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">🛒 Total Pedidos</p>
+                        <p class="text-lg font-black text-slate-700 dark:text-slate-300 leading-none truncate" id="kpi-vendas">0</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">🎫 Ticket Médio</p>
+                        <p class="text-lg font-black text-blue-500 leading-none truncate" id="kpi-ticket">R$ 0,00</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">🏷️ Taxas/Serviço</p>
+                        <p class="text-lg font-black text-blue-600 leading-none truncate" id="kpi-taxas">R$ 0,00</p>
+                    </div>
+                    <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-2xl border border-red-100 dark:border-red-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-red-400 uppercase mb-1 italic">↩️ Estornos</p>
+                        <p class="text-lg font-black text-red-600 dark:text-red-400 leading-none truncate" id="kpi-estornos">R$ 0,00</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">👨‍🍳 Preparo Médio</p>
+                        <p class="text-sm font-black text-orange-500 leading-none" id="kpi-tempo-preparo">0 min</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">⏱️ Giro de Mesa</p>
+                        <p class="text-sm font-black text-purple-500 leading-none" id="kpi-tempo-mesa">0 min</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center col-span-2">
+                        <p class="text-[7px] font-black text-slate-400 uppercase mb-1 italic">⚠️ Estoque Crítico</p>
+                        <p class="text-[10px] font-black text-slate-600 dark:text-slate-300 truncate uppercase" id="kpi-estoque-aviso">Tudo em dia ✅</p>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 w-full mb-3">
+                    <h4 class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1 text-center italic">Evolução de Vendas</h4>
+                    <div id="chart-faturamento" class="w-full min-h-[160px]"></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mb-3">
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 w-full">
+                        <h4 class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1 text-center italic">Ranking Atendentes</h4>
+                        <div id="chart-atendentes" class="w-full min-h-[160px]"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 w-full">
+                        <h4 class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1 text-center italic">Vendas por Categoria</h4>
+                        <div id="chart-categorias" class="w-full min-h-[160px]"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mb-3">
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 w-full">
+                        <h4 class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1 text-center italic">Origem (Mesa x Balcão)</h4>
+                        <div id="chart-origem" class="w-full min-h-[160px] flex justify-center"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 w-full">
+                        <h4 class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1 text-center italic">Horários de Pico</h4>
+                        <div id="chart-pico" class="w-full min-h-[160px]"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 w-full">
+                        <h4 class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1 text-center italic">Top 5 Produtos</h4>
+                        <div id="chart-top-produtos" class="w-full min-h-[180px]"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 w-full">
+                        <h4 class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1 text-center italic">Formas de Pagamento</h4>
+                        <div id="chart-pagamentos" class="w-full min-h-[160px] flex justify-center"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-financeiro" class="hidden space-y-4 pb-20">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-black text-emerald-500 uppercase italic">Fluxo Financeiro</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="imprimirRelatorioAtual('financeiro')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all">
+                            <span class="text-sm">🖨️</span>
+                            <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
+                        </button>
+                        <button onclick="voltarMenuRelatorios()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg font-bold text-slate-400 dark:text-slate-500 text-[10px] active:scale-95 hover:text-red-500">✕</button>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-4">
+                    <div class="flex gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl">
+                        <button id="btn-fin-0" onclick="mudarFiltroFinanceiro(0)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
+                        <button id="btn-fin-7" onclick="mudarFiltroFinanceiro(7)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">7 DIAS</button>
+                        <button id="btn-fin-30" onclick="mudarFiltroFinanceiro(30)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">30 DIAS</button>
+                        <button id="btn-fin-99" onclick="togglePeriodoFinanceiro()" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">PERÍODO ▼</button>
+                    </div>
+                    <div id="container-periodo-fin" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <div class="flex gap-2 items-end">
+                            <div class="flex-1">
+                                <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
+                                <input type="date" id="data-inicio-fin" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 outline-none">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
+                                <input type="date" id="data-fim-fin" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 outline-none">
+                            </div>
+                            <button onclick="mudarFiltroFinanceiro('custom')" class="bg-blue-600 text-white h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="resumo-financeiro-cards" class="grid grid-cols-3 gap-2 mb-4"></div>
+                <div id="conteudo-rel-financeiro" class="space-y-3"></div>
+            </div>
+
+<div id="view-produtos" class="hidden space-y-4 pb-20">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xs font-black text-blue-500 uppercase italic">Ranking de Produtos</h3>
+        <div class="flex items-center gap-2">
+            <button onclick="imprimirRelatorioAtual('produtos')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
+                <span class="text-sm">🖨️</span>
+                <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
+            </button>
+            <button onclick="voltarMenuRelatorios()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg font-bold text-slate-400 dark:text-slate-500 text-[10px] active:scale-95 hover:text-red-500">✕</button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-4">
+        <div class="flex gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl">
+            <button id="btn-prod-0" onclick="mudarFiltroProdutos(0)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
+            <button id="btn-prod-7" onclick="mudarFiltroProdutos(7)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">7 DIAS</button>
+            <button id="btn-prod-30" onclick="mudarFiltroProdutos(30)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">30 DIAS</button>
+            <button id="btn-prod-99" onclick="togglePeriodoProdutos()" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">PERÍODO ▼</button>
+        </div>
+        <div id="container-periodo-prod" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div class="flex gap-2 items-end">
+                <div class="flex-1">
+                    <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
+                    <input type="date" id="data-inicio-rel-produtos" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 outline-none">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
+                    <input type="date" id="data-fim-rel-produtos" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 outline-none">
+                </div>
+                <button onclick="mudarFiltroProdutos('custom')" class="bg-blue-600 text-white h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="conteudo-rel-produtos" class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-1 min-h-[200px]"></div>
+</div>
+
+            <div id="view-comandas" class="hidden space-y-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-black text-orange-500 uppercase italic">Histórico de Comandas</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="imprimirRelatorioAtual('comandas')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
+                            <span class="text-sm">🖨️</span>
+                            <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
+                        </button>
+                        <button onclick="voltarMenuRelatorios()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg font-bold text-slate-400 dark:text-slate-500 text-[10px] active:scale-95 hover:text-red-500">✕</button>
+                    </div>
+                </div>
+<div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+    <div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full">
+        <button id="btn-comandas-0" onclick="mudarFiltroComandas(0)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
+        <button id="btn-comandas-7" onclick="mudarFiltroComandas(7)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">7 DIAS</button>
+        <button id="btn-comandas-30" onclick="mudarFiltroComandas(30)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">30 DIAS</button>
+        <button id="btn-comandas-99" onclick="togglePeriodoComandas()" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">PERÍODO ▼</button>
+    </div>
+    <div id="container-periodo-comandas" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+        <div class="flex gap-2 items-center">
+            <div class="flex-1">
+                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
+                <input type="date" id="data-inicio-comandas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+            </div>
+            <span class="text-slate-300 dark:text-slate-600 font-bold mt-4">-</span>
+            <div class="flex-1">
+                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
+                <input type="date" id="data-fim-comandas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+            </div>
+            <button onclick="mudarFiltroComandas('custom')" class="bg-blue-600 text-white mt-4 h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+        </div>
+    </div>
+</div>
+                <div id="conteudo-rel-comandas" class="grid grid-cols-1 md:grid-cols-2 gap-3 pb-20 no-scrollbar overflow-y-auto max-h-[70vh]">
+                    <div class="col-span-full flex items-center justify-center py-10 opacity-20">
+                        <p class="text-[10px] font-black uppercase tracking-widest italic">Aguardando busca...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-estoque" class="hidden space-y-4 pb-20">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-black text-purple-500 uppercase italic">Posição de Estoque</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="imprimirRelatorioAtual('estoque')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
+                            <span class="text-sm">🖨️</span>
+                            <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
+                        </button>
+                        <button onclick="voltarMenuRelatorios()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg font-bold text-slate-400 dark:text-slate-500 text-[10px] active:scale-95 hover:text-red-500">✕</button>
+                    </div>
+                </div>
+                <div id="conteudo-rel-estoque" class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800"></div>
+            </div>
+        </div>
+
+        <div id="secao-estorno" class="hidden space-y-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-black text-slate-700 dark:text-white italic uppercase tracking-tighter">CANCELAMENTOS</h2>
+                <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+            </div>
+            <div class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
+                <h3 class="font-black text-xs text-slate-400 dark:text-slate-500 uppercase mb-4 italic tracking-widest">HISTÓRICO DE VENDAS RECENTES</h3>
+                <div id="lista-vendas-estorno" class="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar pb-10"></div>
+            </div>
+        </div>
+
+        <div id="secao-configuracoes" class="hidden space-y-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-black text-slate-700 dark:text-white italic uppercase tracking-tighter">SISTEMA</h2>
+                <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+            </div>
+
+            <div id="menu-config-cards" class="space-y-3">
+                <button onclick="abrirConfigEspecifica('ticket')" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-yellow-100 dark:bg-yellow-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🎟️</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Configuração do Ticket</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
+                <button onclick="abrirConfigEspecifica('usuarios'); carregarListaUsuarios();" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">👥</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Gerenciar Usuários</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
+                <button onclick="abrirConfigEspecifica('auditoria'); carregarAuditoria();" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-purple-100 dark:bg-purple-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🕵️</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Auditoria (Logs)</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
+                <button onclick="abrirConfigEspecifica('backup')" class="w-full bg-blue-50 dark:bg-blue-950/20 p-5 rounded-2xl shadow-sm border border-blue-100 dark:border-blue-900/50 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-blue-200 dark:bg-blue-900/40 w-10 h-10 rounded-full flex items-center justify-center text-lg">💾</div><span class="text-xs font-black text-blue-600 dark:text-blue-400 uppercase">Backup e Restauração</span></div><span class="text-blue-300 dark:text-blue-700">→</span>
+                </button>
+                <button onclick="solicitarSenhaPerigo(() => abrirConfigEspecifica('perigo'))" class="w-full bg-red-50 dark:bg-red-950/20 p-5 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/50 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-red-200 dark:bg-red-900/40 w-10 h-10 rounded-full flex items-center justify-center text-lg">⚠️</div>
+                        <span class="text-xs font-black text-red-600 dark:text-red-400 uppercase">Zona de Perigo</span>
+                    </div>
+                    <span class="text-red-300 dark:text-red-700">→</span>
+                </button>
+            </div>
+
+            <div id="view-cfg-ticket" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex flex-col">
+                        <h3 class="font-black text-yellow-500 uppercase text-[10px] tracking-widest italic">PERSONALIZAR TICKET</h3>
+                    </div>
+                    <button onclick="voltarMenuConfig()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+                </div>
+                <div class="mb-4">
+                    <label for="cfg-nome-loja" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-2 ml-2 tracking-tighter">Nome Fantasia (Cabeçalho)</label>
+                    <input type="text" id="cfg-nome-loja" placeholder="Ex: Espetinho & Cia" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold uppercase border-2 border-slate-100 dark:border-slate-700 outline-none focus:border-yellow-400 dark:focus:border-yellow-600 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-700 dark:text-slate-200">
+                </div>
+                <div class="mb-4">
+                    <label for="config-cnpj" class="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2 tracking-wide">CNPJ da Empresa</label>
+                    <input type="tel" id="config-cnpj" placeholder="00.000.000/0000-00" oninput="window.mascaraCNPJ(this)" class="w-full bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 focus:border-[#e63946] outline-none transition-colors">
+                </div>
+                <div class="mb-4">
+                    <label for="cfg-ticket-layout" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-2 ml-2 tracking-tighter">Estilo Visual do Ticket</label>
+                    <div class="relative">
+                        <select id="cfg-ticket-layout" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold uppercase border-2 border-slate-100 dark:border-slate-700 outline-none appearance-none focus:border-yellow-400 dark:focus:border-yellow-600 transition-all text-slate-600 dark:text-slate-300 cursor-pointer">
+                            <option value="original">🎨 Original (Colorido)</option>
+                            <option value="padrao">📠 Padrão (Térmica Clássica)</option>
+                            <option value="escuro">⚫ Escuro (Alto Contraste)</option>
+                            <option value="eco">🍃 Eco (Compacto/Sem Rodapé)</option>
+                            <option value="gigante">👨‍🍳 Gigante (Cozinha/Bar)</option>
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 pointer-events-none text-[10px]">▼</div>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label for="cfg-modo-impressao" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-2 ml-2 tracking-tighter">Conexão com Impressora</label>
+                    <div class="relative">
+                        <select id="cfg-modo-impressao" onchange="salvarPreferenciaImpressao(this.value)" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold uppercase border-2 border-slate-100 dark:border-slate-700 outline-none appearance-none focus:border-yellow-400 dark:focus:border-yellow-600 transition-all text-slate-600 dark:text-slate-300 cursor-pointer">
+                            <option value="direto">📲 IMPRIMIR DIRETO (RAWBT / OPENLABELS)</option>
+                            <option value="pdf">📄 ABRIR EM TELA (PDF / WINDOWS)</option>
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 pointer-events-none text-[10px]">▼</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button id="btn-salvar-cfg" onclick="salvarConfiguracoes()" class="bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-100 dark:shadow-emerald-900/20 active:scale-95 transition-all flex items-center justify-center gap-2">💾 SALVAR</button>
+                    <button onclick="visualizarTicketTeste()" class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-4 rounded-xl text-[10px] font-black uppercase border border-slate-200 dark:border-slate-700 active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center gap-2">👁️ TESTAR</button>
+                </div>
+            </div>
+
+            <div id="view-cfg-usuarios" class="hidden bg-white dark:bg-slate-900 p-5 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-emerald-500 dark:text-emerald-400 uppercase text-[10px] italic tracking-tighter">CADASTRO DE USUÁRIOS</h3>
+                    <button onclick="voltarMenuConfig()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6 border border-slate-200 dark:border-slate-700">
+                    <label class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Dados do Novo Colaborador</label>
+                    <input type="text" id="novo-user-completo" placeholder="NOME COMPLETO" class="w-full bg-white dark:bg-slate-900 p-3 rounded-xl text-xs font-bold mb-2 outline-none uppercase border border-slate-100 dark:border-slate-700 focus:border-emerald-200 dark:focus:border-emerald-900 transition-all text-slate-700 dark:text-slate-200">
+                    <input type="text" id="novo-user-nome" placeholder="USUÁRIO (LOGIN)" class="w-full bg-white dark:bg-slate-900 p-3 rounded-xl text-xs font-bold mb-2 outline-none uppercase border border-slate-100 dark:border-slate-700 focus:border-emerald-200 dark:focus:border-emerald-900 transition-all text-slate-700 dark:text-slate-200">
+                    <div class="relative mb-4">
+                        <label for="novo-user-pass" class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Senha de Acesso</label>
+                        <input type="password" id="novo-user-pass" placeholder="DIGITE A SENHA" class="w-full bg-white dark:bg-slate-900 p-3 pr-12 rounded-xl text-xs font-bold border border-slate-100 dark:border-slate-700 outline-none focus:border-emerald-200 dark:focus:border-emerald-900 transition-all text-slate-700 dark:text-slate-200">
+                        <button type="button" onclick="toggleVerSenha('novo-user-pass')" class="absolute right-4 bottom-2 text-slate-400 p-1">
+                            <span id="icon-pass-novo" class="text-sm transition-all">👁️</span>
+                        </button>
+                    </div>
+                    <button id="btn-cadastrar-user" onclick="salvarNovoUsuario()" class="w-full bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 active:scale-95 transition-all">CADASTRAR</button>
+                </div>
+                <div class="mb-4">
+                    <label for="filtro-pesquisa-usuarios" class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Pesquisar na Lista</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 text-xs">🔍</span>
+                        <input type="text" id="filtro-pesquisa-usuarios" oninput="carregarListaUsuarios()" placeholder="NOME OU LOGIN..." class="w-full bg-slate-50 dark:bg-slate-800 pl-10 pr-4 py-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-100">
+                    </div>
+                </div>
+                <div id="lista-usuarios-sistema" class="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar"></div>
+            </div>
+
+            <div id="view-cfg-auditoria" class="hidden space-y-4">
+                <div class="flex justify-between items-center mb-2 px-2">
+                    <h3 class="font-black text-purple-500 dark:text-purple-400 uppercase text-xs italic tracking-tighter">Log de Atividades</h3>
+                    <div class="flex gap-2">
+                        <button onclick="gerarPDFAuditoria()" class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 p-2 px-3 rounded-xl text-[9px] font-black uppercase flex items-center gap-1 active:scale-95 transition-all">
+                            <span>📄</span> PDF
+                        </button>
+                        <button onclick="voltarMenuConfig()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+                    </div>
+                </div>
+                <div class="bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl flex items-center mb-4 border border-slate-200/50 dark:border-slate-700/50">
+                    <button id="btn-audit-0" onclick="filtrarAuditoriaRapido(0)" class="flex-1 py-2 text-[9px] font-black uppercase rounded-xl transition-all bg-white dark:bg-slate-700 shadow-sm text-slate-700 dark:text-white">Hoje</button>
+                    <button id="btn-audit-7" onclick="filtrarAuditoriaRapido(7)" class="flex-1 py-2 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400 dark:text-slate-500">7 Dias</button>
+                    <button id="btn-audit-30" onclick="filtrarAuditoriaRapido(30)" class="flex-1 py-2 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400 dark:text-slate-500">30 Dias</button>
+                    <button id="btn-audit-custom" onclick="toggleFiltroPeriodoAudit()" class="flex-1 py-2 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400 dark:text-slate-500">Período ▼</button>
+                </div>
+                <div id="wrapper-datas-auditoria" class="hidden grid grid-cols-2 gap-2 mb-4 animate-fade-in">
+                    <input type="date" id="audit-data-ini" onchange="carregarAuditoria()" class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700 outline-none uppercase">
+                    <input type="date" id="audit-data-fim" onchange="carregarAuditoria()" class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700 outline-none uppercase">
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <select id="filtro-auditoria-usuario" onchange="carregarAuditoria()" class="bg-white dark:bg-slate-900 p-3 rounded-xl text-[9px] font-black uppercase border border-slate-100 dark:border-slate-800 outline-none text-slate-700 dark:text-slate-200">
+                        <option value="">TODOS OS USUÁRIOS</option>
+                    </select>
+                    <select id="filtro-auditoria-tipo" onchange="carregarAuditoria()" class="bg-white dark:bg-slate-900 p-3 rounded-xl text-[9px] font-black uppercase border border-slate-100 dark:border-slate-800 outline-none text-slate-700 dark:text-slate-200">
+                        <option value="">TODAS AS AÇÕES</option>
+                        <option value="SISTEMA">⚙️ SISTEMA</option>
+                        <option value="VENDA">💰 VENDAS</option>
+                        <option value="FINANCEIRO">💵 FINANCEIRO</option>
+                        <option value="ESTOQUE">📦 ESTOQUE</option>
+                        <option value="SEGURANÇA">🛡️ SEGURANÇA</option>
+                    </select>
+                </div>
+                <div id="lista-auditoria" class="max-h-[60vh] overflow-y-auto space-y-2 custom-scrollbar pb-10 pr-1"></div>
+            </div>
+
+            <div id="view-cfg-backup" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-blue-500 dark:text-blue-400 uppercase text-xs">SEGURANÇA DE DADOS</h3>
+                    <button onclick="voltarMenuConfig()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+                </div>
+                <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
+                    <h4 class="font-black text-[10px] uppercase text-blue-600 dark:text-blue-400 mb-2">1. EXPORTAR DADOS</h4>
+                    <p class="text-[9px] text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-tighter">Salva produtos, vendas e usuários em JSON.</p>
+                    <button onclick="fazerBackupSistema()" class="w-full bg-blue-500 text-white py-3 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-200 dark:shadow-blue-900/30 active:scale-95 transition-all">BAIXAR BACKUP</button>
+                </div>
+                <div class="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-2xl border border-orange-100 dark:border-orange-800">
+                    <h4 class="font-black text-[10px] uppercase text-orange-600 dark:text-orange-400 mb-2">2. RESTAURAR DADOS</h4>
+                    <p class="text-[9px] text-slate-500 dark:text-slate-400 mb-3 font-bold uppercase tracking-tighter">⚠️ Substitui os dados atuais pelo arquivo.</p>
+                    <input type="file" id="input-restore-file" accept=".json" class="hidden" onchange="processarArquivoRestore(this)">
+                    <button onclick="document.getElementById('input-restore-file').click()" class="w-full bg-orange-500 text-white py-3 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-orange-200 dark:shadow-orange-900/30 active:scale-95 transition-all">RESTAURAR ARQUIVO</button>
+                </div>
+            </div>
+
+            <div id="view-cfg-perigo" class="hidden space-y-4">
+                <div class="bg-red-500 p-6 rounded-[2rem] text-white text-center shadow-lg shadow-red-200 dark:shadow-red-950/40 relative">
+                    <div class="absolute top-4 right-4">
+                        <button onclick="voltarMenuConfig()" class="bg-red-400/30 hover:bg-red-400/50 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase transition-all">Voltar</button>
+                    </div>
+                    <h3 class="font-black text-lg mb-2 italic tracking-tighter mt-4">ZERAR SISTEMA</h3>
+                    <p class="text-[10px] opacity-80 mb-6 font-bold uppercase">CUIDADO: Essas ações não podem ser desfeitas.</p>
+                    <button onclick="zerarSistema('comandas')" class="w-full bg-white text-red-500 py-3 rounded-xl text-[10px] font-black mb-3 border-b-4 border-red-200 active:border-b-0 active:translate-y-1 transition-all">LIMPAR TODAS AS COMANDAS</button>
+                    <button onclick="zerarSistema('vendas')" class="w-full bg-red-800 text-white py-3 rounded-xl text-[10px] font-black border-b-4 border-red-900 active:border-b-0 active:translate-y-1 transition-all">LIMPAR HISTÓRICO DE VENDAS</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-vendas-estorno" class="hidden max-w-2xl mx-auto space-y-6 pb-24 px-4">
+            <div class="flex justify-between items-center bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="bg-red-50 dark:bg-red-900/20 p-2 rounded-2xl text-xl shadow-inner">💸</div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 dark:text-white uppercase italic tracking-tighter leading-none">Central de Estornos</h3>
+                        <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Selecione uma venda para cancelar</p>
+                    </div>
+                </div>
+                <button onclick="voltarAoPainel()" class="bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-xl font-black text-slate-400 text-[9px] uppercase active:scale-95 transition-all border border-slate-200/50 dark:border-slate-700">
+                    VOLTAR ✕
+                </button>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl">
+                    <button id="btn-vEstorno-0" onclick="mudarFiltroEstorno(0)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
+                    <button id="btn-vEstorno-7" onclick="mudarFiltroEstorno(7)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">7 DIAS</button>
+                    <button id="btn-vEstorno-99" onclick="togglePeriodoEstorno()" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">PERÍODO ▼</button>
+                </div>
+                <div id="container-periodo-vEstorno" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1 tracking-tighter">Início</label>
+                            <input type="date" id="data-inicio-vEstorno" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1 tracking-tighter">Fim</label>
+                            <input type="date" id="data-fim-vEstorno" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                        </div>
+                        <button onclick="mudarFiltroEstorno('custom')" class="bg-blue-600 text-white h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+                    </div>
+                </div>
+            </div>
+            <div id="container-vendas-estorno" class="flex flex-col gap-4"></div>
+        </div>
+
+    </main>
+
+    <nav class="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 p-4 pb-6 rounded-t-[2.5rem] shadow-[0_-5px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-slate-100 dark:border-slate-800 z-[100] transition-colors duration-300">
+        <div class="flex justify-around items-center">
+            <a href="home.html" id="nav-home" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
+                <span class="text-xl">🏠</span>
+                <span class="text-[9px] font-black uppercase tracking-wide font-sans">Início</span>
+            </a>
+            <a href="venda.html" id="nav-venda" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
+                <span class="text-xl">🛒</span>
+                <span class="text-[9px] font-black uppercase tracking-wide font-sans">Vendas</span>
+            </a>
+            <a href="comandas.html" id="nav-comandas" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
+                <span class="text-xl">📋</span>
+                <span class="text-[9px] font-bold uppercase tracking-wide font-sans">Comandas</span>
+            </a>
+            <a href="configuracoes.html" id="nav-admin" class="flex flex-col items-center gap-1 transition-all text-[#e63946]">
+                <span class="text-xl">⚙️</span>
+                <span class="text-[9px] font-black uppercase tracking-wide font-sans">Painel</span>
+            </a>
+        </div>
+    </nav>
+
+    <div id="modal-movimentacao-estoque" class="hidden fixed inset-0 bg-slate-900/80 z-[110] justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl relative border border-slate-100 dark:border-slate-800">
+            <h3 id="titulo-movimentacao" class="text-lg font-black text-slate-800 dark:text-slate-200 uppercase italic mb-1">Ajustar Estoque</h3>
+            <p id="nome-produto-movimentacao" class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-4">PRODUTO</p>
+            <input type="hidden" id="id-produto-movimentacao">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Tipo de Movimento</label>
+                    <select id="tipo-movimentacao" class="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl p-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 dark:focus:border-blue-500">
+                        <option value="entrada">🟢 ENTRADA (Adicionar)</option>
+                        <option value="saida">🔴 SAÍDA (Baixa/Perda)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Quantidade</label>
+                    <input type="number" id="qtd-movimentacao" class="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl p-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 dark:focus:border-blue-500" placeholder="Ex: 10">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Motivo</label>
+                    <input type="text" id="motivo-movimentacao" class="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl p-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 dark:focus:border-blue-500" placeholder="Ex: Compra, Quebra, etc">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-6">
+                <button onclick="fecharModalEstoque()" class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black uppercase text-[10px] py-4 rounded-2xl active:scale-95 transition-all">Cancelar</button>
+                <button onclick="salvarMovimentacao()" id="btn-salvar-movimentacao" class="bg-blue-600 text-white font-black uppercase text-[10px] py-4 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/20 active:scale-95 transition-all">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-auth-admin" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-[320px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-fade-in-up">
+            <div class="bg-[#e63946] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg shadow-red-200 dark:shadow-red-950/40 text-white">🔒</div>
+            <h3 class="text-[#e63946] dark:text-red-400 font-black text-sm uppercase mb-2 italic tracking-widest leading-none">Acesso Restrito</h3>
+            <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-6 uppercase tracking-tighter">Digite a senha master para prosseguir:</p>
+            <input type="password" id="input-auth-senha" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-[1.5rem] text-center text-sm font-black border-2 border-slate-100 dark:border-slate-700 mb-6 outline-none focus:border-[#e63946] text-slate-700 dark:text-slate-200 tracking-widest transition-colors" placeholder="••••">
+            <div class="flex gap-3">
+                <button onclick="fecharModalAuth()" class="flex-1 bg-slate-100 dark:bg-slate-800 py-4 rounded-[1.5rem] text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase">Cancelar</button>
+                <button onclick="confirmarAuth()" class="flex-1 bg-[#e63946] text-white py-4 rounded-[1.5rem] text-[9px] font-black active:scale-95 transition-all shadow-lg shadow-red-200 dark:shadow-red-900/30 uppercase">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-confirmacao-sistema" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-[320px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-fade-in-up">
+            <h3 id="titulo-modal-conf" class="text-[#e63946] dark:text-red-400 font-black text-sm uppercase mb-2 italic"></h3>
+            <p id="msg-modal-conf" class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-8 uppercase tracking-tighter"></p>
+            <div class="flex gap-4">
+                <button onclick="fecharModalConfirmacao()" class="flex-1 bg-slate-100 dark:bg-slate-800 py-4 rounded-[1.5rem] text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 active:scale-95">Não</button>
+                <button onclick="executarConfirmacao()" class="flex-1 bg-[#e63946] text-white py-4 rounded-[1.5rem] text-[9px] font-black active:scale-95 transition-all uppercase">Sim</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-gerar-cardapio" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center px-4">
+        <div class="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 w-full max-w-sm shadow-2xl relative border border-slate-100 dark:border-slate-800">
+            <h3 class="text-lg font-black text-red-500 uppercase italic mb-1 text-center">Exportar Cardápio</h3>
+            <p class="text-[10px] font-bold text-slate-500 uppercase mb-4 text-center">Gere um PDF para enviar aos clientes</p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase italic ml-2 mb-2">Escolha o Layout</label>
+                    <div class="flex gap-2">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="modelo-cardapio" value="classico" class="peer sr-only" checked>
+                            <div class="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-3 text-center peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/20 transition-all">
+                                <span class="text-xl block mb-1">📜</span>
+                                <span class="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Clássico</span>
+                            </div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="modelo-cardapio" value="moderno" class="peer sr-only">
+                            <div class="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-3 text-center peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/20 transition-all">
+                                <span class="text-xl block mb-1">📱</span>
+                                <span class="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Moderno</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase italic ml-2 mb-1">Mensagem de Rodapé</label>
+                    <input type="text" id="input-msg-cardapio" placeholder="Obrigado pela preferência!" class="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl p-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-red-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-6">
+                    <button onclick="fecharModalCardapio()" class="bg-slate-100 dark:bg-slate-800 text-slate-500 font-black uppercase text-[10px] py-4 rounded-xl active:scale-95 transition-all">Cancelar</button>
+                    <button onclick="processarImpressaoCardapio()" class="bg-red-500 text-white font-black uppercase text-[10px] py-4 rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/20 active:scale-95 transition-all">Gerar PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="modal-encerrar-turno" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-[340px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-fade-in-up">
+            <div class="bg-red-50 dark:bg-red-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner text-red-500">🛑</div>
+            
+            <h3 class="text-red-500 dark:text-red-400 font-black text-lg uppercase mb-2 italic tracking-tighter leading-none">Encerrar Turno</h3>
+            <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-8 uppercase tracking-widest">O caixa local será fechado. Como deseja sair?</p>
+            
+            <div class="space-y-3">
+                <button onclick="confirmarEncerramentoTurno(true)" class="w-full bg-slate-800 dark:bg-white dark:text-slate-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2">
+                    <span>🖨️</span> Imprimir e Sair
+                </button>
+
+                <button onclick="confirmarEncerramentoTurno(false)" class="w-full bg-red-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-red-200 dark:shadow-red-900/20">
+                    <span>✅</span> Apenas Sair
+                </button>
+
+                <button onclick="fecharModalEncerramentoTurno()" class="w-full py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-decisao-fechamento" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-[340px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-fade-in-up">
+            <div class="bg-emerald-50 dark:bg-emerald-500/10 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl">💰</div>
+            <h3 class="text-slate-800 dark:text-white font-black text-lg uppercase mb-2 italic tracking-tighter leading-none">Fechamento de Caixa</h3>
+            <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-8 uppercase tracking-widest">Como deseja finalizar este turno?</p>
+            <div class="space-y-3">
+                <button onclick="window.executarFechamentoFinal('termico')" class="w-full bg-slate-800 dark:bg-white dark:text-slate-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2">
+                    <span>🖨️</span> Imprimir e Encerrar
+                </button>
+                <button onclick="window.executarFechamentoFinal('nenhum')" class="w-full bg-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20">
+                    <span>✅</span> Apenas Encerrar
+                </button>
+                <button onclick="document.getElementById('modal-decisao-fechamento').classList.add('hidden')" class="w-full py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all">
+                    Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-editar-usuario" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center px-6">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-[340px] rounded-[3rem] p-8 shadow-2xl border-4 border-white dark:border-slate-800 animate-slide-up">
+            <h3 class="font-black text-emerald-500 uppercase text-xs italic mb-6 text-center">Editar Colaborador</h3>
+            <input type="hidden" id="edit-user-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[8px] font-black text-slate-400 uppercase italic mb-1 ml-2">Nome Completo</label>
+                    <input type="text" id="edit-user-completo" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-xs font-bold border border-slate-100 dark:border-slate-700 outline-none uppercase text-slate-700 dark:text-slate-200">
+                </div>
+                <div>
+                    <label class="block text-[8px] font-black text-slate-400 uppercase italic mb-1 ml-2">Login (Usuário)</label>
+                    <input type="text" id="edit-user-nome" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-xs font-bold border border-slate-100 dark:border-slate-700 outline-none uppercase text-slate-700 dark:text-slate-200">
+                </div>
+                <div>
+                    <label class="block text-[8px] font-black text-slate-400 uppercase italic mb-1 ml-2">Nova Senha (opcional)</label>
+                    <div class="relative">
+                        <input type="password" id="edit-user-pass" placeholder="MANTER ATUAL" class="w-full bg-slate-50 dark:bg-slate-800 p-3 pr-12 rounded-xl text-xs font-bold border border-slate-100 dark:border-slate-700 outline-none text-slate-700 dark:text-slate-200">
+                        <button type="button" onclick="toggleVerSenha('edit-user-pass')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 p-1"><span id="icon-pass-edit" class="text-sm transition-all">👁️</span></button>
+                    </div>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">🔔</span>
+                        <div>
+                            <label class="block text-[9px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Alertas de Contas</label>
+                            <p class="text-[8px] font-bold text-slate-400 uppercase mt-1 leading-none tracking-tighter">Receber avisos de vencimento</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="edit-user-notifica" class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="document.getElementById('modal-editar-usuario').classList.add('hidden')" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-4 rounded-xl text-[9px] font-black uppercase">Sair</button>
+                    <button id="btn-salvar-edit-user" onclick="salvarEdicaoUsuario()" class="flex-1 bg-emerald-500 text-white py-4 rounded-xl text-[9px] font-black uppercase shadow-lg shadow-emerald-100 dark:shadow-emerald-900/20 active:scale-95 transition-all">SALVAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-senha-perigo" class="fixed inset-0 bg-black/80 z-[120] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col transform transition-all border-2 border-red-500">
+            <div class="bg-red-500 text-white p-4 text-center">
+                <h3 class="font-black text-xl flex items-center justify-center gap-2">⚠️ ÁREA RESTRITA</h3>
+                <p class="text-xs mt-1 text-red-100">Confirme sua senha para continuar</p>
+            </div>
+            <div class="p-6 flex flex-col gap-4">
+                <input type="password" id="input-senha-perigo" placeholder="Digite sua senha..." class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-center font-bold tracking-widest border-2 border-slate-200 dark:border-slate-700 outline-none focus:border-red-500 transition-all text-slate-800 dark:text-white" autocomplete="new-password">
+                <div class="flex gap-2 mt-2">
+                    <button onclick="fecharModalSenhaPerigo()" class="flex-1 p-3 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors">CANCELAR</button>
+                    <button id="btn-confirmar-perigo" onclick="verificarSenhaPerigo()" class="flex-1 p-3 rounded-xl font-black text-white bg-red-500 hover:bg-red-600 active:scale-95 transition-all shadow-lg shadow-red-500/30">LIBERAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-estorno" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in-center">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner">🔒</div>
+                <h3 class="text-sm font-black text-slate-800 dark:text-white uppercase italic tracking-tighter">Autorização Restrita</h3>
+                <p id="label-valor-estorno" class="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest"></p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[8px] font-black text-slate-400 uppercase ml-3 mb-1">Usuário Gerente</label>
+                    <input type="text" id="input-user-estorno" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 outline-none focus:border-orange-500 transition-all" placeholder="DIGITE O USUÁRIO">
+                </div>
+                <div>
+                    <label class="block text-[8px] font-black text-slate-400 uppercase ml-3 mb-1">Senha de Acesso</label>
+                    <input type="password" id="input-pass-estorno" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 outline-none focus:border-orange-500 transition-all" placeholder="••••••••">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="fecharModalEstorno()" class="flex-1 py-4 text-[10px] font-black text-slate-400 uppercase hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all">CANCELAR</button>
+                <button onclick="processarEstornoComSenha()" class="flex-1 py-4 bg-red-600 text-white text-[10px] font-black uppercase rounded-2xl shadow-lg shadow-red-500/20 active:scale-95 transition-all">CONFIRMAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-preview-recibo" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+        <div class="w-full max-w-sm flex flex-col items-center">
+            <div class="bg-[#f8f9fa] w-full max-w-[320px] p-6 shadow-2xl font-mono text-black relative border-t-4 border-slate-300">
+                <div class="text-center font-black text-lg mb-1 tracking-tighter">Espetinho & Cia</div>
+                <div class="text-center text-sm font-bold mb-1 uppercase" id="recibo-titulo">2ª VIA - MESA</div>
+                <div class="text-center text-[10px] mb-3 text-slate-600" id="recibo-data">DATA: 00/00/0000, 00:00:00</div>
+                <div class="border-b border-dashed border-slate-400 mb-3"></div>
+                <div id="recibo-itens" class="space-y-2 text-[11px] font-bold uppercase"></div>
+                <div class="border-b border-dashed border-slate-400 my-3"></div>
+                <div class="flex justify-between font-black text-sm mb-2">
+                    <span>TOTAL</span>
+                    <span id="recibo-total">R$ 0,00</span>
+                </div>
+                <div class="text-[10px] font-bold mb-4 uppercase text-slate-700">
+                    PAGAMENTO: <span id="recibo-pagamento" class="font-normal text-black">DINHEIRO</span>
+                </div>
+                <div class="border-b border-dashed border-slate-400 mb-3"></div>
+                <div class="text-center text-[10px] font-bold uppercase tracking-widest text-slate-800">
+                    Obrigado pela preferência
+                </div>
+            </div>
+            <button onclick="fecharPreviewRecibo()" class="mt-6 bg-white/10 text-white border border-white/30 px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all hover:bg-white/20">
+                Fechar Visualização ✕
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-detalhe-fluxo" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 animate-fade-in-up">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="detalhe-fluxo-titulo" class="font-black text-slate-800 dark:text-white uppercase text-sm italic tracking-tighter">Detalhamento</h3>
+                <button onclick="document.getElementById('modal-detalhe-fluxo').classList.add('hidden')" class="bg-slate-100 dark:bg-slate-800 text-slate-500 w-8 h-8 rounded-full flex items-center justify-center font-bold">✕</button>
+            </div>
+            <div id="detalhe-fluxo-conteudo" class="space-y-4 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar"></div>
+            <button onclick="document.getElementById('modal-detalhe-fluxo').classList.add('hidden')" class="w-full mt-6 bg-slate-800 dark:bg-slate-700 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">
+                FECHAR VISUALIZAÇÃO
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-senha-admin" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border-4 border-slate-100 dark:border-slate-800 text-center animate-fade-in-up">
+            <div class="text-4xl mb-4">🔐</div>
+            <h3 class="font-black text-slate-800 dark:text-white uppercase text-lg mb-2">Fechar Caixa do Dia</h3>
+            <p class="text-[10px] font-bold text-slate-500 mb-6 uppercase tracking-widest italic">Apenas administradores podem encerrar o dia.</p>
+            <div class="text-left mb-6">
+                <label class="text-[8px] font-black text-slate-400 uppercase ml-3 mb-1 block">Senha do Administrador</label>
+                <input type="password" id="input-senha-admin" placeholder="••••" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl p-4 text-center text-2xl outline-none dark:text-white focus:ring-2 focus:ring-red-500">
+            </div>
+            <div class="flex gap-3">
+                <button onclick="fecharModalSenha()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-4 rounded-2xl text-[10px] font-black uppercase active:scale-95 transition-all">Cancelar</button>
+                <button onclick="validarFechamentoGeral()" class="flex-1 bg-red-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-red-600/30 active:scale-95 transition-all">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-perfil-global" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-end justify-center sm:items-center transition-opacity">
+        <div class="bg-white dark:bg-slate-900 w-full sm:max-w-sm rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl transform transition-transform duration-300 border-t-4 sm:border-4 border-white dark:border-slate-800 animate-slide-up relative">
+            <div class="flex justify-between items-start mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="bg-[#e63946] w-12 h-12 rounded-full flex items-center justify-center text-xl text-white shadow-md">👤</div>
+                    <div>
+                        <h3 id="modal-perfil-nome" class="font-black text-slate-800 dark:text-white uppercase text-sm italic tracking-tighter">USUÁRIO</h3>
+                        <div class="flex items-center gap-1 mt-0.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Online</span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="window.toggleModalPerfilGlobal()" class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 w-8 h-8 rounded-full flex items-center justify-center font-bold active:scale-95 transition-all">✕</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col justify-center">
+                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status Caixa</span>
+                    <span id="perfil-status-caixa" class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">VERIFICANDO...</span>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col justify-center">
+                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tempo de Turno</span>
+                    <span id="perfil-tempo-turno" class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">--:--</span>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 col-span-2 flex justify-between items-center shadow-inner">
+                    <div class="flex flex-col">
+                        <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Minhas Vendas (Hoje)</span>
+                        <span id="perfil-vendas-hoje" class="text-lg font-black text-emerald-500 uppercase italic tracking-tighter">R$ 0,00</span>
+                    </div>
+                    <div class="bg-emerald-100 dark:bg-emerald-900/30 w-10 h-10 rounded-full flex items-center justify-center text-xl">📈</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 flex justify-between items-center mb-6 border border-slate-100 dark:border-slate-700">
+                <div class="flex items-center gap-3">
+                    <span class="text-lg">🌗</span>
+                    <div>
+                        <p id="label-modo-tema" class="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tighter">MODO ESCURO</p>
+                        <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Aparência da tela</p>
+                    </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="toggle-tema-global" class="sr-only peer" onchange="const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('temaSistema', isDark ? 'dark' : 'light'); const label = document.getElementById('label-modo-tema'); if(label) label.innerText = isDark ? 'MODO ESCURO' : 'MODO CLARO';">
+                    <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#e63946]"></div>
+                </label>
+            </div>
+
+            <button onclick="logout()" class="w-full bg-red-50 dark:bg-red-950/20 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 border border-red-100 dark:border-red-900/50">
+                🚪 SAIR DO SISTEMA
+            </button>
+            <div class="text-center mt-5"><span class="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">WebComanda v1.0.5</span></div>
+        </div>
+    </div>
+
+    <div id="modal-alerta-sistema" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[999] items-center justify-center px-6 transition-opacity">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-[320px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-slide-up">
+        <div class="bg-blue-50 dark:bg-blue-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner text-blue-500">ℹ️</div>
+        <h3 id="titulo-modal-alerta" class="text-blue-500 dark:text-blue-400 font-black text-sm uppercase mb-2 italic tracking-widest leading-none">Atenção</h3>
+        <p id="msg-modal-alerta" class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-6 uppercase tracking-tighter">Mensagem do sistema aqui.</p>
+        
+        <button onclick="fecharAlertaSistema()" class="w-full bg-blue-500 text-white py-4 rounded-[1.5rem] text-[10px] font-black uppercase shadow-lg shadow-blue-200 dark:shadow-blue-900/30 active:scale-95 transition-all">
+            ENTENDI
+        </button>
+    </div>
+</div>
+
+<div id="modal-confirm-sistema" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[999] items-center justify-center px-6 transition-opacity">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-[320px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-slide-up">
+        <div class="bg-orange-50 dark:bg-orange-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner text-orange-500">⚠️</div>
+        <h3 id="titulo-modal-confirm" class="text-orange-500 dark:text-orange-400 font-black text-sm uppercase mb-2 italic tracking-widest leading-none">Confirmar Ação</h3>
+        <p id="msg-modal-confirm" class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-8 uppercase tracking-tighter">Deseja realmente fazer isso?</p>
+        
+        <div class="flex gap-3">
+            <button onclick="fecharConfirmSistema()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-[1.5rem] text-[9px] font-black uppercase active:scale-95 transition-all">NÃO</button>
+            <button id="btn-executar-confirm" class="flex-1 bg-orange-500 text-white py-4 rounded-[1.5rem] text-[9px] font-black uppercase shadow-lg shadow-orange-200 dark:shadow-orange-900/30 active:scale-95 transition-all">SIM</button>
+        </div>
+    </div>
+</div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
+    <script src="componentes/config.js"></script>
+    <script src="componentes/database.js"></script>
+    <script src="componentes/utils.js"></script>
+    <script src="componentes/audit.js"></script>
+    <script src="componentes/produtos.js"></script>
+    <script src="componentes/vendas.js"></script>
+    <script src="componentes/comandas.js"></script>
+    <script src="componentes/caixa.js"></script>
+    <script src="componentes/caixa-reports.js"></script>
+    <script src="componentes/user.js"></script>
+    <script src="componentes/cozinha.js"></script>
+    <script src="componentes/despesas.js"></script>
+    <script src="componentes/ui.js"></script>
+    <script src="componentes/print.js"></script>
+    <script src="componentes/dashboard.js"></script>
+    <script src="componentes/main.js"></script>
+
+</body>
+</html>
