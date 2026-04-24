@@ -9,8 +9,16 @@ try {
     // Verifica se a biblioteca CDN do Supabase foi carregada corretamente no HTML
     if (typeof supabase !== 'undefined') {
         
-        // Inicializa o cliente usando as credenciais do config.js
-        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Inicializa o cliente usando as credenciais e FORÇANDO o uso do storage local
+_supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'espetinho-auth-session', // Nome personalizado para não parecer "tracker"
+        storage: window.localStorage // Força o uso do storage do SEU domínio
+    }
+});
         
         if (_supabase) {
             console.log("✅ [DATABASE] Supabase conectado com sucesso.");
