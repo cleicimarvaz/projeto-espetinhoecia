@@ -256,27 +256,32 @@ window.calcularTroco = function() {
     }
 }
 
-/* --- 5. EXCLUSIVO COMANDAS (Lançamento na tela de vendas) --- */
-/* --- 5. EXCLUSIVO COMANDAS (Lançamento na tela de vendas) --- */
-window.abrirConfirmacaoComandaVenda = function(mesaId) {
+/* --- 5. EXCLUSIVO COMANDAS (Lançamento na tela de vendas) --- */window.abrirConfirmacaoComandaVenda = function(mesaId) {
     const labelMesa = document.getElementById('label-mesa-confirmacao');
     const modal = document.getElementById('modal-confirmacao-comanda');
 
     if (!modal) return;
 
-    if (labelMesa) labelMesa.innerText = `MESA / CLIENTE: ${mesaId}`;
+    // --- 🛡️ CORREÇÃO DE ASCII ---
+    // Se mesaId for um número alto (como 48 a 57), ele é um código ASCII de 0 a 9.
+    // Se for o caso, transformamos de volta para o número real.
+    let mesaExibicao = mesaId;
+    if (typeof mesaId === 'number' && mesaId >= 48 && mesaId <= 57) {
+        mesaExibicao = String.fromCharCode(mesaId);
+    }
     
+    if (labelMesa) labelMesa.innerText = `MESA / CLIENTE: ${mesaExibicao}`;
+    // ----------------------------
+
     // 1. Inicializa a quantidade que vai pra cozinha
     window.carrinho.forEach(i => {
         if (typeof window.isItemCozinha === 'function' && window.isItemCozinha(i)) {
-            // Por padrão, toda a quantidade vendida vai pra cozinha
             if (i.qtd_cozinha === undefined) i.qtd_cozinha = i.qtd; 
         } else {
-            i.qtd_cozinha = 0; // Bebidas não vão
+            i.qtd_cozinha = 0;
         }
     });
 
-    // 2. Renderiza os itens com os botões +/-
     window.renderizarItensConfirmacaoComanda();
 
     modal.classList.remove('hidden');
