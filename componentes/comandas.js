@@ -501,96 +501,35 @@ window.abrirConfirmacaoComanda = async function(id) {
         console.error('[COMANDAS] Erro ao abrir confirmação:', e);
     }
 };
-
-window.gravarPedidoComanda = async function() {
+window.concluirLancamentoComanda = async function() {
     if (!window.carrinho || window.carrinho.length === 0) return;
-
+    
     try {
-        // 1. Ganhamos a certeza do ID
-        const idTexto = sessionStorage.getItem('comandaAtivaId');
-        if (!idTexto) throw new Error("ID da comanda perdido na sessão.");
-        const id = Number(idTexto);
-
-        // 2. Busca a comanda atual no Supabase
-        const { data: c, error: errBusca } = await _supabase.from('comandas').select('*').eq('id', id).single();
-        if (errBusca) throw errBusca;
-        if (!c) throw new Error("Mesa não encontrada no banco de dados.");
-
-        const agora = new Date().toISOString();
-
-        // 3. Processa os itens novos (do carrinho)
-        const itensProcessados = window.carrinho.map(i => {
-            const copia = { ...i, hora_pedido: agora };
-            if (!window.isItemCozinha(copia) || copia.cozinha_status === 'cancelado_preparo') {
-                delete copia.cozinha_status;
-            }
-            return copia;
-        });
-
-        // 4. SEGURANÇA MÁXIMA CONTRA TEXTO (Evita erro na lista de itens)
-        let itensAtuais = [];
-        if (typeof c.itens === 'string') {
-            try { itensAtuais = JSON.parse(c.itens || '[]'); } catch (e) { itensAtuais = []; }
-        } else if (Array.isArray(c.itens)) {
-            itensAtuais = c.itens;
-        }
-
-        const novosItens = [...itensAtuais, ...itensProcessados];
-
-        // 5. Prevenção absoluta contra NaN no Total (O Supabase recusa NaN)
-        const novoTotal = novosItens.reduce((acc, item) => {
-            const p = parseFloat(item.preco) || 0;
-            const q = parseInt(item.qtd) || 0;
-            return acc + (p * q);
-        }, 0);
-
-        // 6. ATUALIZA O BANCO
-        const { error: errUpdate } = await _supabase.from('comandas').update({
-            itens: novosItens,
-            total: novoTotal,
-            updated_at: agora
-        }).eq('id', id);
-
-        if (errUpdate) throw errUpdate;
-
-        // 7. Log Seguro (Não deixa um erro de Log cancelar o sucesso da venda)
-        if (typeof registrarLog === 'function') {
-            const qtdItens = itensProcessados.reduce((acc, i) => acc + (parseInt(i.qtd) || 0), 0);
-            await registrarLog(
-                'VENDA', 
-                'LANÇAMENTO EM MESA', 
-                `ADICIONOU ${qtdItens} ITEM(S) NA MESA: ${c.identificacao || id}`
-            ).catch(() => {}); // Previne que a falta de internet quebre aqui
-        }
-
-        if (typeof showToast === 'function') showToast('PEDIDO LANÇADO COM SUCESSO!', 'sucesso');
-
-        // Limpa carrinho
-        window.carrinho = []; 
-        if(typeof renderizarCarrinho === 'function') renderizarCarrinho();
-
+        await window.gravarPedidoComanda();
+        // SÓ PASSA PARA CÁ SE GRAVOU COM SUCESSO
+        document.getElementById('modal-confirmacao-comanda')?.classList.add('hidden');
+        window.carrinho = [];
+        window.location.href = 'comandas.html'; 
     } catch (e) {
-        console.error('❌ [COMANDAS] Erro crítico ao gravar pedido:', e);
-        
-        // Exibe a mensagem real do que o banco recusou
-        const msgErro = e.message || e.details || 'Verifique sua conexão.';
-        if (typeof showToast === 'function') {
-            showToast('ERRO: ' + msgErro, 'erro');
-        } else {
-            alert('Erro ao gravar pedido: ' + msgErro);
-        }
-        
-        // 🛑 O FREIO DE EMERGÊNCIA: Isso impede o "Redirecionamento Cego"!
-        // Se der erro, a página não vai voltar pra comandas.html e você vai poder ler o Toast.
-        throw e; 
+        // SE DEU ERRO, ELE PARA AQUI E A TELA NÃO MUDA!
+        console.error("Redirecionamento cancelado devido a erro:", e);
     }
-};window.concluirLancamentoComanda = async function() {
-    if (!window.carrinho || window.carrinho.length === 0) return;
-    await window.gravarPedidoComanda();
-    document.getElementById('modal-confirmacao-comanda')?.classList.add('hidden');
-    window.carrinho = [];
-    window.location.href = 'comandas.html';
 };
+
+window.concluirLancamentoComanda = async function() {
+    if (!window.carrinho || window.carrinho.length === 0) return;
+    
+    try {
+        await window.gravarPedidoComanda();
+        // SÓ VAI REDIRECIONAR SE A FUNÇÃO ACIMA DER 100% CERTO!
+        document.getElementById('modal-confirmacao-comanda')?.classList.add('hidden');
+        window.carrinho = [];
+        window.location.href = 'comandas.html';
+    } catch (e) {
+        // SE DER ERRO, ELE PARA AQUI E NÃO MUDA DE TELA!
+        console.error("Redirecionamento bloqueado por falha:", e);
+    }
+};};
 
 /* --- 5. IMPRESSÃO INTEGRADA AO MOTOR PRINCIPAL --- */
 
