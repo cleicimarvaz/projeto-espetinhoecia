@@ -506,12 +506,22 @@ window.gravarPedidoComanda = async function() {
     if (!window.carrinho || window.carrinho.length === 0) return;
 
     try {
-        const id = sessionStorage.getItem('comandaAtivaId');
-        const { data: c } = await _supabase.from('comandas').select('*').eq('id', id).single();
-        if (!c) return;
+        // 1. FORÇAR NÚMERO: sessionStorage salva como texto. O Supabase precisa do número inteiro!
+        const idTexto = sessionStorage.getItem('comandaAtivaId');
+        const id = Number(idTexto);
 
-        // O SEGREDO ESTÁ AQUI:
-        // Capturamos a hora exata deste "clique" de confirmação
+        // 2. BUSCA COM TRATAMENTO DE ERRO EXPLÍCITO
+        const { data: c, error: errBusca } = await _supabase.from('comandas').select('*').eq('id', id).single();
+        
+        if (errBusca) throw errBusca; // Se der erro de conexão, joga pro Catch lá embaixo
+        
+        if (!c) {
+            console.error("❌ Comanda não encontrada no banco com o ID:", id);
+            if (typeof showToast === 'function') showToast('MESA NÃO ENCONTRADA', 'erro');
+            return;
+        }
+
+        // O SEGREDO ESTÁ AQUI: Capturamos a hora exata deste "clique" de confirmação
         const agora = new Date().toISOString();
 
         const itensProcessados = window.carrinho.map(i => {
@@ -529,30 +539,40 @@ window.gravarPedidoComanda = async function() {
         const novosItens = [...(c.itens || []), ...itensProcessados];
         const novoTotal  = novosItens.reduce((acc, item) => acc + (parseFloat(item.preco) * item.qtd), 0);
 
-        await _supabase.from('comandas').update({
+        // 3. ATUALIZA NO BANCO
+        const { error: errUpdate } = await _supabase.from('comandas').update({
             itens: novosItens,
             total: novoTotal,
             updated_at: agora // Aproveitamos a mesma data aqui
         }).eq('id', id);
 
-        // --- REGISTRO DE AUDITORIA ---
+        if (errUpdate) throw errUpdate; // Trava se a atualização falhar
+
+        // --- REGISTRO DE AUDITORIA CORRIGIDO (3 ARGUMENTOS) ---
         if (typeof registrarLog === 'function') {
             const qtdItens = window.carrinho.reduce((acc, i) => acc + i.qtd, 0);
-            await registrarLog('SISTEMA', `ADICIONOU ${qtdItens} ITEM(S) NA MESA: ${c.identificacao}`);
+            await registrarLog(
+                'VENDA', 
+                'LANÇAMENTO EM MESA', 
+                `ADICIONOU ${qtdItens} ITEM(S) NA MESA/COMANDA: ${c.identificacao || id}`
+            );
         }
 
-        if (typeof showToast === 'function') showToast('PEDIDO LANÇADO!');
+        if (typeof showToast === 'function') showToast('PEDIDO LANÇADO COM SUCESSO!', 'sucesso');
 
         // Limpa o carrinho após lançar
         window.carrinho = []; 
         if(typeof renderizarCarrinho === 'function') renderizarCarrinho();
 
     } catch (e) {
-        console.error('[COMANDAS] Erro ao gravar pedido:', e);
-        if (typeof showToast === 'function') showToast('ERRO AO LANÇAR', 'erro');
+        console.error('[COMANDAS] Erro crítico ao gravar pedido:', e);
+        if (typeof showToast === 'function') {
+            showToast('ERRO AO LANÇAR ITEM NO BANCO', 'erro');
+        } else {
+            alert('Erro ao gravar pedido. Verifique a internet e tente novamente.');
+        }
     }
 };
-
 window.concluirLancamentoComanda = async function() {
     if (!window.carrinho || window.carrinho.length === 0) return;
     await window.gravarPedidoComanda();
