@@ -1,15 +1,16 @@
-/* ===========================================================
+/* =========================================================================
    SERVICE WORKER - ESPETINHO & CIA
-   Versão: v3.0-final (Estratégia Network First)
-   =========================================================== */
+   Versão: v3.1.0 (Release Final - Network First)
+   ========================================================================= */
 
-const CACHE_NAME = 'espetinho-cia-v3-final';
+// Nome do cache - Altere este número (ex: v3.1.0) sempre que subir novo JS/HTML
+const CACHE_NAME = 'espetinho-cia-v3.1.0';
 
-// Lista de arquivos para funcionamento Offline
+// Lista integral de arquivos para funcionamento Offline
 const assets = [
     './',
     './index.html',
-    './manifest.json', // Vital para o PWA
+    './manifest.json',
     './home.html',
     './venda.html',
     './comandas.html',
@@ -39,62 +40,75 @@ const assets = [
     './componentes/main.js'
 ];
 
-// 1. INSTALAÇÃO: Cacheia os arquivos
+// 1. INSTALAÇÃO: Armazena os arquivos no Cache
 self.addEventListener('install', event => {
+    // Força o novo Service Worker a assumir o controle imediatamente
     self.skipWaiting();
+    
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('[SW] Iniciando cache da Release 3.0');
-                // Usamos allSettled para evitar que um erro em um arquivo trave todo o sistema
-                return Promise.allSettled(
-                    assets.map(url => cache.add(url).catch(err => console.warn(`[SW] Falha ao cachear: ${url}`, err)))
-                );
-            })
+        caches.open(CACHE_NAME).then(cache => {
+            console.log('[SW] Cacheando todos os ativos da nova versão');
+            return Promise.allSettled(
+                assets.map(url => {
+                    return cache.add(url).catch(err => {
+                        console.warn(`[SW] Erro ao cachear arquivo: ${url}`, err);
+                    });
+                })
+            );
+        })
     );
 });
 
-// 2. ATIVAÇÃO: Limpa versões antigas (v1, v2, v4 antigas)
+// 2. ATIVAÇÃO: Remove caches de versões anteriores
 self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(
-                keys.filter(key => key !== CACHE_NAME)
-                    .map(key => {
-                        console.log('[SW] Removendo cache antigo:', key);
-                        return caches.delete(key);
-                    })
-            )
-        )
+        caches.keys().then(keys => {
+            return Promise.all(
+                keys.filter(key => key !== CACHE_NAME).map(key => {
+                    console.log('[SW] Removendo cache antigo:', key);
+                    return caches.delete(key);
+                })
+            );
+        })
     );
+    // Garante que o SW controle as abas abertas imediatamente
     self.clients.claim();
 });
 
-// 3. FETCH: ESTRATÉGIA NETWORK FIRST
-// Tenta buscar no GitHub primeiro. Se não tiver internet, usa o Cache.
+// 3. FETCH: ESTRATÉGIA NETWORK FIRST (Rede primeiro, depois Cache)
 self.addEventListener('fetch', event => {
     const url = event.request.url;
 
-    // Ignora chamadas ao Banco de Dados (Supabase) e CDNs externos para evitar conflitos
-    if (url.includes('supabase.co') || url.includes('cdn.') || url.includes('unpkg.com')) {
+    // Ignora chamadas de API externas e Banco de Dados para não causar conflitos de dados
+    if (
+        url.includes('supabase.co') || 
+        url.includes('cdn.') || 
+        url.includes('unpkg.com') || 
+        event.request.method !== 'GET'
+    ) {
         return;
     }
 
-    // Apenas intercepta requisições GET
-    if (event.request.method !== 'GET') return;
-
     event.respondWith(
         fetch(event.request)
-            .then(response => {
-                // Se a rede respondeu, atualizamos o cache com a cópia nova
-                const resClone = response.clone();
-                caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
-                return response;
+            .then(networkResponse => {
+                // Se houver internet, clona a resposta e atualiza o cache
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME).then(cache => {
+                    cache.put(event.request, responseToCache);
+                });
+                return networkResponse;
             })
             .catch(() => {
-                // Se estiver sem internet (OFFLINE), entrega o que estiver no cache
+                // Se estiver OFFLINE, busca no cache
                 return caches.match(event.request).then(cachedResponse => {
-                    return cachedResponse || caches.match('./index.html');
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    // Se não houver cache e for uma navegação de página, retorna a home
+                    if (event.request.mode === 'navigate') {
+                        return caches.match('./index.html');
+                    }
                 });
             })
     );
