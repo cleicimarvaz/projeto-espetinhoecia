@@ -256,22 +256,15 @@ window.calcularTroco = function() {
     }
 }
 
-/* --- 5. EXCLUSIVO COMANDAS (Lançamento na tela de vendas) --- */window.abrirConfirmacaoComandaVenda = function(mesaId) {
+/* --- 5. EXCLUSIVO COMANDAS (Lançamento na tela de vendas) --- */
+   window.abrirConfirmacaoComandaVenda = function(mesaId) {
     const labelMesa = document.getElementById('label-mesa-confirmacao');
     const modal = document.getElementById('modal-confirmacao-comanda');
 
     if (!modal) return;
 
-    // --- 🛡️ CORREÇÃO DE ASCII ---
-    // Se mesaId for um número alto (como 48 a 57), ele é um código ASCII de 0 a 9.
-    // Se for o caso, transformamos de volta para o número real.
-    let mesaExibicao = mesaId;
-    if (typeof mesaId === 'number' && mesaId >= 48 && mesaId <= 57) {
-        mesaExibicao = String.fromCharCode(mesaId);
-    }
-    
-    if (labelMesa) labelMesa.innerText = `MESA / CLIENTE: ${mesaExibicao}`;
-    // ----------------------------
+    // Como o mesaId é o ID do banco (ex: 50), mostramos "COMANDA #50"
+    if (labelMesa) labelMesa.innerText = `COMANDA #${mesaId}`;
 
     // 1. Inicializa a quantidade que vai pra cozinha
     window.carrinho.forEach(i => {
@@ -287,7 +280,6 @@ window.calcularTroco = function() {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }
-
 window.renderizarItensConfirmacaoComanda = function() {
     const container = document.getElementById('lista-itens-confirmacao');
     if (!container) return;
