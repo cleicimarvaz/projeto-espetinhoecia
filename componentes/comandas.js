@@ -506,74 +506,85 @@ window.gravarPedidoComanda = async function() {
     if (!window.carrinho || window.carrinho.length === 0) return;
 
     try {
-        // 1. FORÇAR NÚMERO: sessionStorage salva como texto. O Supabase precisa do número inteiro!
+        // 1. Ganhamos a certeza do ID
         const idTexto = sessionStorage.getItem('comandaAtivaId');
+        if (!idTexto) throw new Error("ID da comanda perdido na sessão.");
         const id = Number(idTexto);
 
-        // 2. BUSCA COM TRATAMENTO DE ERRO EXPLÍCITO
+        // 2. Busca a comanda atual no Supabase
         const { data: c, error: errBusca } = await _supabase.from('comandas').select('*').eq('id', id).single();
-        
-        if (errBusca) throw errBusca; // Se der erro de conexão, joga pro Catch lá embaixo
-        
-        if (!c) {
-            console.error("❌ Comanda não encontrada no banco com o ID:", id);
-            if (typeof showToast === 'function') showToast('MESA NÃO ENCONTRADA', 'erro');
-            return;
-        }
+        if (errBusca) throw errBusca;
+        if (!c) throw new Error("Mesa não encontrada no banco de dados.");
 
-        // O SEGREDO ESTÁ AQUI: Capturamos a hora exata deste "clique" de confirmação
         const agora = new Date().toISOString();
 
+        // 3. Processa os itens novos (do carrinho)
         const itensProcessados = window.carrinho.map(i => {
-            const copia = { ...i };
-            
-            // Adicionamos a data/hora para este lote de itens
-            copia.hora_pedido = agora; 
-
+            const copia = { ...i, hora_pedido: agora };
             if (!window.isItemCozinha(copia) || copia.cozinha_status === 'cancelado_preparo') {
                 delete copia.cozinha_status;
             }
             return copia;
         });
 
-        const novosItens = [...(c.itens || []), ...itensProcessados];
-        const novoTotal  = novosItens.reduce((acc, item) => acc + (parseFloat(item.preco) * item.qtd), 0);
+        // 4. SEGURANÇA MÁXIMA CONTRA TEXTO (Evita erro na lista de itens)
+        let itensAtuais = [];
+        if (typeof c.itens === 'string') {
+            try { itensAtuais = JSON.parse(c.itens || '[]'); } catch (e) { itensAtuais = []; }
+        } else if (Array.isArray(c.itens)) {
+            itensAtuais = c.itens;
+        }
 
-        // 3. ATUALIZA NO BANCO
+        const novosItens = [...itensAtuais, ...itensProcessados];
+
+        // 5. Prevenção absoluta contra NaN no Total (O Supabase recusa NaN)
+        const novoTotal = novosItens.reduce((acc, item) => {
+            const p = parseFloat(item.preco) || 0;
+            const q = parseInt(item.qtd) || 0;
+            return acc + (p * q);
+        }, 0);
+
+        // 6. ATUALIZA O BANCO
         const { error: errUpdate } = await _supabase.from('comandas').update({
             itens: novosItens,
             total: novoTotal,
-            updated_at: agora // Aproveitamos a mesma data aqui
+            updated_at: agora
         }).eq('id', id);
 
-        if (errUpdate) throw errUpdate; // Trava se a atualização falhar
+        if (errUpdate) throw errUpdate;
 
-        // --- REGISTRO DE AUDITORIA CORRIGIDO (3 ARGUMENTOS) ---
+        // 7. Log Seguro (Não deixa um erro de Log cancelar o sucesso da venda)
         if (typeof registrarLog === 'function') {
-            const qtdItens = window.carrinho.reduce((acc, i) => acc + i.qtd, 0);
+            const qtdItens = itensProcessados.reduce((acc, i) => acc + (parseInt(i.qtd) || 0), 0);
             await registrarLog(
                 'VENDA', 
                 'LANÇAMENTO EM MESA', 
-                `ADICIONOU ${qtdItens} ITEM(S) NA MESA/COMANDA: ${c.identificacao || id}`
-            );
+                `ADICIONOU ${qtdItens} ITEM(S) NA MESA: ${c.identificacao || id}`
+            ).catch(() => {}); // Previne que a falta de internet quebre aqui
         }
 
         if (typeof showToast === 'function') showToast('PEDIDO LANÇADO COM SUCESSO!', 'sucesso');
 
-        // Limpa o carrinho após lançar
+        // Limpa carrinho
         window.carrinho = []; 
         if(typeof renderizarCarrinho === 'function') renderizarCarrinho();
 
     } catch (e) {
-        console.error('[COMANDAS] Erro crítico ao gravar pedido:', e);
+        console.error('❌ [COMANDAS] Erro crítico ao gravar pedido:', e);
+        
+        // Exibe a mensagem real do que o banco recusou
+        const msgErro = e.message || e.details || 'Verifique sua conexão.';
         if (typeof showToast === 'function') {
-            showToast('ERRO AO LANÇAR ITEM NO BANCO', 'erro');
+            showToast('ERRO: ' + msgErro, 'erro');
         } else {
-            alert('Erro ao gravar pedido. Verifique a internet e tente novamente.');
+            alert('Erro ao gravar pedido: ' + msgErro);
         }
+        
+        // 🛑 O FREIO DE EMERGÊNCIA: Isso impede o "Redirecionamento Cego"!
+        // Se der erro, a página não vai voltar pra comandas.html e você vai poder ler o Toast.
+        throw e; 
     }
-};
-window.concluirLancamentoComanda = async function() {
+};window.concluirLancamentoComanda = async function() {
     if (!window.carrinho || window.carrinho.length === 0) return;
     await window.gravarPedidoComanda();
     document.getElementById('modal-confirmacao-comanda')?.classList.add('hidden');
