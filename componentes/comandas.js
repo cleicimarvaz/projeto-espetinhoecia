@@ -501,65 +501,35 @@ window.abrirConfirmacaoComanda = async function(id) {
         console.error('[COMANDAS] Erro ao abrir confirmação:', e);
     }
 };
-
-window.gravarPedidoComanda = async function() {
+window.concluirLancamentoComanda = async function() {
     if (!window.carrinho || window.carrinho.length === 0) return;
-
+    
     try {
-        const id = sessionStorage.getItem('comandaAtivaId');
-        const { data: c } = await _supabase.from('comandas').select('*').eq('id', id).single();
-        if (!c) return;
-
-        // O SEGREDO ESTÁ AQUI:
-        // Capturamos a hora exata deste "clique" de confirmação
-        const agora = new Date().toISOString();
-
-        const itensProcessados = window.carrinho.map(i => {
-            const copia = { ...i };
-            
-            // Adicionamos a data/hora para este lote de itens
-            copia.hora_pedido = agora; 
-
-            if (!window.isItemCozinha(copia) || copia.cozinha_status === 'cancelado_preparo') {
-                delete copia.cozinha_status;
-            }
-            return copia;
-        });
-
-        const novosItens = [...(c.itens || []), ...itensProcessados];
-        const novoTotal  = novosItens.reduce((acc, item) => acc + (parseFloat(item.preco) * item.qtd), 0);
-
-        await _supabase.from('comandas').update({
-            itens: novosItens,
-            total: novoTotal,
-            updated_at: agora // Aproveitamos a mesma data aqui
-        }).eq('id', id);
-
-        // --- REGISTRO DE AUDITORIA ---
-        if (typeof registrarLog === 'function') {
-            const qtdItens = window.carrinho.reduce((acc, i) => acc + i.qtd, 0);
-            await registrarLog('SISTEMA', `ADICIONOU ${qtdItens} ITEM(S) NA MESA: ${c.identificacao}`);
-        }
-
-        if (typeof showToast === 'function') showToast('PEDIDO LANÇADO!');
-
-        // Limpa o carrinho após lançar
-        window.carrinho = []; 
-        if(typeof renderizarCarrinho === 'function') renderizarCarrinho();
-
+        await window.gravarPedidoComanda();
+        // SÓ PASSA PARA CÁ SE GRAVOU COM SUCESSO
+        document.getElementById('modal-confirmacao-comanda')?.classList.add('hidden');
+        window.carrinho = [];
+        window.location.href = 'comandas.html'; 
     } catch (e) {
-        console.error('[COMANDAS] Erro ao gravar pedido:', e);
-        if (typeof showToast === 'function') showToast('ERRO AO LANÇAR', 'erro');
+        // SE DEU ERRO, ELE PARA AQUI E A TELA NÃO MUDA!
+        console.error("Redirecionamento cancelado devido a erro:", e);
     }
 };
 
 window.concluirLancamentoComanda = async function() {
     if (!window.carrinho || window.carrinho.length === 0) return;
-    await window.gravarPedidoComanda();
-    document.getElementById('modal-confirmacao-comanda')?.classList.add('hidden');
-    window.carrinho = [];
-    window.location.href = 'comandas.html';
-};
+    
+    try {
+        await window.gravarPedidoComanda();
+        // SÓ VAI REDIRECIONAR SE A FUNÇÃO ACIMA DER 100% CERTO!
+        document.getElementById('modal-confirmacao-comanda')?.classList.add('hidden');
+        window.carrinho = [];
+        window.location.href = 'comandas.html';
+    } catch (e) {
+        // SE DER ERRO, ELE PARA AQUI E NÃO MUDA DE TELA!
+        console.error("Redirecionamento bloqueado por falha:", e);
+    }
+};};
 
 /* --- 5. IMPRESSÃO INTEGRADA AO MOTOR PRINCIPAL --- */
 

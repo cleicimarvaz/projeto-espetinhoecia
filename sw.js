@@ -1,5 +1,6 @@
 /* =========================================================================
    SERVICE WORKER - ESPETINHO & CIA
+<<<<<<< HEAD
    Versão: v3.1.0 (Release Final - Network First)
    ========================================================================= */
 
@@ -7,6 +8,13 @@
 const CACHE_NAME = 'espetinho-cia-v3.1.0';
 
 // Lista integral de arquivos para funcionamento Offline
+=======
+   Versão: v3.1-REVISADO (Força atualização e limpa cache antigo)
+   =========================================================== */
+
+const CACHE_NAME = 'espetinho-cia-v3.1-force'; // MUDADO PARA FORÇAR RESET
+
+>>>>>>> abc4587392cf4f48e0803fa4d7bd7566021010db
 const assets = [
     './',
     './index.html',
@@ -21,7 +29,6 @@ const assets = [
     './cozinha.html',
     './style.css',
     './img/logo.jpg',
-    // Componentes JS
     './componentes/config.js',
     './componentes/database.js',
     './componentes/utils.js',
@@ -40,13 +47,17 @@ const assets = [
     './componentes/main.js'
 ];
 
+<<<<<<< HEAD
 // 1. INSTALAÇÃO: Armazena os arquivos no Cache
+=======
+>>>>>>> abc4587392cf4f48e0803fa4d7bd7566021010db
 self.addEventListener('install', event => {
     // Força o novo Service Worker a assumir o controle imediatamente
     self.skipWaiting();
     
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
+<<<<<<< HEAD
             console.log('[SW] Cacheando todos os ativos da nova versão');
             return Promise.allSettled(
                 assets.map(url => {
@@ -54,11 +65,17 @@ self.addEventListener('install', event => {
                         console.warn(`[SW] Erro ao cachear arquivo: ${url}`, err);
                     });
                 })
+=======
+            console.log('[SW 3.1] Forçando novo cache');
+            return Promise.allSettled(
+                assets.map(url => cache.add(url).catch(err => console.warn(`Falha: ${url}`, err)))
+>>>>>>> abc4587392cf4f48e0803fa4d7bd7566021010db
             );
         })
     );
 });
 
+<<<<<<< HEAD
 // 2. ATIVAÇÃO: Remove caches de versões anteriores
 self.addEventListener('activate', event => {
     event.waitUntil(
@@ -70,11 +87,19 @@ self.addEventListener('activate', event => {
                 })
             );
         })
+=======
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(keys =>
+            Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
+        )
+>>>>>>> abc4587392cf4f48e0803fa4d7bd7566021010db
     );
     // Garante que o SW controle as abas abertas imediatamente
     self.clients.claim();
 });
 
+<<<<<<< HEAD
 // 3. FETCH: ESTRATÉGIA NETWORK FIRST (Rede primeiro, depois Cache)
 self.addEventListener('fetch', event => {
     const url = event.request.url;
@@ -111,5 +136,20 @@ self.addEventListener('fetch', event => {
                     }
                 });
             })
+=======
+self.addEventListener('fetch', event => {
+    const url = event.request.url;
+    if (url.includes('supabase.co') || url.includes('cdn.') || url.includes('unpkg.com')) return;
+    if (event.request.method !== 'GET') return;
+
+    event.respondWith(
+        fetch(event.request)
+            .then(response => {
+                const resClone = response.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+                return response;
+            })
+            .catch(() => caches.match(event.request).then(res => res || caches.match('./index.html')))
+>>>>>>> abc4587392cf4f48e0803fa4d7bd7566021010db
     );
 });

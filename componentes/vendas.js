@@ -262,12 +262,17 @@ window.calcularTroco = function() {
 }
 
 /* --- 5. EXCLUSIVO COMANDAS (Lançamento na tela de vendas) --- */
+<<<<<<< HEAD
 window.abrirConfirmacaoComandaVenda = async function(mesaId) { // <-- Adicionei o 'async' aqui
+=======
+   window.abrirConfirmacaoComandaVenda = function(mesaId) {
+>>>>>>> abc4587392cf4f48e0803fa4d7bd7566021010db
     const labelMesa = document.getElementById('label-mesa-confirmacao');
     const modal = document.getElementById('modal-confirmacao-comanda');
 
     if (!modal) return;
 
+<<<<<<< HEAD
     if (labelMesa) {
         labelMesa.innerText = "CARREGANDO DADOS..."; // Feedback visual rápido
         // Busca o nome correto no banco para o modal
@@ -275,23 +280,25 @@ window.abrirConfirmacaoComandaVenda = async function(mesaId) { // <-- Adicionei 
         labelMesa.innerText = `MESA / CLIENTE: ${data ? data.identificacao : mesaId}`;
     }
     
+=======
+    // Como o mesaId é o ID do banco (ex: 50), mostramos "COMANDA #50"
+    if (labelMesa) labelMesa.innerText = `COMANDA #${mesaId}`;
+
+>>>>>>> abc4587392cf4f48e0803fa4d7bd7566021010db
     // 1. Inicializa a quantidade que vai pra cozinha
     window.carrinho.forEach(i => {
         if (typeof window.isItemCozinha === 'function' && window.isItemCozinha(i)) {
-            // Por padrão, toda a quantidade vendida vai pra cozinha
             if (i.qtd_cozinha === undefined) i.qtd_cozinha = i.qtd; 
         } else {
-            i.qtd_cozinha = 0; // Bebidas não vão
+            i.qtd_cozinha = 0;
         }
     });
 
-    // 2. Renderiza os itens com os botões +/-
     window.renderizarItensConfirmacaoComanda();
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }
-
 window.renderizarItensConfirmacaoComanda = function() {
     const container = document.getElementById('lista-itens-confirmacao');
     if (!container) return;
