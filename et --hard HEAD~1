@@ -1,0 +1,58 @@
+[33mcommit 0abcd4aa068c21d886447adc1dc509624f7c0fc7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Cleicimar <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 19:05:46 2026 -0300
+
+    Correção de segurança
+
+[33mcommit b3ecf1b0e6232df45bc2991f1c5c3a3ca6fea759[m
+Merge: 1586575 aa6c6cf
+Author: Cleicimar <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 18:59:07 2026 -0300
+
+    Merge branch 'main' of https://github.com/cleicimarvaz/projeto-espetinhoecia
+
+[33mcommit 1586575a055ce80fa5945b624d8cbd71443a47fa[m
+Author: Cleicimar <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 18:58:59 2026 -0300
+
+    fix: ajuste na senha do usuario, service worker v4 e filtro de despesas
+
+[33mcommit aa6c6cff1d35cc732ec7c6b312a3eacd9fe86a48[m
+Author: cleicimarvaz <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 14:12:47 2026 -0300
+
+    Add files via upload
+
+[33mcommit f281f0f857cd9294e67a6391f4fbb48bd222422e[m
+Author: cleicimarvaz <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 13:57:20 2026 -0300
+
+    Add files via upload
+
+[33mcommit 50b7ad2d019bace7d47612bdb1697992fb394833[m
+Author: cleicimarvaz <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 13:44:33 2026 -0300
+
+    Update despesas.js
+
+[33mcommit 94bf0d4a9766056e92968f3db3bafedfd8ea3233[m
+Author: cleicimarvaz <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 13:23:01 2026 -0300
+
+    Update despesas.js
+    
+    Correção no filtro de despesas
+
+[33mcommit fd7782ab9681a5ef84dbd6211338ead3cd5232c2[m
+Author: Cleicimar <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 12:59:25 2026 -0300
+
+    fix: Service Worker final v3.0 com estrategia Network First
+
+[33mcommit 6914512dcd4431333ca8ccba4db53708b7b06692[m[33m ([m[1;33mtag: [m[1;33mv3.0[m[33m)[m
+Author: Cleicimar <cleicimar_vaz@hotmail.com>
+Date:   Fri Apr 17 12:42:53 2026 -0300
+
+    release: v3.0 - Implementação de Relatórios, Auditoria e Filtros
+    
+    Compilado de melhorias: Impressão de despesas, padronização de PDFs (DDMMYYYY), segurança na zona de perigo, backup, estorno e correções de UI/UX.

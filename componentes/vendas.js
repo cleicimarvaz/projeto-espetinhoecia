@@ -6,6 +6,7 @@ window.carrinho = window.carrinho || [];
 window.produtosCache = []; 
 
 /* --- 0. CARREGAMENTO INICIAL DO CATÁLOGO --- */
+/* --- 0. CARREGAMENTO INICIAL DO CATÁLOGO --- */
 window.carregarCatalogoVendas = async function() {
     if (typeof _supabase === 'undefined') return;
     
@@ -13,7 +14,11 @@ window.carregarCatalogoVendas = async function() {
     const mesaId = sessionStorage.getItem('comandaAtivaId');
     if (mesaId) {
         const title = document.querySelector('header h1');
-        if (title) title.innerText = `MESA ${mesaId}`;
+        // A MÁGICA AQUI: Puxa o nome real ("Mesa 06") em vez do ID ("49")
+        _supabase.from('comandas').select('identificacao').eq('id', mesaId).single()
+            .then(({data}) => {
+                if (data && title) title.innerHTML = `${data.identificacao} <br>ESPETINHO & CIA`;
+            });
     }
 
     try {
@@ -257,14 +262,18 @@ window.calcularTroco = function() {
 }
 
 /* --- 5. EXCLUSIVO COMANDAS (Lançamento na tela de vendas) --- */
-/* --- 5. EXCLUSIVO COMANDAS (Lançamento na tela de vendas) --- */
-window.abrirConfirmacaoComandaVenda = function(mesaId) {
+window.abrirConfirmacaoComandaVenda = async function(mesaId) { // <-- Adicionei o 'async' aqui
     const labelMesa = document.getElementById('label-mesa-confirmacao');
     const modal = document.getElementById('modal-confirmacao-comanda');
 
     if (!modal) return;
 
-    if (labelMesa) labelMesa.innerText = `MESA / CLIENTE: ${mesaId}`;
+    if (labelMesa) {
+        labelMesa.innerText = "CARREGANDO DADOS..."; // Feedback visual rápido
+        // Busca o nome correto no banco para o modal
+        const { data } = await _supabase.from('comandas').select('identificacao').eq('id', mesaId).single();
+        labelMesa.innerText = `MESA / CLIENTE: ${data ? data.identificacao : mesaId}`;
+    }
     
     // 1. Inicializa a quantidade que vai pra cozinha
     window.carrinho.forEach(i => {
@@ -329,7 +338,7 @@ window.alterarQtdCozinhaModal = function(index, delta) {
 }
 
 window.finalizarPedidoComandaVenda = async function() {
-    // 1. Lê o Switch Global da interface (se ele estiver desmarcado, nada vai pra cozinha)
+    // 1. Lê o Switch Global da interface
     const enviarCozinhaGlobal = document.getElementById('check-enviar-cozinha')?.checked ?? true;
 
     // A MÁGICA: Dividir os itens antes de salvar!
@@ -339,37 +348,40 @@ window.finalizarPedidoComandaVenda = async function() {
         const vaiPraCozinha = typeof window.isItemCozinha === 'function' ? window.isItemCozinha(item) : false;
 
         if (vaiPraCozinha) {
-            // Se o switch global estiver desligado, a qtd_cozinha vira 0 automaticamente
             const qtdCozinha = enviarCozinhaGlobal ? (item.qtd_cozinha !== undefined ? item.qtd_cozinha : item.qtd) : 0;
             const qtdDireta = item.qtd - qtdCozinha;
 
-            // Parte do pedido que VAI pra cozinha (fica em preparo)
             if (qtdCozinha > 0) {
                 const copiaCozinha = { ...item, qtd: qtdCozinha, cozinha_status: 'em_preparo' };
                 delete copiaCozinha.qtd_cozinha; 
                 carrinhoProcessado.push(copiaCozinha);
             }
 
-            // Parte do pedido que NÃO vai pra cozinha (marca como 'pronto' para o KDS ignorar)
             if (qtdDireta > 0) {
                 const copiaDireta = { ...item, qtd: qtdDireta, cozinha_status: 'pronto' };
                 delete copiaDireta.qtd_cozinha;
                 carrinhoProcessado.push(copiaDireta);
             }
         } else {
-            // Bebidas e itens que nunca vão pra cozinha passam direto como 'pronto'
             const copiaNormal = { ...item, cozinha_status: 'pronto' };
             delete copiaNormal.qtd_cozinha;
             carrinhoProcessado.push(copiaNormal);
         }
     });
 
-    // Substitui o carrinho global temporariamente pela versão processada
     window.carrinho = carrinhoProcessado;
 
     // Chama a função de gravação oficial
     if (typeof window.gravarPedidoComanda === 'function') {
         await window.gravarPedidoComanda(); 
+        
+        // ============================================================
+        // A SOLUÇÃO ESTÁ AQUI:
+        // Remove o ID da mesa da memória após o sucesso no banco
+        // ============================================================
+        sessionStorage.removeItem('comandaAtivaId'); 
+        // ============================================================
+
         window.fecharConfirmacaoComandaVenda();
         window.carrinho = [];
         window.location.href = 'comandas.html';
