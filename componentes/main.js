@@ -803,14 +803,16 @@ window.registrarLog = async function(arg1, arg2, arg3) {
 };
 
 window.salvarPreferenciaImpressao = async function(novoModo) {
-    // 1. Salva no celular/PC atual imediatamente
-    localStorage.setItem('modoImpressao', novoModo);
+    try {
+        // 1. Salva no celular/PC atual em todas as chaves locais utilizadas pelo ecossistema do app
+        localStorage.setItem('modoImpressao', novoModo);       // Lido pelo print.js nativo
+        localStorage.setItem('formatoImpressao', novoModo);    // Lido pelo motor de vendas e botões de teste
+        localStorage.setItem('cfg-modo-impressao', novoModo);  // Backup de consistência pelo ID do elemento
 
-    // 2. Tenta salvar no Supabase para "seguir" o usuário
-    const userId = localStorage.getItem('userId');
-    
-    if (userId && typeof _supabase !== 'undefined') {
-        try {
+        // 2. Tenta salvar no Supabase para "seguir" o usuário
+        const userId = localStorage.getItem('userId');
+        
+        if (userId && typeof _supabase !== 'undefined') {
             const { error } = await _supabase
                 .from('usuarios')
                 .update({ modo_impressao: novoModo })
@@ -821,8 +823,17 @@ window.salvarPreferenciaImpressao = async function(novoModo) {
             if (typeof showToast === 'function') {
                 showToast("PREFERÊNCIA SALVA NA NUVEM!", "sucesso");
             }
-        } catch (e) {
-            console.error("Erro ao salvar preferência no banco:", e);
+        } else {
+            // Se não houver rede ou userId, avisa o sucesso local de qualquer forma para não confundir o operador
+            if (typeof showToast === 'function') {
+                showToast("PREFERÊNCIA SALVA NO APARELHO!", "sucesso");
+            }
+        }
+    } catch (e) {
+        console.error("Erro crítico ao salvar preferência no banco:", e);
+        // Fallback de produção: Se a nuvem falhar por instabilidade de rede, avisa o operador que o local funcionou
+        if (typeof showToast === 'function') {
+            showToast("SALVO LOCALMENTE (FALHA NA NUVEM)", "aviso");
         }
     }
 };
