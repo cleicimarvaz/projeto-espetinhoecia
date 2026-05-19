@@ -154,16 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
    FUNÇÃO DE TESTE DE IMPRESSÃO (CONECTADA AO PRINT.JS)
    ------------------------------------------------------------- */
 window.visualizarTicketTeste = function() {
-    if (typeof showToast === 'function') {
-        showToast('GERANDO TICKETS DE TESTE...', 'aviso');
-    }
+    if (typeof showToast === 'function') showToast('GERANDO TICKET DE TESTE...', 'aviso');
     
     const vendaTeste = {
         id: 9999,
         data: new Date().toISOString(),
         created_at: new Date().toISOString(),
-        total: 31.50,
+        total: 31.50, 
         forma_pagamento: 'Dinheiro',
+        pagamento: 'Dinheiro',
         vendedor: localStorage.getItem('userName') || 'TESTE',
         itens: [
             { nome: 'ESPETO DE CARNE', qtd: 2, preco: 12.00 },
@@ -171,27 +170,18 @@ window.visualizarTicketTeste = function() {
         ]
     };
 
-    // CORREÇÃO DA CHAVE: Agora lê exatamente 'modoImpressao'
-    const formato = localStorage.getItem('modoImpressao') || 'pdf';
+    // LÊ EXATAMENTE O QUE O PAINEL SALVOU
+    const modoAtual = localStorage.getItem('modoImpressao') || 'pdf';
 
-    // Se o seu painel salva como "termico", "rawbt" ou "impressora", o .toLowerCase() ajuda a não quebrar
-    const formatoLimpo = formato.toLowerCase();
-
-    if (formatoLimpo === 'termico' || formatoLimpo === 'rawbt' || formatoLimpo === 'impressora') {
-        if (typeof imprimirTicketVenda === 'function') {
+    if (modoAtual === 'direto') {
+        if (typeof window.imprimirTicketVenda === 'function') {
             window.imprimirTicketVenda(vendaTeste);
-        } else if (typeof window.imprimirCupom === 'function') {
-            window.imprimirCupom(vendaTeste);
-        } else {
-            if (typeof showToast === 'function') showToast('ERRO: MOTOR TÉRMICO NÃO ENCONTRADO', 'erro');
         }
     } else {
-        if (typeof gerarPdfVenda === 'function') {
-            window.gerarPdfVenda(vendaTeste);
+        if (typeof window.gerarTicketHTML === 'function') {
+            window.gerarTicketHTML(vendaTeste, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
         } else if (typeof window.imprimirCupom === 'function') {
             window.imprimirCupom(vendaTeste);
-        } else {
-            if (typeof showToast === 'function') showToast('ERRO: MOTOR PDF NÃO ENCONTRADO', 'erro');
         }
     }
 };
