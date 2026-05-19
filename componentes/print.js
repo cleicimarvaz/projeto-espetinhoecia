@@ -364,6 +364,42 @@ window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, est
    --------------------------------------------------------------------------------- */
 
 window.dispararImpressao = function(conteudoHtml, layout) {
+    const modoConfigurado = (localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
+    const ua = navigator.userAgent.toLowerCase();
+    const isAndroid = /android/.test(ua);
+
+    // =================================================================================
+    // MÁGICA DE INTEGRAÇÃO COM O APP RAWBT (MODO GRÁFICO / HTML COM LAYOUT)
+    // =================================================================================
+    if (modoConfigurado === 'direto' && isAndroid) {
+        // Monta o documento HTML completo com o CSS do layout para o RawBT renderizar
+        const htmlCompleto = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    html, body { margin: 0; padding: 0; width: 58mm; background: #fff; color: #000; }
+                    ${getTicketCSS(layout)}
+                </style>
+            </head>
+            <body>
+                ${conteudoHtml}
+            </body>
+            </html>
+        `;
+
+        // Transforma o HTML estruturado em Base64 para o RawBT abrir a tela nativa dele no celular
+        const base64Html = btoa(unescape(encodeURIComponent(htmlCompleto)));
+        
+        // Dispara o protocolo que acorda a tela gráfica do app RawBT com o seu layout ativo
+        window.location.href = "rawbt://base64," + base64Html;
+        return;
+    }
+
+    // =================================================================================
+    // ROTA PADRÃO (SE ESTIVER EM MODO PDF / WINDOWS)
+    // =================================================================================
     const w = window.open('', '_blank');
     w.document.write(`<html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;width:58mm;}@media print{.no-print{display:none!important;}}.btn-voltar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:10px 20px;border-radius:20px;text-decoration:none;z-index:9999;}${getTicketCSS(layout)}</style></head><body>${conteudoHtml}<a href="javascript:window.close()" class="no-print btn-voltar">FECHAR</a><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
     w.document.close();
