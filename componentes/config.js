@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
    FUNÇÃO DE TESTE DE IMPRESSÃO (CONECTADA AO PRINT.JS)
    ------------------------------------------------------------- */
 window.visualizarTicketTeste = function() {
-    if (typeof showToast === 'function') showToast('GERANDO TICKET DE TESTE...', 'aviso');
+    if (typeof showToast === 'function') showToast('GERANDO TICKETS DE TESTE...', 'aviso');
     
     const vendaTeste = {
         id: 9999,
@@ -165,24 +165,16 @@ window.visualizarTicketTeste = function() {
         pagamento: 'Dinheiro',
         vendedor: localStorage.getItem('userName') || 'TESTE',
         itens: [
-            { nome: 'ESPETO DE CARNE', qtd: 2, preco: 12.00 },
-            { nome: 'REFRIGERANTE LATA', qtd: 1, preco: 7.50 } 
+            { nome: 'ESPETO DE CARNE', qtd: 2, preco: 12.00 }, // Sairão 2 tickets individuais
+            { nome: 'REFRIGERANTE LATA', qtd: 1, preco: 7.50 }  // Sairá 1 ticket
         ]
     };
 
-    // LÊ EXATAMENTE O QUE O PAINEL SALVOU
-    const modoAtual = localStorage.getItem('modoImpressao') || 'pdf';
-
-    if (modoAtual === 'direto') {
-        if (typeof window.imprimirTicketVenda === 'function') {
-            window.imprimirTicketVenda(vendaTeste);
-        }
+    // Roteia direto para o motor de layout e tickets individuais
+    if (typeof window.imprimirCupom === 'function') {
+        window.imprimirCupom(vendaTeste);
     } else {
-        if (typeof window.gerarTicketHTML === 'function') {
-            window.gerarTicketHTML(vendaTeste, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
-        } else if (typeof window.imprimirCupom === 'function') {
-            window.imprimirCupom(vendaTeste);
-        }
+        if (typeof showToast === 'function') showToast('ERRO: MOTOR DE CUPOM NÃO ENCONTRADO', 'erro');
     }
 };
 
