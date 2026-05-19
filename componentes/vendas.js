@@ -493,7 +493,7 @@ window.estornarVenda = function(idVenda) {
 }
 
 /* =================================================================================
-   ROTINA DE PRODUÇÃO: ROTEADOR ESTRITO (PDF vs DIRETO)
+   ROTINA DE PRODUÇÃO: MOTOR DE CUPONS INDIVIDUAIS POR ITEM
    ================================================================================= */
 if (typeof window.executarImpressaoVendaBalcao !== 'function') {
     window.executarImpressaoVendaBalcao = function() {
@@ -505,26 +505,20 @@ if (typeof window.executarImpressaoVendaBalcao !== 'function') {
                 return;
             }
 
-            // Compatibilidade de atributos
+            // Sincroniza dados e datas
             if (dadosVenda && !dadosVenda.pagamento && dadosVenda.forma_pagamento) {
                 dadosVenda.pagamento = dadosVenda.forma_pagamento;
             }
+            if (dadosVenda && !dadosVenda.data && dadosVenda.created_at) {
+                dadosVenda.data = dadosVenda.created_at;
+            }
 
-            // LÊ EXATAMENTE O QUE O PAINEL SALVOU (Nada de forçar variáveis)
-            const modoAtual = localStorage.getItem('modoImpressao') || 'pdf';
-
-            if (modoAtual === 'direto') {
-                // ROTA RAWBT: Chama o motor configurado para Android
-                if (typeof window.imprimirTicketVenda === 'function') {
-                    window.imprimirTicketVenda(dadosVenda);
-                }
+            // MANDA SEMPRE PARA O MOTOR DE CUPONS INDIVIDUAIS (RETIRADA NO BALCÃO)
+            // A função imprimirCupom vai montar os itens isolados e acionar a impressora (RawBT ou PDF)
+            if (typeof window.imprimirCupom === 'function') {
+                window.imprimirCupom(dadosVenda);
             } else {
-                // ROTA PDF/TELA: Chama o motor que gera o HTML visual no PC/Celular
-                if (typeof window.gerarTicketHTML === 'function') {
-                    window.gerarTicketHTML(dadosVenda, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
-                } else if (typeof window.imprimirCupom === 'function') {
-                    window.imprimirCupom(dadosVenda);
-                }
+                console.error("[IMPRESSÃO] Função imprimirCupom não encontrada.");
             }
 
         } catch (error) {
