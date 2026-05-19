@@ -111,7 +111,27 @@ window.abrirResumoPedido = function() {
         // Se for comanda, abre o modal de lançar itens
         window.abrirConfirmacaoComandaVenda(mesaId);
     } else {
-        // Se for balcão, abre o modal de cobrança/pagamento
+        // VENDA DIRETA (BALCÃO)
+        
+        // ============================================================
+        // CORREÇÃO: Limpa o input de dinheiro e reseta os alertas de troco
+        // ============================================================
+        const inputRecebido = document.getElementById('valor-recebido');
+        if (inputRecebido) {
+            inputRecebido.value = ''; // Deixa o campo totalmente limpo para a nova digitação
+        }
+        
+        const trocoContainer = document.getElementById('valor-troco-container');
+        if (trocoContainer) {
+            trocoContainer.classList.add('hidden'); // Esconde o painel de troco antigo
+        }
+        
+        const sessaoTroco = document.getElementById('sessao-troco');
+        if (sessaoTroco) {
+            sessaoTroco.classList.add('hidden'); // Esconde a gaveta até que escolham "Dinheiro" de novo
+        }
+        // ============================================================
+
         const modalContainer = document.getElementById('itens-carrinho-modal');
         if (modalContainer) {
             modalContainer.innerHTML = window.carrinho.map(i => `
