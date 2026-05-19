@@ -493,44 +493,46 @@ window.estornarVenda = function(idVenda) {
     }
 }
 /* =================================================================================
-   ROTINA DE PRODUÇÃO: MOTOR DE IMPRESSÃO ISOLADO E SEGURO
+   ROTINA DE PRODUÇÃO: MOTOR DE IMPRESSÃO ISOLADO E SEGURO (ESCOPO GLOBAL)
    ================================================================================= */
-window.executarImpressaoVendaBalcao = function() {
-    try {
-        const dadosVenda = window.ultimaVendaParaImpressao;
-        
-        if (!dadosVenda) {
-            console.warn("[IMPRESSÃO] Cache de venda vazio.");
-            return;
-        }
-
-        // 1. Lê o formato com base no que o seu print.js usa (modoImpressao ou formatoImpressao)
-        const formato = (localStorage.getItem('formatoImpressao') || localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
-
-        // 2. Chaveamento cirúrgico apontando para as funções reais do seu print.js
-        if (formato === 'termico' || formato === 'rawbt' || formato === 'impressora' || formato === 'termica') {
-            if (typeof window.imprimirTicketVenda === 'function') {
-                window.imprimirTicketVenda(dadosVenda);
-            } else {
-                console.error("[IMPRESSÃO] Erro: Função imprimirTicketVenda não encontrada.");
+if (typeof window.executarImpressaoVendaBalcao !== 'function') {
+    window.executarImpressaoVendaBalcao = function() {
+        try {
+            const dadosVenda = window.ultimaVendaParaImpressao;
+            
+            if (!dadosVenda) {
+                console.warn("[IMPRESSÃO] Cache de venda vazio.");
+                if (typeof window.fecharModalImpressao === 'function') window.fecharModalImpressao();
+                return;
             }
-        } else {
-            // Rota estável mapeada do seu print.js original para visualização/impressão A4/58mm nativa
-            if (typeof window.gerarTicketHTML === 'function') {
-                window.gerarTicketHTML(dadosVenda, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
-            } else if (typeof window.imprimirCupom === 'function') {
-                window.imprimirCupom(dadosVenda);
+
+            // Captura a configuração de hardware ativa salva no banco/local
+            const formato = (localStorage.getItem('formatoImpressao') || localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
+
+            // Roteamento para as funções do seu print.js
+            if (formato === 'termico' || formato === 'rawbt' || formato === 'impressora' || formato === 'termica') {
+                if (typeof window.imprimirTicketVenda === 'function') {
+                    window.imprimirTicketVenda(dadosVenda);
+                } else {
+                    console.error("[IMPRESSÃO] Erro: Função imprimirTicketVenda não encontrada no print.js");
+                }
             } else {
-                console.error("[IMPRESSÃO] Erro: Nenhum motor HTML/PDF encontrado.");
+                // Rota nativa do navegador mapeada do seu print.js
+                if (typeof window.gerarTicketHTML === 'function') {
+                    window.gerarTicketHTML(dadosVenda, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
+                } else if (typeof window.imprimirCupom === 'function') {
+                    window.imprimirCupom(dadosVenda);
+                } else {
+                    console.error("[IMPRESSÃO] Erro: Nenhum motor HTML/PDF encontrado no print.js");
+                }
+            }
+        } catch (error) {
+            console.error("[CRÍTICO - HARDWARE IMPRESSÃO]:", error);
+        } finally {
+            // Garante o fechamento do modal e o reset do carrinho mesmo se houver falha na impressora
+            if (typeof window.fecharModalImpressao === 'function') {
+                window.fecharModalImpressao();
             }
         }
-    } catch (error) {
-        // Blindagem anti-travamento: Se der erro no hardware, o erro é registrado, mas o caixa não para
-        console.error("[CRÍTICO - HARDWARE IMPRESSÃO]:", error);
-    } finally {
-        // Linha vital para produção: Garante o fechamento do modal e zera o carrinho para o próximo cliente
-        if (typeof window.fecharModalImpressao === 'function') {
-            window.fecharModalImpressao();
-        }
-    }
+    };
 }
