@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.visualizarTicketTeste = function() {
     if (typeof showToast === 'function') showToast('GERANDO TICKETS DE TESTE...', 'aviso');
     
+    // 1. Monta a venda simulada perfeitamente compatível com o motor
     const vendaTeste = {
         id: 9999,
         data: new Date().toISOString(),
@@ -165,16 +166,17 @@ window.visualizarTicketTeste = function() {
         pagamento: 'Dinheiro',
         vendedor: localStorage.getItem('userName') || 'TESTE',
         itens: [
-            { nome: 'ESPETO DE CARNE', qtd: 2, preco: 12.00 }, // Sairão 2 tickets individuais
-            { nome: 'REFRIGERANTE LATA', qtd: 1, preco: 7.50 }  // Sairá 1 ticket
+            { nome: 'ESPETO DE CARNE', qtd: 2, preco: 12.00 }, // O motor vai quebrar em 2 tickets
+            { nome: 'REFRIGERANTE LATA', qtd: 1, preco: 7.50 }  // O motor vai fazer 1 ticket
         ]
     };
 
-    // Roteia direto para o motor de layout e tickets individuais
+    // 2. Manda direto e reto para o motor de cupons individuais
     if (typeof window.imprimirCupom === 'function') {
         window.imprimirCupom(vendaTeste);
     } else {
         if (typeof showToast === 'function') showToast('ERRO: MOTOR DE CUPOM NÃO ENCONTRADO', 'erro');
+        console.error("Função imprimirCupom não foi localizada no escopo global.");
     }
 };
 
