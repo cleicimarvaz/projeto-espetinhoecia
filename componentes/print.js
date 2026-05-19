@@ -1,5 +1,5 @@
 /* =================================================================================
-   MÓDULO: MOTOR DE IMPRESSÃO UNIVERSAL (VERSÃO FINAL COM CARDÁPIO PADRONIZADO E RELATÓRIOS A4)
+   MÓDULO: MOTOR DE IMPRESSÃO UNIVERSAL (Versão Corrigida e Unificada p/ RawBT)
    ================================================================================= */
 
 /* ---------------------------------------------------------------------------------
@@ -85,7 +85,6 @@ function getTicketCSS(layout) {
             .instruction-text { font-size: 11px; border-top: 2px solid #000; padding-top: 5px; margin-top: 10px; text-transform: uppercase; font-weight: 900;}
         `;
     } else {
-        // --- ORIGINAL (O DA FOTO) ---
         css += `
             .ticket-wrapper { border-left: 5px solid #e63946; border-right: 5px solid #e63946; padding: 10px 2px; text-align: center; } 
             .header { margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px; } 
@@ -112,17 +111,12 @@ window.gerarPDFConsolidado = async function(resumo) {
     const dataHora = new Date().toLocaleString('pt-BR');
     const logoBase64 = await obterLogoBase64('img/logo.jpg');
 
-    // =========================================================================
-    // 1. GERANDO O NOME DO ARQUIVO (DDMMAAAA_NomeDoArquivo)
-    // =========================================================================
     const hoje = new Date();
     const dia = String(hoje.getDate()).padStart(2, '0');
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const ano = hoje.getFullYear();
     
-    // Nome final que o navegador vai sugerir na hora de salvar
     const nomeArquivo = `${dia}${mes}${ano}_Fechamento_Turno`;
-    // =========================================================================
 
     const estilos = `
         <style>
@@ -219,7 +213,6 @@ window.gerarPDFConsolidado = async function(resumo) {
     const win = window.open('', '_blank');
     win.document.write(html); 
     win.document.close();
-    
     setTimeout(() => { win.print(); }, 800);
 };
 
@@ -228,7 +221,7 @@ window.exportarFechamentoPDF = function(res) {
 }
 
 /* ---------------------------------------------------------------------------------
-   3. GERAÇÃO DE CARDÁPIO (AGORA COM CABEÇALHO PADRONIZADO)
+   3. GERAÇÃO DE CARDÁPIO (CABEÇALHO PADRONIZADO)
    --------------------------------------------------------------------------------- */
 
 window.gerarCardapioPDF = function() {
@@ -252,16 +245,11 @@ window.processarImpressaoCardapio = async function() {
     if (typeof showToast === 'function') showToast("GERANDO CARDÁPIO...");
     
     const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
-    
-    // Agora o cardápio também usa a logo em Base64, garantindo que apareça no PDF
     const logoBase64 = await obterLogoBase64('img/logo.jpg');
     
     try {
         const { data: produtos } = await _supabase.from('produtos').select('*').eq('status', true).order('nome');
         
-        // ----------------------------------------------------
-        // SUBSTITUIÇÃO DO ALERT PELO MODAL PADRÃO
-        // ----------------------------------------------------
         if (!produtos || produtos.length === 0) {
             if (typeof alertaSistema === 'function') {
                 alertaSistema("Não há produtos ativos para exibir no cardápio.", "Cardápio Vazio");
@@ -288,16 +276,16 @@ window.processarImpressaoCardapio = async function() {
 
 window.gerarTemplateClassico = function(produtos, loja, logoBase64, mensagem) {
     const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚' };
-    const categoriasObj = {};
-    produtos.forEach(p => { const cat = (p.categoria || 'outros').toLowerCase(); if (!categoriasObj[cat]) categoriasObj[cat] = []; categoriasObj[cat].push(p); });
+    const categoriesObj = {};
+    produtos.forEach(p => { const cat = (p.categoria || 'outros').toLowerCase(); if (!categoriesObj[cat]) categoriesObj[cat] = []; categoriesObj[cat].push(p); });
     const ordem = ['espetos', 'refeicao', 'acompanhamentos', 'bebidas'];
-    const chaves = [...ordem.filter(c => categoriasObj[c]), ...Object.keys(categoriasObj).filter(c => !ordem.includes(c))];
+    const chaves = [...ordem.filter(c => categoriesObj[c]), ...Object.keys(categoriesObj).filter(c => !ordem.includes(c))];
     
     let html = chaves.map(key => `
         <div class="categoria-section">
             <h3 class="categoria-titulo">${icons[key] || '📦'} ${key.toUpperCase()}</h3>
             <div class="itens-grid">
-                ${categoriasObj[key].map(i => `
+                ${categoriesObj[key].map(i => `
                     <div class="item-info">
                         <span class="item-nome">${i.nome.toUpperCase()}</span>
                         <div class="linha-pontilhada"></div>
@@ -307,7 +295,7 @@ window.gerarTemplateClassico = function(produtos, loja, logoBase64, mensagem) {
             </div>
         </div>`).join('');
         
-    window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'classico');
+    window.abrirJanelaImpressao(loja, logoBase64, html, message, 'classico');
 }
 
 window.gerarTemplateModerno = function(produtos, loja, logoBase64, mensagem) {
@@ -324,14 +312,13 @@ window.gerarTemplateModerno = function(produtos, loja, logoBase64, mensagem) {
             `).join('')}
         </div>`).join('');
         
-    window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'moderno');
+    window.abrirJanelaImpressao(loja, logoBase64, html, message, 'moderno');
 }
 
 window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, estilo) {
     const win = window.open('', '_blank');
     const dataHora = new Date().toLocaleString('pt-BR');
     
-    // CSS Base do Cabeçalho Padrão do Sistema
     const cssHeader = `
         .header-pdf { position: relative; border-bottom: 4px solid #e63946; padding-bottom: 20px; margin-bottom: 30px; min-height: 100px; }
         .header-info { padding-right: 110px; }
@@ -373,7 +360,7 @@ window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, est
 }
 
 /* ---------------------------------------------------------------------------------
-   4. IMPRESSÃO TÉRMICA DE VENDAS E DESPESAS (58MM)
+   4. IMPRESSÃO TÉRMICA DE VENDAS E DESPESAS (58MM - UNIFICADA COM PREFERÊNCIA GLOBAL)
    --------------------------------------------------------------------------------- */
 
 window.dispararImpressao = function(conteudoHtml, layout) {
@@ -384,18 +371,38 @@ window.dispararImpressao = function(conteudoHtml, layout) {
 
 window.enviarParaImpressora = function(texto) {
     const ua = navigator.userAgent.toLowerCase();
-    const modoManual = localStorage.getItem('modoImpressao') || 'navegador';
-    if (/android/.test(ua) && modoManual === 'termica') { window.location.href = "rawbt:" + encodeURIComponent(texto); } 
-    else { const win = window.open('', '_blank'); win.document.write(`<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;padding:20px;">${texto}</pre><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500);}<\/script>`); win.document.close(); }
+    const isAndroid = /android/.test(ua);
+    const base64Texto = btoa(unescape(encodeURIComponent(texto)));
+    
+    if (isAndroid) { 
+        window.location.href = "rawbt://base64," + base64Texto; 
+    } else { 
+        const win = window.open('', '_blank'); 
+        win.document.write(`<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;padding:20px;">${texto}</pre><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500);}<\/script>`); 
+        win.document.close(); 
+    }
 }
 
+// FORMATO 1: Imprimir cupons individuais por item (Retirar no Balcão)
 window.imprimirCupom = function(venda) {
+    const formatoGlobal = localStorage.getItem('formatoImpressao') || 'pdf';
+
+    // SE ESTIVER EM MODO RAWBT -> PEGA O TEXTO PURO GERADO PELO MOTOR DO SISTEMA
+    if (formatoGlobal === 'termico' || formatoGlobal === 'rawbt') {
+        window.imprimirTicketVenda(venda);
+        return;
+    }
+
+    // SE FOR NAVEGADOR -> CONTINUA NO PROCESSO DE HTML DA GAVETA DE IMPRESSÃO
     const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
     const layout = localStorage.getItem('ticketLayout') || 'original';
     const dataVenda = new Date(venda.data || Date.now());
     const operador = localStorage.getItem('userName') || 'Admin';
     let html = '';
-    venda.itens.forEach(item => {
+    
+    const itensArray = Array.isArray(venda.itens) ? venda.itens : JSON.parse(venda.itens || '[]');
+
+    itensArray.forEach(item => {
         if(parseFloat(item.preco) > 0) {
             for (let i = 0; i < (item.qtd || 1); i++) {
                 const pedidoId = Math.floor(Math.random()*9000)+1000;
@@ -410,18 +417,18 @@ window.imprimirCupom = function(venda) {
     window.dispararImpressao(html, layout);
 }
 
+// FORMATO 2: Imprimir resumo completo da conta (Ticket Consolidado)
 window.imprimirTicketVenda = function(dadosVenda) {
     const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
     const cnpj = localStorage.getItem('empresa_cnpj') || "";
-    const modo = localStorage.getItem('modoImpressao') || 'direto';
+    const formatoGlobal = localStorage.getItem('formatoImpressao') || 'pdf';
     const ua = navigator.userAgent.toLowerCase();
     const isAndroid = /android/.test(ua);
     const isIOS = /iphone|ipad|ipod/.test(ua);
     
-    // --- MODO TEXTO PURO (TRAVADO EM 32 COLUNAS PARA 58MM) ---
+    // --- CONSTRUÇÃO DO TEXTO PURO (TRAVADO EM 32 COLUNAS PARA IMPRESSORA DE 58MM) ---
     let txt = `================================\n`;
     
-    // Centraliza o nome da loja em 32 caracteres
     let nomeLoja = loja.substring(0, 32).toUpperCase();
     let espacos = Math.floor((32 - nomeLoja.length) / 2);
     txt += " ".repeat(Math.max(0, espacos)) + nomeLoja + "\n";
@@ -433,13 +440,15 @@ window.imprimirTicketVenda = function(dadosVenda) {
     }
     
     txt += `================================\n`;
-    txt += `DATA: ${new Date().toLocaleString('pt-BR')}\n`;
+    txt += `DATA: ${new Date(dadosVenda.created_at || dadosVenda.data || Date.now()).toLocaleString('pt-BR')}\n`;
     txt += `TIPO: ${dadosVenda.tipo || 'VENDA'}\n`;
     txt += `--------------------------------\n`;
     
     if (dadosVenda.itens) {
         const itensAgrupadosTxt = {};
-        dadosVenda.itens.forEach(i => {
+        const itensArray = Array.isArray(dadosVenda.itens) ? dadosVenda.itens : JSON.parse(dadosVenda.itens || '[]');
+
+        itensArray.forEach(i => {
             if (parseFloat(i.preco) > 0) {
                 const chave = i.nome.trim().toUpperCase();
                 if (!itensAgrupadosTxt[chave]) {
@@ -451,12 +460,10 @@ window.imprimirTicketVenda = function(dadosVenda) {
         });
 
         Object.values(itensAgrupadosTxt).forEach(i => {
-            // Linha 1: Qtd x Nome (Corta em 32 caracteres para não quebrar a linha térmica)
             let linhaNome = `${i.qtd}x ${i.nome.toUpperCase()}`;
             if (linhaNome.length > 32) linhaNome = linhaNome.substring(0, 32);
             txt += linhaNome + '\n';
             
-            // Linha 2: Preço (Joga para a direita preenchendo com espaços até dar 32)
             let precoTxt = `R$ ${window.fmSeguro(i.preco * i.qtd)}`;
             txt += precoTxt.padStart(32, ' ') + '\n';
         });
@@ -469,17 +476,23 @@ window.imprimirTicketVenda = function(dadosVenda) {
     
     const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
     if (!isPreConta) {
-        txt += `PGTO: ${(dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}\n`;
+        txt += `PGTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}\n`;
     }
     
     txt += `================================\n`;
-    txt += `   OBRIGADO PELA PREFERENCIA    \n\n\n\n`;
+    txt += `    OBRIGADO PELA PREFERENCIA    \n\n\n\n\n`;
     
-    if (modo === 'direto') {
-        if (isAndroid) { window.location.href = "rawbt:" + encodeURIComponent(txt); return; }
+    // REDIRECIONAMENTO COM BASE NA PREFERÊNCIA SALVA
+    if (formatoGlobal === 'termico' || formatoGlobal === 'rawbt') {
+        if (isAndroid) { 
+            const base64Texto = btoa(unescape(encodeURIComponent(txt)));
+            window.location.href = "rawbt://base64," + base64Texto; 
+            return; 
+        }
         if (isIOS) { window.location.href = "openlabels://print?text=" + encodeURIComponent(txt); return; }
     }
     
+    // Se o formato global for PDF/Navegador, roda o gerador visual de caixa de diálogo
     window.gerarTicketHTML(dadosVenda, loja);
 }
 
@@ -489,7 +502,9 @@ window.gerarTicketHTML = function(dados, loja) {
     
     if (dados.itens) {
         const itensAgrupadosHtml = {};
-        dados.itens.forEach(i => {
+        const itensArray = Array.isArray(dados.itens) ? dados.itens : JSON.parse(dados.itens || '[]');
+
+        itensArray.forEach(i => {
             if (parseFloat(i.preco) > 0) {
                 const chave = i.nome.trim().toUpperCase();
                 if (!itensAgrupadosHtml[chave]) {
@@ -517,7 +532,7 @@ window.gerarTicketHTML = function(dados, loja) {
     
     let pgtoHtml = '';
     if (!isPreConta) {
-        pgtoHtml = `<div style="font-size:11px; margin-top:5px;">PAGAMENTO: ${dados.pagamento?.toUpperCase() || 'DINHEIRO'}</div><div class="divisor"></div>`;
+        pgtoHtml = `<div style="font-size:11px; margin-top:5px;">PAGAMENTO: ${(dados.forma_pagamento || dados.pagamento || 'DINHEIRO').toUpperCase()}</div><div class="divisor"></div>`;
     } else {
         pgtoHtml = `<div class="divisor"></div>`;
     }
@@ -529,44 +544,14 @@ window.gerarTicketHTML = function(dados, loja) {
         <meta charset="utf-8">
         <title>Cupom - ${loja}</title>
         <style>
-            /* CSS CRÍTICO E AGRESSIVO PARA IMPRESSORAS DE 58MM */
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-
-            @page { 
-                margin: 0; 
-                size: 58mm auto; /* Força o tamanho do papel térmico */
-            }
-
-            html, body {
-                width: 58mm !important;
-                max-width: 58mm !important;
-                background-color: #fff;
-                color: #000;
-                font-family: 'Courier New', Courier, monospace;
-                font-size: 11px;
-                line-height: 1.2;
-            }
-
-            /* Container principal que segura o conteúdo e impede que ele vaze */
-            .ticket-container {
-                width: 58mm !important;
-                max-width: 58mm !important;
-                padding: 2mm 3mm; /* Dá um espacinho da borda pra não cortar as letras */
-                overflow: hidden;
-            }
-
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            @page { margin: 0; size: 58mm auto; }
+            html, body { width: 58mm !important; max-width: 58mm !important; background-color: #fff; color: #000; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.2; }
+            .ticket-container { width: 58mm !important; max-width: 58mm !important; padding: 2mm 3mm; overflow: hidden; }
             .text-center { text-align: center; }
             .divisor { border-top: 1px dashed #000; margin: 6px 0; }
             .bold { font-weight: bold; }
-            
-            /* Trava final para a hora que a janela de impressão abrir */
-            @media print {
-                body { width: 58mm !important; }
-            }
+            @media print { body { width: 58mm !important; } }
         </style>
     </head>
     <body>
@@ -574,7 +559,7 @@ window.gerarTicketHTML = function(dados, loja) {
             <div class="text-center bold" style="font-size:14px; margin-bottom: 2px;">${loja}</div>
             ${cnpj ? `<div class="text-center" style="font-size:10px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
             <div class="text-center bold" style="font-size:12px; margin-bottom: 6px;">${dados.tipo || 'VENDA'}</div>
-            <div class="text-center" style="font-size:9px; margin-bottom: 6px;">DATA: ${new Date().toLocaleString('pt-BR')}</div>
+            <div class="text-center" style="font-size:9px; margin-bottom: 6px;">DATA: ${new Date(dados.created_at || dados.data || Date.now()).toLocaleString('pt-BR')}</div>
             
             <div class="divisor"></div>
             ${htmlItens}
@@ -589,12 +574,7 @@ window.gerarTicketHTML = function(dados, loja) {
             <div class="text-center bold" style="margin-top:12px; font-size:10px;">OBRIGADO PELA PREFERÊNCIA</div>
         </div>
         <script>
-            window.onload = () => {
-                setTimeout(() => {
-                    window.print();
-                    window.close();
-                }, 500);
-            };
+            window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); };
         </script>
     </body>
     </html>`;
@@ -616,16 +596,10 @@ window.imprimirComprovanteDespesa = function(id) {
     });
 };
 
-/* =================================================================================
-   5. MOTOR DE IMPRESSÃO A4 (GERADOR DE TABELAS OFICIAIS DIRETO DO BANCO)
-   ================================================================================= */
+/* ---------------------------------------------------------------------------------
+   5. MOTOR DE IMPRESSÃO A4 (RELATÓRIOS E COMPILADORES)
+   --------------------------------------------------------------------------------- */
 
-// Roteador: Descobre qual tela está aberta e chama o gerador de PDF correto
-/* =============================================================
-    MÓDULO DE IMPRESSÃO: ROTEADOR E RELATÓRIOS
-   ============================================================= */
-
-// 1. O Roteador (Decide qual tela está aberta)
 window.imprimirRelatorioAtual = async function(tipo = null) {
     console.log(">>> [IMPRESSÃO] Roteando para o gerador oficial...");
 
@@ -633,7 +607,6 @@ window.imprimirRelatorioAtual = async function(tipo = null) {
     const relatorioFinanceiro = document.getElementById('view-financeiro');
     const relatorioProdutos = document.getElementById('view-produtos');
     
-    // 1. Rota do Ranking de Produtos
     if (tipo === 'produtos' || (relatorioProdutos && !relatorioProdutos.classList.contains('hidden'))) {
         if (typeof window.imprimirPDFProdutos === 'function') {
             await window.imprimirPDFProdutos();
@@ -643,7 +616,6 @@ window.imprimirRelatorioAtual = async function(tipo = null) {
         return;
     }
 
-    // 2. Rota do Estoque
     if (tipo === 'estoque' || (relatorioEstoque && !relatorioEstoque.classList.contains('hidden'))) {
         if (typeof window.imprimirPDFEstoque === 'function') {
             await window.imprimirPDFEstoque();
@@ -653,7 +625,6 @@ window.imprimirRelatorioAtual = async function(tipo = null) {
         return;
     } 
     
-    // 3. Rota do Financeiro
     if (tipo === 'financeiro' || (relatorioFinanceiro && !relatorioFinanceiro.classList.contains('hidden'))) {
         if (typeof window.imprimirFluxoFinanceiro === 'function') {
             window.imprimirFluxoFinanceiro();
@@ -663,7 +634,6 @@ window.imprimirRelatorioAtual = async function(tipo = null) {
         return;
     } 
 
-    // Rota das Comandas / Vendas
     if (tipo === 'comandas') {
         if (typeof window.imprimirPDFComandas === 'function') {
             await window.imprimirPDFComandas();
@@ -680,12 +650,10 @@ window.imprimirRelatorioAtual = async function(tipo = null) {
         return;
     }
     
-    // Fallback genérico se nenhuma tela bater
     window.print(); 
 };
 
 window.imprimirPDFProdutos = async function() {
-    // 1. Coleta as datas que estão nos filtros da tela
     const dIni = document.getElementById('data-inicio-rel-produtos')?.value;
     const dFim = document.getElementById('data-fim-rel-produtos')?.value;
 
@@ -697,7 +665,6 @@ window.imprimirPDFProdutos = async function() {
     if(typeof showToast === 'function') showToast("GERANDO PDF DO RANKING...", "aviso");
 
     try {
-        // 2. Busca os dados no banco (mesma lógica da tela para consistência)
         const { data: vendas, error } = await _supabase
             .from('historico_vendas')
             .select('itens')
@@ -707,7 +674,6 @@ window.imprimirPDFProdutos = async function() {
 
         if (error) throw error;
 
-        // 3. Processamento do Ranking
         const contagem = {};
         (vendas || []).forEach(v => {
             let itensArr = Array.isArray(v.itens) ? v.itens : JSON.parse(v.itens || '[]');
@@ -722,8 +688,6 @@ window.imprimirPDFProdutos = async function() {
         });
 
         const ranking = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
-
-        // 4. Configurações do Relatório (Logo e Nome do Arquivo)
         const logoBase64 = typeof obterLogoBase64 === 'function' ? await obterLogoBase64('img/logo.jpg') : '';
         const nomeLoja = (localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA').toUpperCase();
         const dataEmissao = new Date().toLocaleString('pt-BR');
@@ -731,7 +695,6 @@ window.imprimirPDFProdutos = async function() {
         const hoje = new Date();
         const nomeArquivo = `${String(hoje.getDate()).padStart(2, '0')}${String(hoje.getMonth() + 1).padStart(2, '0')}${hoje.getFullYear()}_Ranking_Produtos`;
 
-        // 5. O Nosso Molde Padrão de Estilos (Cores Corrigidas)
         const estilos = `
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -753,7 +716,6 @@ window.imprimirPDFProdutos = async function() {
             </style>
         `;
 
-        // 6. Montagem das Linhas
         const linhas = ranking.map(([nome, qtd], index) => {
             const medalhas = ['🥇', '🥈', '🥉'];
             const icone = medalhas[index] || `${index + 1}º`;
@@ -762,11 +724,9 @@ window.imprimirPDFProdutos = async function() {
                     <td class="pos">${icone}</td>
                     <td>${nome}</td>
                     <td class="qtd">${qtd} UNIDADES</td>
-                </tr>
-            `;
+                </tr>`;
         }).join('');
 
-        // 7. HTML Final
         const html = `
             <html>
             <head>
@@ -814,7 +774,6 @@ window.imprimirPDFProdutos = async function() {
 };
 
 window.imprimirPDFComandas = async function() {
-    // 1. MAPEAMENTO DOS IDs
     let dIni = document.getElementById('data-inicio-comandas')?.value;
     let dFim = document.getElementById('data-fim-comandas')?.value;
 
@@ -826,25 +785,23 @@ window.imprimirPDFComandas = async function() {
     if(typeof showToast === 'function') showToast("GERANDO RELATÓRIO DE VENDAS...", "aviso");
 
     try {
-        // 2. Busca no Supabase
         const { data: vendas, error } = await _supabase
             .from('historico_vendas')
             .select('*')
             .gte('created_at', `${dIni}T00:00:00`)
             .lte('created_at', `${dFim}T23:59:59`)
             .neq('status', 'cancelada')
-            .order('created_at', { ascending: true }); // Ordenado por hora para conferência
+            .order('created_at', { ascending: true });
 
         if (error) throw error;
 
-        // 3. Processamento de Totais
         let totalBruto = 0;
         const pagamentos = {};
         const itensVendidos = {};
 
         vendas.forEach(v => {
             totalBruto += parseFloat(v.total || 0);
-            const mtd = (v.metodo_pagamento || 'NÃO INFORMADO').toUpperCase();
+            const mtd = (v.forma_pagamento || v.metodo_pagamento || 'NÃO INFORMADO').toUpperCase();
             pagamentos[mtd] = (pagamentos[mtd] || 0) + parseFloat(v.total || 0);
 
             let itensArr = Array.isArray(v.itens) ? v.itens : JSON.parse(v.itens || '[]');
@@ -855,20 +812,17 @@ window.imprimirPDFComandas = async function() {
             });
         });
 
-        // --- NOVO: GERAÇÃO DAS LINHAS DE COMANDAS DETALHADAS ---
         const linhasComandas = vendas.map(v => {
             const hora = new Date(v.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             return `
                 <tr>
                     <td>${hora}</td>
                     <td>${(v.mesa || 'BALCÃO').toUpperCase()}</td>
-                    <td>${(v.metodo_pagamento || '---').toUpperCase()}</td>
+                    <td>${(v.forma_pagamento || v.metodo_pagamento || '---').toUpperCase()}</td>
                     <td class="text-right">R$ ${parseFloat(v.total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                </tr>
-            `;
+                </tr>`;
         }).join('');
 
-        // 4. Identidade Visual
         const logoBase64 = typeof obterLogoBase64 === 'function' ? await obterLogoBase64('img/logo.jpg') : '';
         const nomeLoja = (localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA').toUpperCase();
         const hoje = new Date();
@@ -961,15 +915,12 @@ window.imprimirPDFComandas = async function() {
     }
 };
 
-// 2. O Gerador do Relatório Financeiro
 window.imprimirFluxoFinanceiro = async function() {
-    // Coleta os dados que já estão na tela
     const dataIni = document.getElementById('data-inicio-fin')?.value;
     const dataFim = document.getElementById('data-fim-fin')?.value;
     const resumoHTML = document.getElementById('resumo-financeiro-cards')?.innerHTML || '';
     const listaHTML = document.getElementById('conteudo-rel-financeiro')?.innerHTML || '';
 
-    // Trava se os dados ainda estiverem carregando
     if (!resumoHTML || resumoHTML.includes("Processando")) {
         if(typeof showToast === 'function') showToast("Aguarde o carregamento dos dados antes de imprimir.", "aviso");
         return;
@@ -977,10 +928,8 @@ window.imprimirFluxoFinanceiro = async function() {
 
     if(typeof showToast === 'function') showToast("GERANDO PDF FINANCEIRO...", "aviso");
 
-    // Formata o cabeçalho de datas
     let dataStr = "PERÍODO: GERAL";
     if (dataIni && dataFim) {
-        // Usa o T12:00:00 para evitar bugs de fuso horário no JS
         const dI = new Date(dataIni + "T12:00:00").toLocaleDateString('pt-BR');
         const dF = new Date(dataFim + "T12:00:00").toLocaleDateString('pt-BR');
         dataStr = (dI === dF) ? `DATA: ${dI}` : `PERÍODO: ${dI} ATÉ ${dF}`;
@@ -989,42 +938,30 @@ window.imprimirFluxoFinanceiro = async function() {
     const dataEmissao = new Date().toLocaleString('pt-BR');
     const nomeLoja = (localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA').toUpperCase();
 
-    // Busca a logo
     let logoBase64 = '';
     if (typeof obterLogoBase64 === 'function') {
         logoBase64 = await obterLogoBase64('img/logo.jpg');
     }
 
-    // =========================================================================
-    // 1. GERANDO O NOME DO ARQUIVO (DDMMAAAA_NomeDoArquivo)
-    // =========================================================================
     const hoje = new Date();
     const dia = String(hoje.getDate()).padStart(2, '0');
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const ano = hoje.getFullYear();
     const nomeArquivo = `${dia}${mes}${ano}_Fluxo_Financeiro`;
 
-    // =========================================================================
-    // 2. O MOLDE PADRÃO DE ESTILOS CSS
-    // =========================================================================
     const estilos = `
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             @page { size: A4 portrait; margin: 15mm; }
             body { font-family: 'Helvetica', Arial, sans-serif; padding: 20px; color: #1e293b; background: #fff !important; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            
-            /* Cabeçalho Padrão */
             .header-pdf { position: relative; border-bottom: 4px solid #e63946; padding-bottom: 20px; margin-bottom: 30px; min-height: 100px; }
             .header-info { padding-right: 110px; }
             .header-info h1 { font-size: 30px; font-weight: 900; font-style: italic; color: #e63946; text-transform: uppercase; margin-bottom: 5px; }
             .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
             .header-logo { position: absolute; right: 0; top: 0; }
             .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-            
             .secao-titulo { font-size: 14px; color: #e63946; font-weight: bold; text-transform: uppercase; border-left: 5px solid #e63946; padding-left: 10px; margin: 30px 0 15px 0; }
             .footer-pdf { margin-top: 50px; text-align: center; font-size: 10px; color: #cbd5e1; border-top: 1px solid #f1f5f9; padding-top: 20px; font-style: italic; }
-
-            /* Adaptações para o HTML injetado da tela (limpa estilos web pro papel) */
             .shadow-sm, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
             .rounded-2xl, .rounded-xl { border-radius: 8px !important; border: 1px solid #e2e8f0 !important; }
             .bg-slate-900, .bg-slate-800, .dark\\:bg-slate-900 { background-color: #f8fafc !important; }
@@ -1035,10 +972,8 @@ window.imprimirFluxoFinanceiro = async function() {
         </style>
     `;
 
-    // Verifica se a função resumoCardsLimpos existe (do seu código original), senão usa o HTML puro
     const cardsHTML = typeof resumoCardsLimpos === 'function' ? resumoCardsLimpos(resumoHTML) : resumoHTML;
 
-    // Monta o HTML focado em impressão
     const htmlPrint = `
         <!DOCTYPE html>
         <html lang="pt-br">
@@ -1057,25 +992,17 @@ window.imprimirFluxoFinanceiro = async function() {
                 </div>
                 <div class="header-logo"><img src="${logoBase64 || ''}" onerror="this.style.display='none'"></div>
             </div>
-
             <h3 class="secao-titulo">➔ Resumo Consolidado</h3>
             <div class="grid grid-cols-3 gap-4 mb-8">
                 ${cardsHTML}
             </div>
-
             <h3 class="secao-titulo">➔ Detalhamento dos Lançamentos</h3>
             <div class="space-y-2">
                 ${listaHTML}
             </div>
-
             <div class="footer-pdf">WebComanda - Sistema de Gestão Inteligente</div>
-
             <script>
-                // Aguarda 1 segundo para o Tailwind renderizar e chama a impressão
-                setTimeout(() => {
-                    window.print();
-                    window.close();
-                }, 1000);
+                setTimeout(() => { window.print(); window.close(); }, 1000);
             </script>
         </body>
         </html>
@@ -1086,9 +1013,7 @@ window.imprimirFluxoFinanceiro = async function() {
     janelaImpressao.document.close();
 };
 
-// 3. Função Auxiliar de Limpeza
 function resumoCardsLimpos(html) {
-    // Remove os efeitos de hover, clique e a lupa para ficar limpo no papel
     return html.replace(/onclick="[^"]*"/g, "")
                .replace(/cursor-pointer/g, "")
                .replace(/hover:border-emerald-200/g, "")
@@ -1098,12 +1023,10 @@ function resumoCardsLimpos(html) {
                .replace(/🔍/g, "");
 }
 
-// Gerador Exato da Tabela do seu Print (image_5cbbba.png)
 window.imprimirPDFEstoque = async function() {
     if(typeof showToast === 'function') showToast("GERANDO PDF DE ESTOQUE...", "aviso");
 
     try {
-        // 1. Busca os dados reais e limpos direto do banco de dados
         const { data: produtos, error } = await _supabase
             .from('produtos')
             .select('*')
@@ -1116,24 +1039,17 @@ window.imprimirPDFEstoque = async function() {
         const dataEmissao = new Date().toLocaleString('pt-BR');
         const nomeLoja = (localStorage.getItem('nomeLoja') || 'SISTEMA NÚCLEO PDV').toUpperCase();
 
-        // Busca a logo
         let logoBase64 = '';
         if (typeof obterLogoBase64 === 'function') {
             logoBase64 = await obterLogoBase64('img/logo.jpg');
         }
 
-        // =========================================================================
-        // 1. GERANDO O NOME DO ARQUIVO (DDMMAAAA_NomeDoArquivo)
-        // =========================================================================
         const hoje = new Date();
         const dia = String(hoje.getDate()).padStart(2, '0');
         const mes = String(hoje.getMonth() + 1).padStart(2, '0');
         const ano = hoje.getFullYear();
         const nomeArquivo = `${dia}${mes}${ano}_Relatorio_Estoque`;
 
-        // =========================================================================
-        // 2. O MOLDE PADRÃO DE ESTILOS CSS
-        // =========================================================================
         const estilos = `
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1144,7 +1060,6 @@ window.imprimirPDFEstoque = async function() {
                 .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
                 .header-logo { position: absolute; right: 0; top: 0; }
                 .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-                
                 .secao-titulo { font-size: 14px; color: #e63946; font-weight: bold; text-transform: uppercase; border-left: 5px solid #e63946; padding-left: 10px; margin: 30px 0 15px 0; }
                 table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }
                 th { background: #f1f5f9; padding: 12px; text-align: left; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
@@ -1155,11 +1070,10 @@ window.imprimirPDFEstoque = async function() {
             </style>
         `;
 
-        // 3. Monta as linhas da tabela aplicando as novas classes
         let linhasTabela = produtos.map(p => {
             const qtd = parseFloat(p.estoque_atual || 0);
             const alerta = qtd <= 5 ? '<span style="color:#ef4444; font-size:9px; font-weight:900; margin-left:6px;">(BAIXO)</span>' : '';
-            const corQtd = qtd <= 5 ? 'color:#ef4444;' : 'color:#15803d;'; // Vermelho se baixo, Verde se normal
+            const corQtd = qtd <= 5 ? 'color:#ef4444;' : 'color:#15803d;';
             
             return `
             <tr>
@@ -1171,7 +1085,6 @@ window.imprimirPDFEstoque = async function() {
             </tr>`;
         }).join('');
 
-        // 4. Constrói o HTML final padronizado
         const html = `
         <!DOCTYPE html>
         <html>
@@ -1188,7 +1101,6 @@ window.imprimirPDFEstoque = async function() {
                 </div>
                 <div class="header-logo"><img src="${logoBase64 || ''}" onerror="this.style.display='none'"></div>
             </div>
-            
             <h3 class="secao-titulo">➔ Inventário Atual</h3>
             <table>
                 <thead>
@@ -1204,7 +1116,6 @@ window.imprimirPDFEstoque = async function() {
                     ${linhasTabela}
                 </tbody>
             </table>
-            
             <div class="footer-pdf">WebComanda - Sistema de Gestão Inteligente</div>
         </body>
         </html>`;
@@ -1212,8 +1123,6 @@ window.imprimirPDFEstoque = async function() {
         const win = window.open('', '_blank');
         win.document.write(html);
         win.document.close();
-
-        // Usa o nosso padrão de setTimeout no lugar do onload para evitar falhas de carregamento
         setTimeout(() => { win.print(); win.close(); }, 800);
 
     } catch (err) {
@@ -1236,75 +1145,49 @@ window.reimprimirComanda = async function(id) {
         const dataF = new Date(m.fechada_em);
         const dataFormatada = dataF.toLocaleDateString('pt-BR') + ', ' + dataF.toLocaleTimeString('pt-BR');
 
-        // MONTAGEM DO LAYOUT IGUAL À IMAGEM
-// Dentro da sua função de reimpressão no print.js
-let html = `
-    <div style="font-family: 'Courier New', Courier, monospace; width: 300px; padding: 5px; color: #000;">
-        <div style="text-align: center; margin-bottom: 10px;">
-            <div style="font-size: 18px; font-weight: bold;">${localStorage.getItem('nomeLoja') || 'Espetinho & Cia'}</div>
-${localStorage.getItem('empresa_cnpj') ? `<div style="font-size: 11px; text-align: center;">CNPJ: ${localStorage.getItem('empresa_cnpj')}</div>` : ''}
-            <div style="font-size: 13px; font-weight: bold; margin-top: 4px;">
-                2ª VIA - ${m.identificacao.toUpperCase()}
-            </div>
-            <div style="font-size: 10px; margin-top: 4px;">
-                DATA: ${new Date(m.fechada_em).toLocaleString('pt-BR')}
-            </div>
-        </div>
-
-        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
-
-        <div style="margin-top: 10px;">
-            ${itens.map(item => `
-                <div style="margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
-                        <span>${item.qtd}X ${item.nome.toUpperCase()}</span>
-                        <span>R$ ${(parseFloat(item.preco) * item.qtd).toFixed(2).replace('.', ',')}</span>
-                    </div>
-                    <div style="border-top: 1px dashed #eee; margin-top: 4px;"></div>
+        let html = `
+            <div style="font-family: 'Courier New', Courier, monospace; width: 300px; padding: 5px; color: #000;">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <div style="font-size: 18px; font-weight: bold;">${localStorage.getItem('nomeLoja') || 'Espetinho & Cia'}</div>
+                    ${localStorage.getItem('empresa_cnpj') ? `<div style="font-size: 11px; text-align: center;">CNPJ: ${localStorage.getItem('empresa_cnpj')}</div>` : ''}
+                    <div style="font-size: 13px; font-weight: bold; margin-top: 4px;">2ª VIA - ${m.identificacao.toUpperCase()}</div>
+                    <div style="font-size: 10px; margin-top: 4px;">DATA: ${new Date(m.fechada_em).toLocaleString('pt-BR')}</div>
                 </div>
-            `).join('')}
-        </div>
+                <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+                <div style="margin-top: 10px;">
+                    ${itens.map(item => `
+                        <div style="margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
+                                <span>${item.qtd}X ${item.nome.toUpperCase()}</span>
+                                <span>R$ ${(parseFloat(item.preco) * item.qtd).toFixed(2).replace('.', ',')}</span>
+                            </div>
+                            <div style="border-top: 1px dashed #eee; margin-top: 4px;"></div>
+                        </div>`).join('')}
+                </div>
+                <div style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold;">
+                        <span>TOTAL</span>
+                        <span>R$ ${parseFloat(m.total).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; font-size: 10px;"><b>PAGAMENTO:</b> ${m.forma_pagamento || 'DINHEIRO'}</div>
+                <div style="border-top: 1px dashed #000; margin: 15px 0 5px 0;"></div>
+                <div style="text-align: center; font-size: 12px; font-weight: bold; margin-top: 10px;">OBRIGADO PELA PREFERÊNCIA</div>
+            </div>`;
 
-        <div style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 8px;">
-            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold;">
-                <span>TOTAL</span>
-                <span>R$ ${parseFloat(m.total).toFixed(2).replace('.', ',')}</span>
-            </div>
-        </div>
-
-        <div style="margin-top: 10px; font-size: 10px;">
-            <b>PAGAMENTO:</b> ${m.forma_pagamento || 'DINHEIRO'}
-        </div>
-
-        <div style="border-top: 1px dashed #000; margin: 15px 0 5px 0;"></div>
-
-        <div style="text-align: center; font-size: 12px; font-weight: bold; margin-top: 10px;">
-            OBRIGADO PELA PREFERÊNCIA
-        </div>
-    </div>
-`;
-
-        // Chama a função de disparo da impressora
         imprimirConteudoHTML(html);
-
     } catch (e) {
         console.error('Erro na reimpressão:', e);
         if (typeof showToast === 'function') showToast('ERRO AO GERAR IMPRESSÃO', 'erro');
     }
 };
-/**
- * Função Auxiliar: Dispara a janela de impressão para um conteúdo HTML específico
- * @param {string} conteudo - O HTML formatado do cupom
- */
+
 function imprimirConteudoHTML(conteudo) {
-    // 1. Cria um iframe invisível para não bagunçar a tela do sistema
     const frame = document.createElement('iframe');
     frame.style.display = 'none';
     document.body.appendChild(frame);
     
     const doc = frame.contentWindow.document;
-    
-    // 2. Escreve o conteúdo no iframe
     doc.open();
     doc.write(`
         <html>
@@ -1312,26 +1195,16 @@ function imprimirConteudoHTML(conteudo) {
                 <title>Reimpressão de Comanda</title>
                 <style>
                     body { margin: 0; padding: 0; }
-                    @media print {
-                        @page { margin: 0; }
-                    }
+                    @media print { @page { margin: 0; } }
                 </style>
             </head>
-            <body>
-                ${conteudo}
-            </body>
-        </html>
-    `);
+            <body>${conteudo}</body>
+        </html>`);
     doc.close();
 
-    // 3. Aguarda o carregamento e dispara a impressão
     setTimeout(() => {
         frame.contentWindow.focus();
         frame.contentWindow.print();
-        
-        // 4. Remove o iframe após a impressão (limpeza de memória)
-        setTimeout(() => {
-            document.body.removeChild(frame);
-        }, 1000);
+        setTimeout(() => { document.body.removeChild(frame); }, 1000);
     }, 500);
 }
