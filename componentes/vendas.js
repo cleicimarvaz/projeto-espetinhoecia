@@ -526,20 +526,20 @@ if (typeof window.executarImpressaoVendaBalcao !== 'function') {
                 cfgModoImpressao === 'direto';
 
             if (eImpressaoDireta) {
-                // Sincroniza a chave de hardware para o Android interceptar
+                // Sincroniza a chave de hardware em lote para o print.js e o Android
                 localStorage.setItem('formatoImpressao', 'rawbt');
                 localStorage.setItem('modoImpressao', 'direto');
 
-                // CHAMADA INTELIGENTE: Roda a função que processa o 'ticketLayout' (Eco, Gigante, etc.)
-                if (typeof window.imprimirCupom === 'function') {
-                    window.imprimirCupom(dadosVenda);
-                } else if (typeof window.imprimirTicketVenda === 'function') {
+                // Roda o gerador de ticket consolidado da venda inteira
+                if (typeof window.imprimirTicketVenda === 'function') {
                     window.imprimirTicketVenda(dadosVenda);
+                } else if (typeof window.imprimirCupom === 'function') {
+                    window.imprimirCupom(dadosVenda);
                 } else {
                     console.error("[IMPRESSÃO] Nenhum motor térmico localizado.");
                 }
             } else {
-                // Modo de abertura em tela (Navegador/PDF)
+                // Modo de abertura em tela tradicional (Navegador/PDF)
                 if (typeof window.gerarTicketHTML === 'function') {
                     window.gerarTicketHTML(dadosVenda, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
                 } else if (typeof window.imprimirCupom === 'function') {
