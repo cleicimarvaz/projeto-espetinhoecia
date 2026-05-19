@@ -493,7 +493,7 @@ window.estornarVenda = function(idVenda) {
 }
 
 /* =================================================================================
-   ROTINA DE PRODUÇÃO: MOTOR DE IMPRESSÃO INTEGRADO COM SELEÇÃO DO PAINEL
+   ROTINA DE PRODUÇÃO: CASAMENTO DE FLUXO (RAWBT + LAYOUT DO TICKET ATIVO)
    ================================================================================= */
 if (typeof window.executarImpressaoVendaBalcao !== 'function') {
     window.executarImpressaoVendaBalcao = function() {
@@ -506,37 +506,52 @@ if (typeof window.executarImpressaoVendaBalcao !== 'function') {
                 return;
             }
 
-            // 1. Compatibilidade de Atributo: O seu print.js exige "pagamento" no objeto da venda
+            // 1. Compatibilidade de atributos exigidos pelo print.js
             if (dadosVenda && !dadosVenda.pagamento && dadosVenda.forma_pagamento) {
                 dadosVenda.pagamento = dadosVenda.forma_pagamento;
             }
+            if (dadosVenda && !dadosVenda.data && dadosVenda.created_at) {
+                dadosVenda.data = dadosVenda.created_at;
+            }
 
-            // 2. Lê exatamente a chave que o seu print.js usa internamente
-            const modoConfigurado = (localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
+            // 2. Captura as chaves de configuração do painel administrativo
+            const modoImpressao = (localStorage.getItem('modoImpressao') || '').toLowerCase();
+            const formatoImpressao = (localStorage.getItem('formatoImpressao') || '').toLowerCase();
+            const cfgModoImpressao = (localStorage.getItem('cfg-modo-impressao') || '').toLowerCase();
 
-            // 3. Roteamento baseado na escolha do seu painel de configurações
-            if (modoConfigurado === 'direto') {
-                // Modo Térmico / RawBT Oficial do seu print.js
-                if (typeof window.imprimirTicketVenda === 'function') {
+            const eImpressaoDireta = 
+                modoImpressao === 'direto' || 
+                formatoImpressao === 'rawbt' || 
+                formatoImpressao === 'termico' ||
+                cfgModoImpressao === 'direto';
+
+            if (eImpressaoDireta) {
+                // Sincroniza a chave de hardware para o Android interceptar
+                localStorage.setItem('formatoImpressao', 'rawbt');
+                localStorage.setItem('modoImpressao', 'direto');
+
+                // CHAMADA INTELIGENTE: Roda a função que processa o 'ticketLayout' (Eco, Gigante, etc.)
+                if (typeof window.imprimirCupom === 'function') {
+                    window.imprimirCupom(dadosVenda);
+                } else if (typeof window.imprimirTicketVenda === 'function') {
                     window.imprimirTicketVenda(dadosVenda);
                 } else {
-                    console.error("[IMPRESSÃO] Erro: Função imprimirTicketVenda não localizada.");
+                    console.error("[IMPRESSÃO] Nenhum motor térmico localizado.");
                 }
             } else {
-                // Modo PDF / Abrir em Tela Oficial do seu print.js
+                // Modo de abertura em tela (Navegador/PDF)
                 if (typeof window.gerarTicketHTML === 'function') {
                     window.gerarTicketHTML(dadosVenda, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
                 } else if (typeof window.imprimirCupom === 'function') {
                     window.imprimirCupom(dadosVenda);
                 } else {
-                    console.error("[IMPRESSÃO] Erro: Nenhum motor HTML/PDF localizado.");
+                    console.error("[IMPRESSÃO] Nenhum motor de tela localizado.");
                 }
             }
 
         } catch (error) {
-            console.error("[CRÍTICO - EXECUÇÃO IMPRESSÃO BALCÃO]:", error);
+            console.error("[CRÍTICO - MODELO E ROTA IMPRESSÃO]:", error);
         } finally {
-            // Garante o fechamento e libera a tela para a próxima venda do espetinho
             if (typeof window.fecharModalImpressao === 'function') {
                 window.fecharModalImpressao();
             }
