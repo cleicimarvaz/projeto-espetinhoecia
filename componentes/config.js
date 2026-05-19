@@ -158,21 +158,41 @@ window.visualizarTicketTeste = function() {
         showToast('GERANDO TICKETS DE TESTE...', 'aviso');
     }
     
-    if (typeof window.imprimirCupom === 'function') {
-        const vendaTeste = {
-            id: 9999,
-            data: new Date().toISOString(),
-            itens: [
-                { nome: 'ESPETO DE CARNE', qtd: 2, preco: 12.00 },
-                { nome: 'REFRIGERANTE LATA', qtd: 1, preco: 7.50 } 
-            ]
-        };
-        window.imprimirCupom(vendaTeste);
-    } else {
-        if (typeof showToast === 'function') {
-            showToast('ERRO: MOTOR DE IMPRESSÃO NÃO ENCONTRADO', 'erro');
+    const vendaTeste = {
+        id: 9999,
+        data: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        total: 31.50,
+        forma_pagamento: 'Dinheiro',
+        vendedor: localStorage.getItem('userName') || 'TESTE',
+        itens: [
+            { nome: 'ESPETO DE CARNE', qtd: 2, preco: 12.00 },
+            { nome: 'REFRIGERANTE LATA', qtd: 1, preco: 7.50 } 
+        ]
+    };
+
+    // CORREÇÃO DA CHAVE: Agora lê exatamente 'modoImpressao'
+    const formato = localStorage.getItem('modoImpressao') || 'pdf';
+
+    // Se o seu painel salva como "termico", "rawbt" ou "impressora", o .toLowerCase() ajuda a não quebrar
+    const formatoLimpo = formato.toLowerCase();
+
+    if (formatoLimpo === 'termico' || formatoLimpo === 'rawbt' || formatoLimpo === 'impressora') {
+        if (typeof imprimirTicketVenda === 'function') {
+            window.imprimirTicketVenda(vendaTeste);
+        } else if (typeof window.imprimirCupom === 'function') {
+            window.imprimirCupom(vendaTeste);
+        } else {
+            if (typeof showToast === 'function') showToast('ERRO: MOTOR TÉRMICO NÃO ENCONTRADO', 'erro');
         }
-        console.error("A função imprimirCupom não foi encontrada no escopo global.");
+    } else {
+        if (typeof gerarPdfVenda === 'function') {
+            window.gerarPdfVenda(vendaTeste);
+        } else if (typeof window.imprimirCupom === 'function') {
+            window.imprimirCupom(vendaTeste);
+        } else {
+            if (typeof showToast === 'function') showToast('ERRO: MOTOR PDF NÃO ENCONTRADO', 'erro');
+        }
     }
 };
 
