@@ -493,7 +493,7 @@ window.estornarVenda = function(idVenda) {
 }
 
 /* =================================================================================
-   ROTINA DE PRODUÇÃO: CASAMENTO DE FLUXO (RAWBT + LAYOUT DO TICKET ATIVO)
+   ROTINA DE PRODUÇÃO: ROTEADOR ESTRITO (PDF vs DIRETO)
    ================================================================================= */
 if (typeof window.executarImpressaoVendaBalcao !== 'function') {
     window.executarImpressaoVendaBalcao = function() {
@@ -501,56 +501,34 @@ if (typeof window.executarImpressaoVendaBalcao !== 'function') {
             const dadosVenda = window.ultimaVendaParaImpressao;
             
             if (!dadosVenda) {
-                console.warn("[IMPRESSÃO] Cache de venda vazio.");
                 if (typeof window.fecharModalImpressao === 'function') window.fecharModalImpressao();
                 return;
             }
 
-            // 1. Compatibilidade de atributos exigidos pelo print.js
+            // Compatibilidade de atributos
             if (dadosVenda && !dadosVenda.pagamento && dadosVenda.forma_pagamento) {
                 dadosVenda.pagamento = dadosVenda.forma_pagamento;
             }
-            if (dadosVenda && !dadosVenda.data && dadosVenda.created_at) {
-                dadosVenda.data = dadosVenda.created_at;
-            }
 
-            // 2. Captura as chaves de configuração do painel administrativo
-            const modoImpressao = (localStorage.getItem('modoImpressao') || '').toLowerCase();
-            const formatoImpressao = (localStorage.getItem('formatoImpressao') || '').toLowerCase();
-            const cfgModoImpressao = (localStorage.getItem('cfg-modo-impressao') || '').toLowerCase();
+            // LÊ EXATAMENTE O QUE O PAINEL SALVOU (Nada de forçar variáveis)
+            const modoAtual = localStorage.getItem('modoImpressao') || 'pdf';
 
-            const eImpressaoDireta = 
-                modoImpressao === 'direto' || 
-                formatoImpressao === 'rawbt' || 
-                formatoImpressao === 'termico' ||
-                cfgModoImpressao === 'direto';
-
-            if (eImpressaoDireta) {
-                // Sincroniza a chave de hardware em lote para o print.js e o Android
-                localStorage.setItem('formatoImpressao', 'rawbt');
-                localStorage.setItem('modoImpressao', 'direto');
-
-                // Roda o gerador de ticket consolidado da venda inteira
+            if (modoAtual === 'direto') {
+                // ROTA RAWBT: Chama o motor configurado para Android
                 if (typeof window.imprimirTicketVenda === 'function') {
                     window.imprimirTicketVenda(dadosVenda);
-                } else if (typeof window.imprimirCupom === 'function') {
-                    window.imprimirCupom(dadosVenda);
-                } else {
-                    console.error("[IMPRESSÃO] Nenhum motor térmico localizado.");
                 }
             } else {
-                // Modo de abertura em tela tradicional (Navegador/PDF)
+                // ROTA PDF/TELA: Chama o motor que gera o HTML visual no PC/Celular
                 if (typeof window.gerarTicketHTML === 'function') {
                     window.gerarTicketHTML(dadosVenda, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
                 } else if (typeof window.imprimirCupom === 'function') {
                     window.imprimirCupom(dadosVenda);
-                } else {
-                    console.error("[IMPRESSÃO] Nenhum motor de tela localizado.");
                 }
             }
 
         } catch (error) {
-            console.error("[CRÍTICO - MODELO E ROTA IMPRESSÃO]:", error);
+            console.error("[CRÍTICO - ROTA IMPRESSÃO BALCÃO]:", error);
         } finally {
             if (typeof window.fecharModalImpressao === 'function') {
                 window.fecharModalImpressao();
