@@ -6,7 +6,6 @@ window.carrinho = window.carrinho || [];
 window.produtosCache = []; 
 
 /* --- 0. CARREGAMENTO INICIAL DO CATÁLOGO --- */
-/* --- 0. CARREGAMENTO INICIAL DO CATÁLOGO --- */
 window.carregarCatalogoVendas = async function() {
     if (typeof _supabase === 'undefined') return;
     
@@ -492,8 +491,9 @@ window.estornarVenda = function(idVenda) {
         }
     }
 }
+
 /* =================================================================================
-   ROTINA DE PRODUÇÃO: MOTOR DE IMPRESSÃO ISOLADO E SEGURO (ESCOPO GLOBAL)
+   ROTINA DE PRODUÇÃO: MOTOR DE IMPRESSÃO INTEGRADO COM SELEÇÃO DO PAINEL
    ================================================================================= */
 if (typeof window.executarImpressaoVendaBalcao !== 'function') {
     window.executarImpressaoVendaBalcao = function() {
@@ -506,30 +506,37 @@ if (typeof window.executarImpressaoVendaBalcao !== 'function') {
                 return;
             }
 
-            // Captura a configuração de hardware ativa salva no banco/local
-            const formato = (localStorage.getItem('formatoImpressao') || localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
+            // 1. Compatibilidade de Atributo: O seu print.js exige "pagamento" no objeto da venda
+            if (dadosVenda && !dadosVenda.pagamento && dadosVenda.forma_pagamento) {
+                dadosVenda.pagamento = dadosVenda.forma_pagamento;
+            }
 
-            // Roteamento para as funções do seu print.js
-            if (formato === 'termico' || formato === 'rawbt' || formato === 'impressora' || formato === 'termica') {
+            // 2. Lê exatamente a chave que o seu print.js usa internamente
+            const modoConfigurado = (localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
+
+            // 3. Roteamento baseado na escolha do seu painel de configurações
+            if (modoConfigurado === 'direto') {
+                // Modo Térmico / RawBT Oficial do seu print.js
                 if (typeof window.imprimirTicketVenda === 'function') {
                     window.imprimirTicketVenda(dadosVenda);
                 } else {
-                    console.error("[IMPRESSÃO] Erro: Função imprimirTicketVenda não encontrada no print.js");
+                    console.error("[IMPRESSÃO] Erro: Função imprimirTicketVenda não localizada.");
                 }
             } else {
-                // Rota nativa do navegador mapeada do seu print.js
+                // Modo PDF / Abrir em Tela Oficial do seu print.js
                 if (typeof window.gerarTicketHTML === 'function') {
                     window.gerarTicketHTML(dadosVenda, localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA');
                 } else if (typeof window.imprimirCupom === 'function') {
                     window.imprimirCupom(dadosVenda);
                 } else {
-                    console.error("[IMPRESSÃO] Erro: Nenhum motor HTML/PDF encontrado no print.js");
+                    console.error("[IMPRESSÃO] Erro: Nenhum motor HTML/PDF localizado.");
                 }
             }
+
         } catch (error) {
-            console.error("[CRÍTICO - HARDWARE IMPRESSÃO]:", error);
+            console.error("[CRÍTICO - EXECUÇÃO IMPRESSÃO BALCÃO]:", error);
         } finally {
-            // Garante o fechamento do modal e o reset do carrinho mesmo se houver falha na impressora
+            // Garante o fechamento e libera a tela para a próxima venda do espetinho
             if (typeof window.fecharModalImpressao === 'function') {
                 window.fecharModalImpressao();
             }
