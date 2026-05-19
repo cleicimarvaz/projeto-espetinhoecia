@@ -457,79 +457,107 @@ window.imprimirCupom = function(venda) {
 window.imprimirTicketVenda = function(dadosVenda) {
     const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
     const cnpj = localStorage.getItem('empresa_cnpj') || "";
-    const formatoGlobal = localStorage.getItem('formatoImpressao') || 'pdf';
+    const layout = localStorage.getItem('ticketLayout') || 'original'; // Captura o modelo ativo
+    const modoConfigurado = (localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
+    
     const ua = navigator.userAgent.toLowerCase();
     const isAndroid = /android/.test(ua);
     const isIOS = /iphone|ipad|ipod/.test(ua);
-    
-    // --- CONSTRUÇÃO DO TEXTO PURO (TRAVADO EM 32 COLUNAS PARA IMPRESSORA DE 58MM) ---
-    let txt = `================================\n`;
-    
-    let nomeLoja = loja.substring(0, 32).toUpperCase();
-    let espacos = Math.floor((32 - nomeLoja.length) / 2);
-    txt += " ".repeat(Math.max(0, espacos)) + nomeLoja + "\n";
 
-    if (cnpj) {
-        let cnpjLimpo = "CNPJ: " + cnpj;
-        let espacosCnpj = Math.floor((32 - cnpjLimpo.length) / 2);
-        txt += " ".repeat(Math.max(0, espacosCnpj)) + cnpjLimpo + "\n";
-    }
-    
-    txt += `================================\n`;
-    txt += `DATA: ${new Date(dadosVenda.created_at || dadosVenda.data || Date.now()).toLocaleString('pt-BR')}\n`;
-    txt += `TIPO: ${dadosVenda.tipo || 'VENDA'}\n`;
-    txt += `--------------------------------\n`;
-    
+    // 1. MONTAGEM DO CONTEÚDO DOS ITENS EM HTML
+    let htmlItens = '';
     if (dadosVenda.itens) {
-        const itensAgrupadosTxt = {};
         const itensArray = Array.isArray(dadosVenda.itens) ? dadosVenda.itens : JSON.parse(dadosVenda.itens || '[]');
+        const itensAgrupadosHtml = {};
 
         itensArray.forEach(i => {
             if (parseFloat(i.preco) > 0) {
                 const chave = i.nome.trim().toUpperCase();
-                if (!itensAgrupadosTxt[chave]) {
-                    itensAgrupadosTxt[chave] = { ...i };
+                if (!itensAgrupadosHtml[chave]) {
+                    itensAgrupadosHtml[chave] = { ...i };
                 } else {
-                    itensAgrupadosTxt[chave].qtd += i.qtd;
+                    itensAgrupadosHtml[chave].qtd += i.qtd;
                 }
             }
         });
 
-        Object.values(itensAgrupadosTxt).forEach(i => {
-            let linhaNome = `${i.qtd}x ${i.nome.toUpperCase()}`;
-            if (linhaNome.length > 32) linhaNome = linhaNome.substring(0, 32);
-            txt += linhaNome + '\n';
-            
-            let precoTxt = `R$ ${window.fmSeguro(i.preco * i.qtd)}`;
-            txt += precoTxt.padStart(32, ' ') + '\n';
+        Object.values(itensAgrupadosHtml).forEach(i => {
+            htmlItens += `
+            <div style="margin-bottom: 4px; border-bottom: 1px dashed #ccc; padding-bottom: 3px;">
+                <div class="item-name">${i.qtd}x ${i.nome.toUpperCase()}</div>
+                <div class="item-price" style="text-align: right; font-size:11px; font-weight: bold; margin-top: 2px;">
+                    R$ ${window.fmSeguro(i.preco * i.qtd)}
+                </div>
+            </div>`;
         });
     }
-    
-    txt += `--------------------------------\n`;
-    
-    let totalTxt = `R$ ${window.fmSeguro(dadosVenda.total)}`;
-    txt += `TOTAL:` + totalTxt.padStart(32 - 6, ' ') + `\n`; 
-    
+
     const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
-    if (!isPreConta) {
-        txt += `PGTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}\n`;
-    }
-    
-    txt += `================================\n`;
-    txt += `    OBRIGADO PELA PREFERENCIA    \n\n\n\n\n`;
-    
-    // REDIRECIONAMENTO COM BASE NA PREFERÊNCIA SALVA
-    if (formatoGlobal === 'termico' || formatoGlobal === 'rawbt') {
-        if (isAndroid) { 
-            const base64Texto = btoa(unescape(encodeURIComponent(txt)));
-            window.location.href = "rawbt://base64," + base64Texto; 
+    let pgtoHtml = !isPreConta ? `<div class="instruction-text" style="font-size:11px; margin-top:5px;">PAGAMENTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}</div>` : '';
+
+    // 2. MONTAGEM DO CORPO DO DOCUMENTO COM O CSS DO LAYOUT ESCOLHIDO
+    const htmlCompleto = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            @page { margin: 0; size: 58mm auto; }
+            html, body { width: 58mm !important; max-width: 58mm !important; background-color: #fff; color: #000; font-size: 11px; line-height: 1.2; }
+            .ticket-container { width: 58mm !important; max-width: 58mm !important; padding: 2mm 3mm; overflow: hidden; }
+            .divisor { border-top: 1px dashed #000; margin: 6px 0; }
+            ${getTicketCSS(layout)}
+        </style>
+    </head>
+    <body>
+        <div class="ticket-container">
+            <div class="ticket-wrapper">
+                <div class="header">
+                    <div class="store-name text-center bold">${loja}</div>
+                    ${cnpj ? `<div class="text-center" style="font-size:10px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
+                    <div class="text-center bold uppercase" style="font-size:12px; margin-bottom: 4px;">${dadosVenda.tipo || 'VENDA'}</div>
+                    <div class="meta text-center" style="font-size:9px; margin-bottom: 6px;">DATA: ${new Date(dadosVenda.created_at || dadosVenda.data || Date.now()).toLocaleString('pt-BR')}</div>
+                </div>
+                
+                <div class="divisor"></div>
+                <div class="unified-box">
+                    ${htmlItens}
+                </div>
+                
+                <div class="divisor"></div>
+                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold; margin-top:6px;">
+                    <span class="bold">TOTAL</span>
+                    <span class="bold">R$ ${window.fmSeguro(dadosVenda.total)}</span>
+                </div>
+                
+                ${pgtoHtml}
+                
+                <div class="footer text-center bold" style="margin-top:12px; font-size:10px;">OBRIGADO PELA PREFERÊNCIA</div>
+            </div>
+        </div>
+    </body>
+    </html>`;
+
+    // 3. ENCAMINHAMENTO CONFORME O QUE FOI CONFIGURADO NO PAINEL
+    if (modoConfigurado === 'direto') {
+        if (isAndroid) {
+            // Conversão segura em Base64 do documento HTML montado com os estilos do layout
+            const base64Texto = btoa(unescape(encodeURIComponent(htmlCompleto)));
+            window.location.href = "rawbt://base64ops," + base64Texto; 
+            return;
+        }
+        if (isIOS) { 
+            window.location.href = "openlabels://print?text=" + encodeURIComponent(htmlCompleto); 
             return; 
         }
-        if (isIOS) { window.location.href = "openlabels://print?text=" + encodeURIComponent(txt); return; }
     }
     
-    // Se o formato global for PDF/Navegador, roda o gerador visual de caixa de diálogo
-    window.gerarTicketHTML(dadosVenda, loja);
+    // Fallback estável para Windows/PDF
+    const win = window.open('', '_blank', 'width=350,height=600');
+    win.document.write(htmlCompleto); 
+    win.document.close();
+    setTimeout(() => { win.print(); win.close(); }, 500);
 }
 
 window.gerarTicketHTML = function(dados, loja) {
