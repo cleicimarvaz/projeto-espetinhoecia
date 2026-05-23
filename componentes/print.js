@@ -411,7 +411,7 @@ window.enviarParaImpressora = function(texto) {
     const base64Texto = btoa(unescape(encodeURIComponent(texto)));
     
     if (isAndroid) { 
-        window.location.href = "rawbt://base64," + base64Texto; 
+        window.location.href = "rawbt:base64," + base64Texto; 
     } else { 
         const win = window.open('', '_blank'); 
         win.document.write(`<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;padding:20px;">${texto}</pre><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500);}<\/script>`); 
