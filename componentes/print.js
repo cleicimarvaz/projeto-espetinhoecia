@@ -379,7 +379,7 @@ window.dispararImpressao = function(conteudoHtml, layout) {
             <head>
                 <meta charset="utf-8">
                 <style>
-                    html, body { margin: 0; padding: 0; width: 58mm; background: #fff; color: #000; }
+                    html, body { margin: 0; padding: 0; width: 58mm; background: #fff; color: #000; font-family: 'Courier New', monospace; }
                     ${getTicketCSS(layout)}
                 </style>
             </head>
@@ -389,11 +389,14 @@ window.dispararImpressao = function(conteudoHtml, layout) {
             </html>
         `;
 
-        // Transforma o HTML estruturado em Base64 para o RawBT abrir a tela nativa dele no celular
+        // Transforma o HTML estruturado em Base64, preservando os acentos (UTF-8)
         const base64Html = btoa(unescape(encodeURIComponent(htmlCompleto)));
         
-        // Dispara o protocolo que acorda a tela gráfica do app RawBT com o seu layout ativo
-        window.location.href = "rawbt://base64," + base64Html;
+        // CORREÇÃO: Usando a estrutura oficial de "Intent" do Android.
+        // Isso obriga o Chrome a acordar o RawBT e injetar a imagem do cupom direto lá!
+        const urlRawBT = `intent:base64,${base64Html}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+        
+        window.location.href = urlRawBT;
         return;
     }
 
@@ -457,45 +460,93 @@ window.imprimirCupom = function(venda) {
 window.imprimirTicketVenda = function(dadosVenda) {
     const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
     const cnpj = localStorage.getItem('empresa_cnpj') || "";
-    const layout = localStorage.getItem('ticketLayout') || 'original'; // Captura o modelo ativo
+    const layout = localStorage.getItem('ticketLayout') || 'original'; 
     const modoConfigurado = (localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
     
     const ua = navigator.userAgent.toLowerCase();
     const isAndroid = /android/.test(ua);
     const isIOS = /iphone|ipad|ipod/.test(ua);
 
-    // 1. MONTAGEM DO CONTEÚDO DOS ITENS EM HTML
-    let htmlItens = '';
-    if (dadosVenda.itens) {
-        const itensArray = Array.isArray(dadosVenda.itens) ? dadosVenda.itens : JSON.parse(dadosVenda.itens || '[]');
-        const itensAgrupadosHtml = {};
+    // 1. AGRUPAMENTO DOS ITENS (Comum para ambos os modos)
+    const itensArray = Array.isArray(dadosVenda.itens) ? dadosVenda.itens : JSON.parse(dadosVenda.itens || '[]');
+    const itensAgrupados = {};
 
-        itensArray.forEach(i => {
-            if (parseFloat(i.preco) > 0) {
-                const chave = i.nome.trim().toUpperCase();
-                if (!itensAgrupadosHtml[chave]) {
-                    itensAgrupadosHtml[chave] = { ...i };
-                } else {
-                    itensAgrupadosHtml[chave].qtd += i.qtd;
-                }
+    itensArray.forEach(i => {
+        if (parseFloat(i.preco) > 0) {
+            const obs = i.detalhes || i.observacao || '';
+            const chave = `${i.nome.trim().toUpperCase()}_${obs.trim().toUpperCase()}`;
+            
+            if (!itensAgrupados[chave]) {
+                itensAgrupados[chave] = { ...i };
+            } else {
+                itensAgrupados[chave].qtd += i.qtd;
             }
+        }
+    });
+
+    const dataFormatada = new Date(dadosVenda.created_at || dadosVenda.data || Date.now()).toLocaleString('pt-BR');
+    const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
+
+    // ====================================================================================
+    // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) - OBRIGATÓRIO SER TEXTO PURO
+    // ====================================================================================
+    if (modoConfigurado === 'direto' && isAndroid) {
+        let textoRaw = `\n    ${loja}    \n`;
+        if (cnpj) textoRaw += `      CNPJ: ${cnpj}      \n`;
+        textoRaw += `--------------------------------\n`;
+        textoRaw += `${dadosVenda.tipo || 'VENDA'}\n`;
+        textoRaw += `DATA: ${dataFormatada}\n`;
+        textoRaw += `--------------------------------\n\n`;
+
+        Object.values(itensAgrupados).forEach(i => {
+            const precoExibicao = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
+            textoRaw += `[${i.qtd}x] ${i.nome.toUpperCase()}\n`;
+            
+            if (i.detalhes || i.observacao) {
+                textoRaw += `  ↳ OBS: ${i.detalhes || i.observacao}\n`;
+            }
+            textoRaw += `              VALOR: R$ ${precoExibicao}\n\n`;
         });
 
-        Object.values(itensAgrupadosHtml).forEach(i => {
-            htmlItens += `
-            <div style="margin-bottom: 4px; border-bottom: 1px dashed #ccc; padding-bottom: 3px;">
-                <div class="item-name">${i.qtd}x ${i.nome.toUpperCase()}</div>
-                <div class="item-price" style="text-align: right; font-size:11px; font-weight: bold; margin-top: 2px;">
-                    R$ ${window.fmSeguro(i.preco * i.qtd)}
-                </div>
-            </div>`;
-        });
+        textoRaw += `--------------------------------\n`;
+        const totalExibicao = window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2);
+        textoRaw += `TOTAL:                  R$ ${totalExibicao}\n`;
+        textoRaw += `--------------------------------\n`;
+        
+        if (!isPreConta) {
+            const formaPgto = (dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase();
+            textoRaw += `PAGAMENTO: ${formaPgto}\n`;
+        }
+        
+        textoRaw += `\n    OBRIGADO PELA PREFERENCIA   \n\n\n`;
+
+        // Transforma o texto puro em link para o App e dispara
+        const textoCodificado = encodeURIComponent(textoRaw);
+        window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+        return;
     }
 
-    const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
+    // ====================================================================================
+    // ROTA 2: IMPRESSÃO NO WINDOWS / IOS / NAVEGADOR (HTML + CSS)
+    // ====================================================================================
+    let htmlItens = '';
+    Object.values(itensAgrupados).forEach(i => {
+        const obsHtml = (i.detalhes || i.observacao) 
+            ? `<div style="font-size: 9px; font-style: italic; margin-top: 2px; text-transform: uppercase;">Obs: ${i.detalhes || i.observacao}</div>` 
+            : '';
+
+        htmlItens += `
+        <div style="margin-bottom: 4px; border-bottom: 1px dashed #ccc; padding-bottom: 3px;">
+            <div class="item-name">${i.qtd}x ${i.nome.toUpperCase()}</div>
+            ${obsHtml}
+            <div class="item-price" style="text-align: right; font-size:11px; font-weight: bold; margin-top: 2px;">
+                R$ ${window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2)}
+            </div>
+        </div>`;
+    });
+
     let pgtoHtml = !isPreConta ? `<div class="instruction-text" style="font-size:11px; margin-top:5px;">PAGAMENTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}</div>` : '';
 
-    // 2. MONTAGEM DO CORPO DO DOCUMENTO COM O CSS DO LAYOUT ESCOLHIDO
     const htmlCompleto = `
     <!DOCTYPE html>
     <html>
@@ -504,10 +555,10 @@ window.imprimirTicketVenda = function(dadosVenda) {
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             @page { margin: 0; size: 58mm auto; }
-            html, body { width: 58mm !important; max-width: 58mm !important; background-color: #fff; color: #000; font-size: 11px; line-height: 1.2; }
+            html, body { font-family: 'Courier New', monospace; width: 58mm !important; max-width: 58mm !important; background-color: #fff; color: #000; font-size: 11px; line-height: 1.2; }
             .ticket-container { width: 58mm !important; max-width: 58mm !important; padding: 2mm 3mm; overflow: hidden; }
             .divisor { border-top: 1px dashed #000; margin: 6px 0; }
-            ${getTicketCSS(layout)}
+            ${typeof getTicketCSS === 'function' ? getTicketCSS(layout) : ''}
         </style>
     </head>
     <body>
@@ -517,43 +568,30 @@ window.imprimirTicketVenda = function(dadosVenda) {
                     <div class="store-name text-center bold">${loja}</div>
                     ${cnpj ? `<div class="text-center" style="font-size:10px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
                     <div class="text-center bold uppercase" style="font-size:12px; margin-bottom: 4px;">${dadosVenda.tipo || 'VENDA'}</div>
-                    <div class="meta text-center" style="font-size:9px; margin-bottom: 6px;">DATA: ${new Date(dadosVenda.created_at || dadosVenda.data || Date.now()).toLocaleString('pt-BR')}</div>
+                    <div class="meta text-center" style="font-size:9px; margin-bottom: 6px;">DATA: ${dataFormatada}</div>
                 </div>
-                
                 <div class="divisor"></div>
                 <div class="unified-box">
                     ${htmlItens}
                 </div>
-                
                 <div class="divisor"></div>
                 <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold; margin-top:6px;">
                     <span class="bold">TOTAL</span>
-                    <span class="bold">R$ ${window.fmSeguro(dadosVenda.total)}</span>
+                    <span class="bold">R$ ${window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2)}</span>
                 </div>
-                
                 ${pgtoHtml}
-                
                 <div class="footer text-center bold" style="margin-top:12px; font-size:10px;">OBRIGADO PELA PREFERÊNCIA</div>
             </div>
         </div>
     </body>
     </html>`;
 
-    // 3. ENCAMINHAMENTO CONFORME O QUE FOI CONFIGURADO NO PAINEL
-    if (modoConfigurado === 'direto') {
-        if (isAndroid) {
-            // Conversão segura em Base64 do documento HTML montado com os estilos do layout
-            const base64Texto = btoa(unescape(encodeURIComponent(htmlCompleto)));
-            window.location.href = "rawbt://base64ops," + base64Texto; 
-            return;
-        }
-        if (isIOS) { 
-            window.location.href = "openlabels://print?text=" + encodeURIComponent(htmlCompleto); 
-            return; 
-        }
+    if (modoConfigurado === 'direto' && isIOS) { 
+        window.location.href = "openlabels://print?text=" + encodeURIComponent(htmlCompleto); 
+        return; 
     }
     
-    // Fallback estável para Windows/PDF
+    // Fallback normal para abrir a janela de impressão no PC
     const win = window.open('', '_blank', 'width=350,height=600');
     win.document.write(htmlCompleto); 
     win.document.close();
@@ -1219,14 +1257,24 @@ window.reimprimirComanda = async function(id) {
                 </div>
                 <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
                 <div style="margin-top: 10px;">
-                    ${itens.map(item => `
+                    ${itens.map(item => {
+                        // ===============================================================
+                        // INJETA A OBSERVAÇÃO (INGREDIENTES/ESPETOS) NO CUPOM DE IMPRESSÃO
+                        // ===============================================================
+                        const obsHtml = (item.detalhes || item.observacao) 
+                            ? `<div style="font-size: 11px; margin-top: 2px; padding-left: 5px; font-style: italic;">Obs: ${item.detalhes || item.observacao}</div>` 
+                            : '';
+
+                        return `
                         <div style="margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
                                 <span>${item.qtd}X ${item.nome.toUpperCase()}</span>
                                 <span>R$ ${(parseFloat(item.preco) * item.qtd).toFixed(2).replace('.', ',')}</span>
                             </div>
+                            ${obsHtml}
                             <div style="border-top: 1px dashed #eee; margin-top: 4px;"></div>
-                        </div>`).join('')}
+                        </div>`;
+                    }).join('')}
                 </div>
                 <div style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 8px;">
                     <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold;">
@@ -1239,7 +1287,11 @@ window.reimprimirComanda = async function(id) {
                 <div style="text-align: center; font-size: 12px; font-weight: bold; margin-top: 10px;">OBRIGADO PELA PREFERÊNCIA</div>
             </div>`;
 
-        imprimirConteudoHTML(html);
+        if (typeof imprimirConteudoHTML === 'function') {
+            imprimirConteudoHTML(html);
+        } else {
+            console.error("Função imprimirConteudoHTML não encontrada.");
+        }
     } catch (e) {
         console.error('Erro na reimpressão:', e);
         if (typeof showToast === 'function') showToast('ERRO AO GERAR IMPRESSÃO', 'erro');

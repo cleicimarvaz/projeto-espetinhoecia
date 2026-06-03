@@ -107,24 +107,46 @@ window.abrirNovaComanda = async function() {
         return;
     }
 
-    try {
-        const { data: mesaExistente } = await _supabase
-            .from('comandas').select('id').eq('identificacao', id).eq('status', 'aberta').maybeSingle();
-
-        // ----------------------------------------------------
-        // VALIDAÇÃO 2: MESA JÁ EXISTE E ESTÁ ABERTA
-        // ----------------------------------------------------
-        if (mesaExistente) { 
+    // ----------------------------------------------------
+    // VALIDAÇÃO 1.5: VERIFICAÇÃO LOCAL (MEMÓRIA) INSTANTÂNEA
+    // Bloqueia no mesmo milissegundo se a mesa já estiver na tela
+    // ----------------------------------------------------
+    if (window.COMANDAS_ATIVAS) {
+        const mesaLocal = window.COMANDAS_ATIVAS.find(c => c.identificacao.toUpperCase().trim() === id);
+        if (mesaLocal) {
             if (typeof showToast === 'function') {
                 showToast('ESTA MESA JÁ ESTÁ ABERTA!', 'erro');
             } else if (typeof alertaSistema === 'function') {
-                alertaSistema(`Já existe uma comanda aberta para "${id}". Verifique a lista de mesas ocupadas.`, 'Mesa Ocupada');
+                alertaSistema(`A comanda "${id}" já está aberta no seu sistema. Verifique a lista.`, 'Mesa Ocupada');
             } else {
-                alert('MESA JÁ ABERTA'); 
+                alert('MESA JÁ ABERTA');
+            }
+            return; // Interrompe imediatamente!
+        }
+    }
+
+    try {
+        // ----------------------------------------------------
+        // VALIDAÇÃO 2: MESA JÁ EXISTE NO BANCO DE DADOS (SUPABASE)
+        // Garante que outro garçom não abriu a mesa em outro celular agora pouco
+        // ----------------------------------------------------
+        const { data: mesaExistente } = await _supabase
+            .from('comandas').select('id').eq('identificacao', id).eq('status', 'aberta').maybeSingle();
+
+        if (mesaExistente) { 
+            if (typeof showToast === 'function') {
+                showToast('OUTRO GARÇOM JÁ ABRIU ESTA MESA!', 'erro');
+            } else if (typeof alertaSistema === 'function') {
+                alertaSistema(`Alguém da equipe já abriu a comanda para "${id}". Atualize sua lista de mesas.`, 'Mesa Ocupada');
+            } else {
+                alert('MESA JÁ ABERTA POR OUTRA PESSOA'); 
             }
             return; 
         }
 
+        // ====================================================
+        // SE PASSOU PELAS DUAS TRAVAS, PODE ABRIR A MESA!
+        // ====================================================
         const { error } = await _supabase.from('comandas').insert([{
             identificacao: id,
             status: 'aberta',
@@ -141,8 +163,9 @@ window.abrirNovaComanda = async function() {
         }
 
         inputIdentificacao.value = '';
-        carregarComandas();
-        alternarAbasComanda('lista');
+        if (typeof carregarComandas === 'function') carregarComandas();
+        if (typeof alternarAbasComanda === 'function') alternarAbasComanda('lista');
+        
         if (typeof showToast === 'function') showToast('MESA ABERTA COM SUCESSO!');
 
     } catch (e) {

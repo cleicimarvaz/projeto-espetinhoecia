@@ -399,19 +399,33 @@ window.renderizarMonitor = function() {
                 </div>
 
                 <div class="p-4 space-y-3 flex-1 overflow-y-auto">
-                    ${lote.itens.map(obj => {
+${lote.itens.map(obj => {
                         const isNovo = (!obj.cozinha_status || obj.cozinha_status === 'novo');
+                        
+                        // 1. Refinamento da Observação: Adicionado break-words e margin corretas
+                        const observacaoHtml = (obj.detalhes || obj.observacao) 
+                            ? `<div class="mt-1.5 pl-2.5 border-l-2 border-[#e63946]">
+                                   <p class="text-[9px] font-black text-red-400 uppercase leading-relaxed whitespace-normal break-words">${obj.detalhes || obj.observacao}</p>
+                               </div>` 
+                            : '';
+
                         return `
-                        <div class="flex items-center gap-3 p-3 rounded-[1.5rem] border border-slate-700/50 bg-slate-800/40">
-                            <div class="flex items-center gap-2 flex-1 min-w-0">
-                                <span class="text-amber-500 font-black text-sm shrink-0">${obj.qtd}X</span>
-                                <div class="min-w-0">
-                                    <p class="font-bold text-slate-100 uppercase text-[11px] truncate tracking-tight">${obj.nome}</p>
-                                    ${(obj.detalhes || obj.observacao) ? `<p class="text-[8px] font-bold italic text-red-500 truncate uppercase">Obs: ${obj.detalhes || obj.observacao}</p>` : ''}
+                        <div class="flex items-center gap-3 p-3 rounded-[1.5rem] border border-slate-700/50 bg-slate-800/60 shadow-sm mb-2 last:mb-0">
+                            
+                            <div class="flex items-start gap-3 flex-1 min-w-0">
+                                
+                                <div class="flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-500 w-10 h-10 rounded-xl shrink-0 mt-0.5">
+                                    <span class="font-black text-sm">${obj.qtd}X</span>
+                                </div>
+                                
+                                <div class="flex flex-col flex-1 min-w-0">
+                                    <p class="font-bold text-slate-100 uppercase text-[11px] truncate tracking-tight pt-1">${obj.nome}</p>
+                                    ${observacaoHtml}
                                 </div>
                             </div>
+
                             <button onclick="${isNovo ? `window.aceitarItemProducao(${lote.comandaId}, ${obj.indexOriginal})` : `window.concluirItemProducao(${lote.comandaId}, ${obj.indexOriginal})`}" 
-                                class="shrink-0 ${isNovo ? 'bg-orange-500' : 'bg-emerald-600'} text-white px-5 py-2.5 rounded-full font-black text-[9px] uppercase shadow-lg">
+                                class="shrink-0 flex items-center justify-center ${isNovo ? 'bg-orange-500 hover:bg-orange-600' : 'bg-emerald-600 hover:bg-emerald-500'} text-white w-24 h-10 rounded-xl font-black text-[10px] uppercase shadow-lg transition-all active:scale-95 border border-white/10">
                                 ${isNovo ? 'ACEITAR' : 'CONCLUIR'}
                             </button>
                         </div>`;
@@ -760,31 +774,34 @@ window.imprimirTicket58mm = async function(id, idLote) {
         <head>
             <style>
                 @page { margin: 0; size: 58mm 200mm; }
-                body { font-family: 'Courier New', monospace; width: 54mm; padding: 2mm; margin: 0; }
+                body { font-family: 'Courier New', monospace; width: 54mm; padding: 2mm; margin: 0; color: #000; }
                 .center { text-align: center; font-weight: bold; }
-                .mesa { font-size: 22px; background: #000; color: #fff; padding: 5px; margin: 5px 0; }
-                .item { display: flex; font-size: 16px; font-weight: bold; margin-top: 5px; border-top: 1px dashed #000; padding-top: 5px; }
-                .obs { font-size: 13px; font-style: italic; margin-left: 20px; }
+                .mesa { font-size: 22px; background: #000; color: #fff; padding: 5px; margin: 5px 0; border-radius: 4px; }
+                .item { display: flex; font-size: 15px; font-weight: bold; margin-top: 5px; border-top: 1px dashed #000; padding-top: 5px; align-items: flex-start; word-break: break-word; }
+                .qtd { min-width: 25px; font-size: 16px; }
+                .nome { flex: 1; }
+                .obs { font-size: 13px; font-weight: bold; font-style: italic; margin-left: 25px; margin-top: 2px; padding-bottom: 2px; text-transform: uppercase; }
             </style>
         </head>
         <body onload="window.print(); window.close();">
             <div class="center" style="font-size: 18px;">PEDIDO COZINHA</div>
             <div class="center mesa">${c.identificacao}</div>
-            <div class="center" style="font-size: 11px;">${dataHora}</div>
+            <div class="center" style="font-size: 11px; margin-bottom: 5px;">${dataHora}</div>
+            
             ${itensParaImprimir.map(i => `
                 <div class="item">
-                    <div style="min-width:25px">${i.qtd}x</div>
-                    <div>${i.nome}</div>
+                    <div class="qtd">${i.qtd}x</div>
+                    <div class="nome">${i.nome}</div>
                 </div>
-                ${(i.detalhes || i.observacao) ? `<div class="obs">OBS: ${i.detalhes || i.observacao}</div>` : ''}
+                ${(i.detalhes || i.observacao) ? `<div class="obs">↳ ${i.detalhes || i.observacao}</div>` : ''}
             `).join('')}
-            <div style="border-top: 2px solid #000; margin-top: 10px;"></div>
+            
+            <div style="border-top: 2px solid #000; margin-top: 10px; padding-top: 5px;" class="center">*** FIM DO PEDIDO ***</div>
         </body>
         </html>
     `);
     win.document.close();
 };
-
 /* --- 8. INICIALIZAÇÃO --- */
 
 window.onload = async () => {

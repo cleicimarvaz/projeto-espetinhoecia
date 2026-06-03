@@ -129,14 +129,17 @@ window.salvarProduto = async function() {
     
     const controlaEstoque = document.getElementById('p-controla-estoque') ? document.getElementById('p-controla-estoque').checked : false;
     
+    // ====================================================
+    // 1. CAPTURA O NOVO CAMPO DE INGREDIENTES
+    // ====================================================
+    const inputIngredientes = document.getElementById('p-ingredientes');
+    const ingredientes = inputIngredientes ? inputIngredientes.value.trim() : null;
+    
     let prepara = false;
     if (cat !== 'bebidas' && cat !== 'cervejas') {
         prepara = document.getElementById('p-preparo') ? document.getElementById('p-preparo').checked : true;
     }
 
-    // ----------------------------------------------------
-    // SUBSTITUIÇÃO DO ALERT DE VALIDAÇÃO
-    // ----------------------------------------------------
     if (!nome || preco <= 0) {
         if (typeof showToast === 'function') {
             showToast("PREENCHA NOME E PREÇO", "erro");
@@ -157,14 +160,17 @@ window.salvarProduto = async function() {
             preco, 
             status: true, 
             precisa_preparo: prepara,
-            controlar_estoque: controlaEstoque
+            controlar_estoque: controlaEstoque,
+            // ====================================================
+            // 2. ENVIA OS INGREDIENTES PARA O BANCO DE DADOS
+            // ====================================================
+            ingredientes: ingredientes 
         };
 
         if (window.produtoEdicaoId) {
             const { error } = await _supabase.from('produtos').update(dados).eq('id', window.produtoEdicaoId);
             if (error) throw error;
             
-            // --- LOG DE AUDITORIA DETALHADO: EDIÇÃO ---
             if(typeof registrarLog === 'function') {
                 await registrarLog("ESTOQUE", `EDITOU PRODUTO ID ${window.produtoEdicaoId}: ${nome} | NOVO PREÇO: R$ ${preco.toFixed(2)} | CAT: ${cat.toUpperCase()}`);
             }
@@ -174,7 +180,6 @@ window.salvarProduto = async function() {
             const { error } = await _supabase.from('produtos').insert([dados]);
             if (error) throw error;
             
-            // --- LOG DE AUDITORIA DETALHADO: NOVO PRODUTO ---
             if(typeof registrarLog === 'function') {
                 await registrarLog("ESTOQUE", `CADASTROU NOVO PRODUTO: ${nome} | PREÇO: R$ ${preco.toFixed(2)} | CAT: ${cat.toUpperCase()}`);
             }
@@ -186,9 +191,6 @@ window.salvarProduto = async function() {
         
     } catch (e) {
         console.error("Erro ao salvar produto:", e);
-        // ----------------------------------------------------
-        // TRATAMENTO DE ERRO NO CATCH
-        // ----------------------------------------------------
         if (typeof showToast === 'function') {
             showToast("ERRO AO SALVAR PRODUTO", "erro");
         } else if (typeof alertaSistema === 'function') {
@@ -206,8 +208,17 @@ window.prepararEdicao = async function(id) {
 
         document.getElementById('p-nome').value = p.nome;
         document.getElementById('p-categoria').value = p.categoria;
-        document.getElementById('p-preco').value = formatarMoeda(p.preco);
+        document.getElementById('p-preco').value = typeof formatarMoeda === 'function' ? formatarMoeda(p.preco) : p.preco;
         
+        // ====================================================
+        // PREENCHE O CAMPO DE INGREDIENTES NA EDIÇÃO
+        // ====================================================
+        const inputIngredientes = document.getElementById('p-ingredientes');
+        if (inputIngredientes) {
+            inputIngredientes.value = p.ingredientes || '';
+        }
+        // ====================================================
+
         const checkboxPreparo = document.getElementById('p-preparo');
         if(checkboxPreparo) checkboxPreparo.checked = p.precisa_preparo !== false;
 
@@ -215,7 +226,7 @@ window.prepararEdicao = async function(id) {
         if(checkboxEstoque) checkboxEstoque.checked = p.controlar_estoque === true;
         
         window.produtoEdicaoId = id;
-        alternarAbasAdminProdutos('cadastro');
+        if (typeof alternarAbasAdminProdutos === 'function') alternarAbasAdminProdutos('cadastro');
     } catch (e) {
         console.error("Erro ao preparar edição:", e);
     }
@@ -225,6 +236,15 @@ window.cancelarEdicao = function() {
     window.produtoEdicaoId = null;
     document.getElementById('p-nome').value = '';
     document.getElementById('p-preco').value = '';
+    
+    // ====================================================
+    // LIMPA O CAMPO DE INGREDIENTES
+    // ====================================================
+    if (document.getElementById('p-ingredientes')) {
+        document.getElementById('p-ingredientes').value = '';
+    }
+    // ====================================================
+
     alternarAbasAdminProdutos('lista');
 }
 

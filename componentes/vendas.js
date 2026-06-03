@@ -33,31 +33,83 @@ window.carregarCatalogoVendas = async function() {
 }
 
 /* --- 1. VITRINE --- */
+
+// Variáveis para guardar o que está sendo filtrado no momento
+window.categoriaAtual = 'todos';
+window.termoBusca = '';
+
+// Função que muda a categoria e pinta a "pílula" clicada
+window.setCategoria = function(cat) {
+    window.categoriaAtual = cat;
+    
+    // 1. Remove o visual escuro de todos os botões (deixa inativo)
+    document.querySelectorAll('.btn-categoria').forEach(btn => {
+        btn.classList.remove('bg-[#1e293b]', 'text-white', 'border-[#1e293b]', 'shadow-md');
+        btn.classList.add('bg-white', 'dark:bg-transparent', 'text-slate-400', 'border-slate-200', 'dark:border-slate-700', 'hover:bg-slate-50', 'dark:hover:bg-slate-800');
+    });
+
+    // 2. Coloca o visual escuro apenas no botão que foi clicado
+    const btnAtivo = document.getElementById('btn-cat-' + cat);
+    if(btnAtivo) {
+        btnAtivo.classList.remove('bg-white', 'dark:bg-transparent', 'text-slate-400', 'border-slate-200', 'dark:border-slate-700', 'hover:bg-slate-50', 'dark:hover:bg-slate-800');
+        btnAtivo.classList.add('bg-[#1e293b]', 'text-white', 'border-[#1e293b]', 'shadow-md');
+    }
+
+    // 3. Atualiza os produtos na tela
+    window.renderizarVenda();
+}
+
+// Função que captura o texto digitado
+window.filtrarVitrine = function() {
+    const input = document.getElementById('busca-produto-venda');
+    window.termoBusca = input ? input.value.toLowerCase() : '';
+    window.renderizarVenda();
+}
 window.renderizarVenda = function() {
     const cont = document.getElementById('lista-venda');
     if (!cont) return;
     
-    if (window.produtosCache.length === 0) {
+    if (!window.produtosCache || window.produtosCache.length === 0) {
         cont.innerHTML = '<p class="col-span-2 text-center text-slate-400 font-bold py-10 text-[10px] uppercase">Nenhum produto cadastrado.</p>';
         return;
     }
 
+    // ====================================================
+    // APLICA OS FILTROS (Categoria + Busca por Texto)
+    // ====================================================
+    const produtosFiltrados = window.produtosCache.filter(p => {
+        const matchCategoria = window.categoriaAtual === 'todos' || p.categoria === window.categoriaAtual;
+        const matchBusca = p.nome.toLowerCase().includes(window.termoBusca);
+        return matchCategoria && matchBusca;
+    });
+
+    // Se o filtro não encontrar nada, avisa na tela
+    if (produtosFiltrados.length === 0) {
+        cont.innerHTML = `
+            <div class="col-span-2 flex flex-col items-center justify-center py-10 opacity-50">
+                <span class="text-4xl mb-3">🔍</span>
+                <p class="text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest text-center">Nenhum produto encontrado</p>
+            </div>`;
+        return;
+    }
+    // ====================================================
+
     const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚' };
     
-    cont.innerHTML = window.produtosCache.map(p => {
+    cont.innerHTML = produtosFiltrados.map(p => {
         const itemNoCarrinho = window.carrinho.find(c => c.id === p.id);
         const qtd = itemNoCarrinho ? itemNoCarrinho.qtd : 0;
         return `
-            <button onclick="adicionarAoCarrinho(${p.id})" class="relative bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm flex flex-col items-center border-2 ${qtd > 0 ? 'border-emerald-400' : 'border-white dark:border-slate-800'} active:scale-95 transition-all">
+            <button onclick="adicionarAoCarrinho(${p.id})" class="relative bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm flex flex-col items-center border-2 ${qtd > 0 ? 'border-emerald-400' : 'border-slate-100 dark:border-slate-800'} active:scale-95 transition-all">
                 <span class="text-3xl mb-1">${icons[p.categoria] || '📦'}</span>
                 <h4 class="font-black text-[10px] uppercase italic text-center text-slate-800 dark:text-slate-200">${p.nome}</h4>
-                <span class="text-[9px] font-bold text-red-500">R$ ${typeof formatarMoeda === 'function' ? formatarMoeda(p.preco) : parseFloat(p.preco).toFixed(2)}</span>
+                <span class="text-[9px] font-bold text-red-500 mt-0.5">R$ ${typeof formatarMoeda === 'function' ? formatarMoeda(p.preco) : parseFloat(p.preco).toFixed(2)}</span>
                 ${qtd > 0 ? `<span class="absolute -top-2 -right-2 bg-emerald-500 text-white text-[9px] w-6 h-6 rounded-full flex items-center justify-center font-black shadow-md">${qtd}</span>
-                <div onclick="event.stopPropagation(); removerDoCarrinho(${p.id})" class="absolute -bottom-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border-2 border-white shadow-md active:scale-90 transition-transform">-</div>` : ''}
+                <div onclick="event.stopPropagation(); removerDoCarrinho(${p.id})" class="absolute -bottom-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border-2 border-white dark:border-slate-900 shadow-md active:scale-90 transition-transform">-</div>` : ''}
             </button>`;
     }).join('');
     
-    atualizarFAB();
+    if (typeof atualizarFAB === 'function') atualizarFAB();
 }
 
 /* --- 2. CARRINHO --- */
@@ -65,7 +117,21 @@ window.adicionarAoCarrinho = function(id) {
     const p = window.produtosCache.find(prod => prod.id === id);
     if (!p) return;
     
-    const item = window.carrinho.find(i => i.id === id);
+    // ====================================================
+    // INTERCEPTADOR: Se for refeição, abre a personalização!
+    // ====================================================
+    if (p.categoria === 'refeicao') {
+        if(typeof abrirModalRefeicao === 'function') {
+            abrirModalRefeicao(p);
+        } else {
+            console.error("Função abrirModalRefeicao não encontrada.");
+        }
+        return; // Para a execução aqui para não jogar direto no carrinho
+    }
+    // ====================================================
+
+    // Fluxo normal para bebidas, cervejas, porções, etc.
+    const item = window.carrinho.find(i => i.id === id && !i.observacao);
     if (item) {
         item.qtd++;
     } else {
@@ -333,10 +399,18 @@ window.renderizarItensConfirmacaoComanda = function() {
             controleCozinha = `<span class="text-[8px] font-black text-slate-400 uppercase italic mt-1 block">📦 Entrega Direta (Pronto/Bebida)</span>`;
         }
 
+        // ===============================================================
+        // EXIBE AS INFORMAÇÕES DA REFEIÇÃO (ESPETO, REMOÇÕES E ADICIONAIS)
+        // ===============================================================
+        const observacaoHtml = i.observacao 
+            ? `<span class="block text-[8px] font-black text-[#e63946] dark:text-red-400 uppercase mt-1 leading-tight tracking-widest border-l-2 border-[#e63946] pl-1.5">${i.observacao}</span>` 
+            : '';
+
         return `
         <div class="py-3 border-b border-slate-100 dark:border-slate-800 last:border-0 flex justify-between items-start">
             <div>
                 <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-200 block">${i.qtd}x ${i.nome}</span>
+                ${observacaoHtml}
                 ${controleCozinha}
             </div>
             <span class="text-[10px] font-bold text-slate-400 mt-0.5">R$ ${typeof window.fmSeguro === 'function' ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2)}</span>
@@ -529,4 +603,185 @@ if (typeof window.executarImpressaoVendaBalcao !== 'function') {
             }
         }
     };
+}
+
+// =======================================================================
+// LÓGICA DE PERSONALIZAÇÃO DE REFEIÇÕES
+// =======================================================================
+window.refeicaoAtual = null;
+window.refeicaoAdicionais = [];
+
+window.abrirModalRefeicao = function(produto) {
+    window.refeicaoAtual = produto;
+    window.refeicaoAdicionais = []; // Limpa adicionais anteriores
+
+    // 1. Preenche cabeçalho
+    document.getElementById('modal-ref-nome').innerText = produto.nome;
+    document.getElementById('modal-ref-preco').innerText = `R$ ${parseFloat(produto.preco).toFixed(2)}`;
+
+    // 2. Carrega todos os Espetos para os Selects
+    const espetos = window.produtosCache.filter(p => p.categoria === 'espetos');
+    
+    // NOVIDADE: Descobre qual é o valor do espeto mais barato (o "Padrão" da Jantinha)
+    window.precoBaseEspeto = Math.min(...espetos.map(e => parseFloat(e.preco)));
+
+    let optionsHtml = espetos.map(e => `<option value="${e.nome}" data-preco="${e.preco}">${e.nome}</option>`).join('');
+    
+    const selectIncluso = document.getElementById('ref-espeto-incluso');
+    selectIncluso.innerHTML = optionsHtml;
+    // NOVIDADE: Manda o sistema recalcular a Jantinha sempre que trocar o espeto!
+    selectIncluso.onchange = window.atualizarTotalRefeicao; 
+
+    document.getElementById('ref-espeto-adicional').innerHTML = optionsHtml;
+
+    // 3. Renderiza os Ingredientes (Checkbox)
+    const containerIng = document.getElementById('container-ref-ingredientes');
+    const listaIng = document.getElementById('ref-ingredientes-lista');
+    
+    if (produto.ingredientes && produto.ingredientes.trim() !== '') {
+        const ingrArray = produto.ingredientes.split(',').map(i => i.trim());
+        listaIng.innerHTML = ingrArray.map(ing => `
+            <label class="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700 cursor-pointer transition-colors hover:border-emerald-300">
+                <input type="checkbox" checked value="${ing}" class="ref-check-ingrediente w-5 h-5 text-emerald-500 rounded border-slate-300 focus:ring-emerald-500 accent-emerald-500">
+                <span class="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">${ing}</span>
+            </label>
+        `).join('');
+        containerIng.classList.remove('hidden');
+    } else {
+        containerIng.classList.add('hidden');
+        listaIng.innerHTML = '';
+    }
+
+    // 4. Atualiza a tela
+    if (typeof renderizarAdicionaisRefeicao === 'function') renderizarAdicionaisRefeicao();
+    window.atualizarTotalRefeicao();
+
+    // 5. Mostra o Modal
+    document.getElementById('modal-refeicao').classList.remove('hidden');
+}
+
+window.fecharModalRefeicao = function() {
+    document.getElementById('modal-refeicao').classList.add('hidden');
+}
+
+// Botão [+] dos Adicionais
+window.addAdicionalRefeicao = function() {
+    const select = document.getElementById('ref-espeto-adicional');
+    const option = select.options[select.selectedIndex];
+    if(!option) return;
+
+    window.refeicaoAdicionais.push({
+        nome: option.value,
+        preco: parseFloat(option.getAttribute('data-preco'))
+    });
+    
+    renderizarAdicionaisRefeicao();
+    atualizarTotalRefeicao();
+}
+
+window.removerAdicionalRefeicao = function(index) {
+    window.refeicaoAdicionais.splice(index, 1);
+    renderizarAdicionaisRefeicao();
+    atualizarTotalRefeicao();
+}
+
+window.renderizarAdicionaisRefeicao = function() {
+    const lista = document.getElementById('ref-adicionais-lista');
+    lista.innerHTML = window.refeicaoAdicionais.map((add, idx) => `
+        <div class="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+            <span class="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">+ ${add.nome}</span>
+            <div class="flex items-center gap-3">
+                <span class="text-[10px] font-black text-emerald-600">R$ ${add.preco.toFixed(2)}</span>
+                <button onclick="removerAdicionalRefeicao(${idx})" class="w-7 h-7 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center font-bold active:scale-95">✕</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.atualizarTotalRefeicao = function() {
+    if (!window.refeicaoAtual) return;
+
+    let total = parseFloat(window.refeicaoAtual.preco);
+
+    // =================================================================
+    // LÓGICA DA DIFERENÇA DO ESPETO (Ex: Medalhão, Pão de Alho, etc)
+    // =================================================================
+    const selectIncluso = document.getElementById('ref-espeto-incluso');
+    if (selectIncluso && selectIncluso.selectedIndex >= 0) {
+        const opcaoSelecionada = selectIncluso.options[selectIncluso.selectedIndex];
+        const precoEspetoSelecionado = parseFloat(opcaoSelecionada.getAttribute('data-preco') || 0);
+        
+        // Se o espeto escolhido for mais caro que o Padrão, soma a diferença!
+        if (precoEspetoSelecionado > window.precoBaseEspeto) {
+            const diferenca = precoEspetoSelecionado - window.precoBaseEspeto;
+            total += diferenca;
+        }
+    }
+
+    // Lógica dos espetos Extras/Adicionais
+    if (window.refeicaoAdicionais && window.refeicaoAdicionais.length > 0) {
+        total += window.refeicaoAdicionais.reduce((acc, item) => acc + parseFloat(item.preco), 0);
+    }
+
+    // Atualiza a tela e guarda na variável Global para a confirmação
+    window.refeicaoTotalAtual = total; 
+    
+    const spanTotal = document.getElementById('modal-ref-total');
+    if (spanTotal) {
+        spanTotal.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    }
+}
+
+// O Botão de Lançar
+window.confirmarRefeicao = function() {
+    const espetoIncluso = document.getElementById('ref-espeto-incluso').value;
+    
+    // Varre os checkboxes para ver o que foi desmarcado (Ex: SEM FAROFA)
+    const checks = document.querySelectorAll('.ref-check-ingrediente');
+    let removidos = [];
+    checks.forEach(c => {
+        if(!c.checked) removidos.push(c.value);
+    });
+
+    // ===============================================================
+    // MONTA O TEXTO DA OBSERVAÇÃO PARA A COZINHA E IMPRESSORA
+    // ===============================================================
+    let obs = `[ESPETO] ${espetoIncluso}`; // O que acompanha a jantinha
+    
+    if(removidos.length > 0) {
+        obs += ` | [SEM] ${removidos.join(', ')}`; // O que tirou
+    }
+
+    if(window.refeicaoAdicionais && window.refeicaoAdicionais.length > 0) {
+        const addNomes = window.refeicaoAdicionais.map(a => a.nome).join(', ');
+        obs += ` | [ADICIONAL] ${addNomes}`; // Os extras pagos
+    }
+
+    // ===============================================================
+    // PREÇO FINAL (Diferença do Espeto Premium + Adicionais)
+    // ===============================================================
+    // Captura o valor exato que está a aparecer no ecrã do modal
+    let precoFinal = window.refeicaoTotalAtual !== undefined ? window.refeicaoTotalAtual : window.refeicaoAtual.preco;
+
+    // Adiciona ao carrinho com o PREÇO NOVO e a OBSERVAÇÃO
+    const itemExistente = window.carrinho.find(i => i.id === window.refeicaoAtual.id && i.observacao === obs);
+    
+    if (itemExistente) {
+        // Se já tiver uma jantinha EXATAMENTE IGUAL, soma a quantidade
+        itemExistente.qtd++;
+    } else {
+        // Se for diferente, cria uma nova linha no carrinho
+        window.carrinho.push({
+            ...window.refeicaoAtual,
+            preco: precoFinal, // Preço cravado com todos os cálculos automáticos!
+            observacao: obs,
+            qtd: 1,
+            cozinha_status: 'em_preparo'
+        });
+    }
+
+    if (typeof renderizarVenda === 'function') renderizarVenda();
+    if (typeof fecharModalRefeicao === 'function') fecharModalRefeicao();
+    
+    if(typeof showToast === 'function') showToast("REFEIÇÃO ADICIONADA!", "sucesso");
 }
