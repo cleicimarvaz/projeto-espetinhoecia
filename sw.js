@@ -4,7 +4,7 @@
    ========================================================================= */
 
 // Nome do cache - Altere este número (ex: v3.1.0) sempre que subir novo JS/HTML
-const CACHE_NAME = 'espetinho-cia-v3.2.0';
+const CACHE_NAME = 'espetinho-cia-v3.3.0';
 
 // Lista integral de arquivos para funcionamento Offline
 const assets = [
@@ -40,21 +40,15 @@ const assets = [
     './componentes/main.js'
 ];
 
-// 1. INSTALAÇÃO: Armazena os arquivos no Cache
 self.addEventListener('install', event => {
-    // Força o novo Service Worker a assumir o controle imediatamente
+    // Pula o estado "esperando" e ativa imediatamente
     self.skipWaiting();
-    
+
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
-            console.log('[SW] Cacheando todos os ativos da nova versão');
-            return Promise.allSettled(
-                assets.map(url => {
-                    return cache.add(url).catch(err => {
-                        console.warn(`[SW] Erro ao cachear arquivo: ${url}`, err);
-                    });
-                })
-            );
+            console.log('[SW] Cacheando versão v4.0.0');
+            // Adiciona todos os arquivos
+            return cache.addAll(assets);
         })
     );
 });
