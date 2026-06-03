@@ -4,7 +4,7 @@
    ========================================================================= */
 
 // Nome do cache - Altere este número (ex: v3.1.0) sempre que subir novo JS/HTML
-const CACHE_NAME = 'espetinho-cia-v3.1.0';
+const CACHE_NAME = 'espetinho-cia-v3.2.0';
 
 // Lista integral de arquivos para funcionamento Offline
 const assets = [
