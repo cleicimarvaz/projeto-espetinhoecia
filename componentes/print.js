@@ -462,10 +462,10 @@ window.enviarParaImpressora = function(texto) {
 // FORMATO 1: Imprimir cupons (Retirar no Balcão)
 window.imprimirCupom = function(venda) {
     // 1. SE FOR MODO RAWBT -> GERAR TEXTO PURO COM LAYOUT
+// SE FOR MODO RAWBT -> GERAR TEXTO PURO COM LAYOUT (VERSÃO AJUSTADA)
     if (window.isRawBTThermalMode()) {
         const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
-        const layout = localStorage.getItem('ticketLayout') || 'original';
-        const operador = localStorage.getItem('userName') || 'Admin';
+        const operador = (localStorage.getItem('userName') || 'ADMIN').toUpperCase();
         const itensArray = Array.isArray(venda.itens) ? venda.itens : JSON.parse(venda.itens || '[]');
         
         let textoRaw = '\n';
@@ -475,34 +475,30 @@ window.imprimirCupom = function(venda) {
                 for (let i = 0; i < (item.qtd || 1); i++) {
                     const pedidoId = Math.floor(Math.random()*9000)+1000;
                     
-                    // Desenho da caixa baseado no layout
-                    if (layout === 'padrao') {
-                        textoRaw += '┌' + '─'.repeat(30) + '┐\n';
-                        textoRaw += '│' + ' '.repeat(11) + loja.substring(0,8) + ' '.repeat(11) + '│\n';
-                        textoRaw += '├' + '─'.repeat(30) + '┤\n';
-                        textoRaw += '│' + item.nome.toUpperCase().padEnd(30, ' ').substring(0, 30) + '│\n';
-                        textoRaw += '│' + `VALOR: R$ ${window.fmSeguro(item.preco)}`.padEnd(30, ' ') + '│\n';
-                        textoRaw += '├' + '─'.repeat(30) + '┤\n';
-                        textoRaw += '│    RETIRAR NO BALCÃO     │\n';
-                        textoRaw += '└' + '─'.repeat(30) + '┘\n';
-                    } else {
-                        // Layout Original / Padrão
-                        textoRaw += '------------------------------\n';
-                        textoRaw += `       ${loja.toUpperCase()}\n`;
-                        textoRaw += '------------------------------\n';
-                        textoRaw += ` ITEM: ${item.nome.toUpperCase()}\n`;
-                        textoRaw += ` VALOR: R$ ${window.fmSeguro(item.preco)}\n`;
-                        textoRaw += '------------------------------\n';
-                        textoRaw += '      RETIRAR NO BALCÃO       \n';
-                        textoRaw += '------------------------------\n';
-                    }
+                    // --- CABEÇALHO ---
+                    textoRaw += alinharCentro(loja) + '\n';
+                    textoRaw += alinharCentro(new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})) + '\n';
+                    textoRaw += '================================\n';
                     
-                    textoRaw += ` PEDIDO #${pedidoId} | OP: ${operador}\n\n\n`;
+                    // --- CORPO (O "BLOCO") ---
+                    // Nome e Valor
+                    textoRaw += alinharCentro(item.nome.toUpperCase()) + '\n';
+                    textoRaw += alinharCentro(`R$ ${window.fmSeguro(item.preco)}`) + '\n';
+                    
+                    // Linha de Destaque para Retirada
+                    textoRaw += '--------------------------------\n';
+                    textoRaw += alinharCentro('RETIRAR NO BALCAO') + '\n';
+                    textoRaw += '--------------------------------\n';
+                    
+                    // Pedido e Operador (Ajustado para não quebrar)
+                    const rodape = `PED#${pedidoId} | OP: ${operador.substring(0, 8)}`;
+                    textoRaw += alinharCentro(rodape) + '\n';
+                    
+                    textoRaw += '\n\n\n'; // Espaço entre tickets
                 }
             }
         });
 
-        // Dispara para o RawBT
         const textoCodificado = encodeURIComponent(textoRaw);
         window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
         return;
