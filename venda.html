@@ -328,6 +328,32 @@
         </div>
     </div>
 </div>
+
+<div id="modal-espeto" class="hidden fixed inset-0 bg-slate-900/90 z-[120] flex items-end sm:items-center justify-center backdrop-blur-sm p-4 transition-opacity">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 animate-slide-up flex flex-col shadow-2xl border border-slate-100 dark:border-slate-800">
+        
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <h3 id="modal-esp-nome" class="text-[#e63946] font-black text-lg uppercase italic tracking-tighter">PERSONALIZAR</h3>
+            <button onclick="document.getElementById('modal-espeto').classList.add('hidden')" class="bg-slate-100 dark:bg-slate-800 w-8 h-8 rounded-full text-slate-500">✕</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6 mb-6">
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">🥫 MOLHOS (Escolha quantos quiser)</label>
+                <div id="espeto-molhos-lista" class="grid grid-cols-2 gap-2"></div>
+            </div>
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">🥣 FARINHA (Escolha 1)</label>
+                <div id="espeto-farinha-lista" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <button onclick="confirmarEspetoPersonalizado()" class="w-full bg-[#e63946] text-white py-4 rounded-2xl text-xs font-black uppercase italic active:scale-95 transition-all">
+            ADICIONAR AO PEDIDO
+        </button>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="componentes/config.js"></script>
     <script src="componentes/database.js"></script>
