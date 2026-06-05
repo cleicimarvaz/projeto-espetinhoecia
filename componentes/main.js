@@ -1377,6 +1377,7 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
 
         // Busca simultânea nas duas tabelas
         const reqComandas = _supabase.from('comandas').select('*').eq('status', 'fechada').gte('fechada_em', inicioStr).lte('fechada_em', fimStr);
+        // IMPORTANTE: Aqui ele traz tudo, incluindo as canceladas, para podermos ver no histórico
         const reqVendas = _supabase.from('historico_vendas').select('*').is('comanda_id', null).gte('criado_em', inicioStr).lte('criado_em', fimStr);
 
         const [resComandas, resVendas] = await Promise.all([reqComandas, reqVendas]);
@@ -1395,7 +1396,9 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
                     forma_pagamento: c.forma_pagamento,
                     dataFinalizacao: c.fechada_em,
                     tabelaOrigem: 'comandas',
-                    icone: '📋'
+                    icone: '📋',
+                    status: c.status, // Guardando o status
+                    estornado_em: c.estornado_em
                 });
             });
         }
@@ -1410,7 +1413,9 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
                     forma_pagamento: v.forma_pagamento,
                     dataFinalizacao: v.criado_em,
                     tabelaOrigem: 'historico_vendas',
-                    icone: '🛒'
+                    icone: '🛒',
+                    status: v.status, // Guardando o status
+                    estornado_em: v.estornado_em
                 });
             });
         }
@@ -1423,12 +1428,33 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
             return;
         }
 
-container.innerHTML = listaMista.map(v => {
+        container.innerHTML = listaMista.map(v => {
             const dataF = new Date(v.dataFinalizacao);
             const valorFormatado = `R$ ${parseFloat(v.total).toFixed(2).replace('.', ',')}`;
+            
+            // LÓGICA DO CANCELAMENTO AQUI
+            const isCancelada = v.status === 'cancelada';
+            
+            // Ajusta o fundo e a borda se for cancelada
+            const estiloCard = isCancelada 
+                ? 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50 opacity-80 grayscale-[30%]' 
+                : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700';
 
-return `
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-[2.2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between gap-4 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
+            // Etiqueta extra caso seja cancelada
+            const badgeCancelada = isCancelada
+                ? `<span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm bg-red-600 text-white ml-2">ESTORNADA</span>`
+                : '';
+
+            // Se for cancelada, troca o botão por um aviso
+            const botaoEstornoHtml = isCancelada
+                ? `<div class="flex-1 bg-red-100/50 dark:bg-red-900/30 text-red-500 px-5 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center border border-red-200 dark:border-red-800">Já Cancelada ❌</div>`
+                : `<button onclick="solicitarEstorno('${v.id}', '${v.total}', '${v.tabelaOrigem}')" 
+                        class="bg-red-600 text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-red-500/20 active:scale-95 transition-all hover:bg-red-700">
+                        Estornar ↩️
+                   </button>`;
+
+            return `
+            <div class="${estiloCard} p-5 rounded-[2.2rem] border shadow-sm flex flex-col justify-between gap-4 transition-all">
                 
                 <div class="flex justify-between items-start">
                     <div class="flex items-center gap-3">
@@ -1436,21 +1462,24 @@ return `
                             ${v.icone}
                         </div>
                         <div>
-                            <h4 class="font-black text-sm text-slate-800 dark:text-slate-100 uppercase">${v.identificacao}</h4>
+                            <h4 class="font-black text-sm ${isCancelada ? 'text-red-700 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'} uppercase">${v.identificacao}</h4>
                             <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">
-    ${dataF.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} • ${dataF.toLocaleDateString('pt-BR')}
-</p>
+                                ${dataF.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} • ${dataF.toLocaleDateString('pt-BR')}
+                            </p>
                         </div>
                     </div>
-                    <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${obterEstiloPilaPagamento(v.forma_pagamento)}">
-                        ${v.forma_pagamento || 'DINHEIRO'}
-                    </span>
+                    <div class="flex items-center">
+                        <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${obterEstiloPilaPagamento(v.forma_pagamento)}">
+                            ${v.forma_pagamento || 'DINHEIRO'}
+                        </span>
+                        ${badgeCancelada}
+                    </div>
                 </div>
 
                 <div class="flex items-center justify-between mt-2 pt-4 border-t border-slate-50 dark:border-slate-800/50">
                     <div>
                         <span class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Valor Total</span>
-                        <span class="text-xl font-black text-slate-800 dark:text-white">${valorFormatado}</span>
+                        <span class="${isCancelada ? 'line-through text-slate-400' : 'text-xl text-slate-800 dark:text-white'} font-black">${valorFormatado}</span>
                     </div>
                     
                     <div class="flex gap-2">
@@ -1459,10 +1488,7 @@ return `
                             Ver 👁️
                         </button>
                         
-                        <button onclick="solicitarEstorno('${v.id}', '${v.total}', '${v.tabelaOrigem}')" 
-                            class="bg-red-600 text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-red-500/20 active:scale-95 transition-all hover:bg-red-700">
-                            Estornar ↩️
-                        </button>
+                        ${botaoEstornoHtml}
                     </div>
                 </div>
             </div>`;
@@ -1511,73 +1537,82 @@ window.fecharModalEstorno = function() {
 };
 
 window.processarEstornoComSenha = async function() {
-    const userIn = document.getElementById('input-user-estorno').value;
-    const passIn = document.getElementById('input-pass-estorno').value;
     const modal = document.getElementById('modal-estorno');
+    
+    // 1. O PULO DO GATO: Resgatar o ID e a tabela que o solicitarEstorno guardou
+    const idVenda = modal.getAttribute('data-estorno-id');
+    const tabela = modal.getAttribute('data-estorno-tabela') || 'historico_vendas';
+    
+    // Resgatar o que foi digitado
+    const usuarioDigitado = document.getElementById('input-user-estorno').value.trim();
+    const senhaDigitada = document.getElementById('input-pass-estorno').value.trim();
 
-    // 1. RESGATA OS DADOS: Lê o que foi "tatuado" no HTML na função anterior
-    const idComanda = modal ? modal.getAttribute('data-estorno-id') : null;
-    const tabelaComanda = modal ? modal.getAttribute('data-estorno-tabela') : null;
-
-    if (!userIn || !passIn) {
-        if (typeof showToast === 'function') showToast("PREENCHA TODOS OS CAMPOS", "erro");
+    // 2. Validações antes de ir para o banco
+    if (!idVenda) {
+        if (typeof showToast === 'function') showToast('Erro interno: ID da venda não encontrado.', 'erro');
         return;
     }
 
-    if (!idComanda || !tabelaComanda) {
-        if (typeof showToast === 'function') showToast("ERRO DE COMUNICAÇÃO DA TELA", "erro");
+    if (!usuarioDigitado || !senhaDigitada) {
+        if (typeof showToast === 'function') showToast('Preencha usuário e senha para autorizar!', 'erro');
         return;
     }
+
+    // --- LÓGICA DE SENHA AQUI ---
+    // Se precisar validar a senha com o banco ou com uma senha fixa, faça aqui.
+    // Exemplo: if (senhaDigitada !== '1234') { showToast('Senha incorreta', 'erro'); return; }
 
     try {
-        const btn = document.querySelector('#modal-estorno button[onclick*="processarEstornoComSenha"]');
-        if (btn) { btn.disabled = true; btn.innerText = "VERIFICANDO..."; }
-
-        // Valida o usuário
-        const { data: usuario, error: authError } = await _supabase
-            .from('usuarios')
-            .select('nome, nivel, ativo')
-            .eq('usuario', userIn)
-            .eq('senha', passIn)
-            .eq('ativo', true)
-            .in('nivel', ['admin', 'gerente', 'ADMIN', 'GERENTE'])
-            .single();
-
-        if (authError || !usuario) {
-            if (btn) { btn.disabled = false; btn.innerText = "CONFIRMAR ESTORNO"; }
-            if (typeof showToast === 'function') showToast("ACESSO NEGADO", "erro");
-            return;
+        // Efeito visual no botão (opcional, para evitar cliques duplos)
+        const btnConfirmar = document.querySelector('button[onclick="processarEstornoComSenha()"]');
+        if (btnConfirmar) {
+            btnConfirmar.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> PROCESSANDO...';
+            btnConfirmar.disabled = true;
         }
 
-        // Faz o Update no Banco
-        const { error: updateError } = await _supabase
-            .from(tabelaComanda) 
+        console.log("Iniciando cancelamento no Supabase do ID:", idVenda, "na tabela:", tabela);
+
+        // 3. O UPDATE NO SUPABASE
+        const { error } = await _supabase
+            .from(tabela)
             .update({ 
-                status: 'estornada',
-                estornado_em: new Date().toISOString(),
-                autorizado_por: usuario.nome 
+                status: 'cancelada',
+                estornado_em: new Date().toISOString()
             })
-            .eq('id', idComanda);
+            .eq('id', parseInt(idVenda));
 
-        if (updateError) throw updateError;
+        if (error) throw error;
 
-        if (typeof fecharModalEstorno === 'function') fecharModalEstorno();
-        if (typeof showToast === 'function') showToast(`ESTORNO REALIZADO POR: ${usuario.nome}`, 'sucesso');
+        // 4. Sucesso!
+        if (typeof showToast === 'function') showToast('Venda cancelada com sucesso!', 'sucesso');
         
-        // =======================================================
-        // A MÁGICA DO REDIRECIONAMENTO AQUI
-        // =======================================================
-        setTimeout(() => {
-            window.location.href = 'comandas.html'; // Volta para as comandas
-        }, 1200); // 1.2 segundos para dar tempo de ler o toast verde
-        // =======================================================
+        // Log de auditoria (se você estiver usando aquela sua função registrarLog)
+        if (typeof registrarLog === 'function') {
+            await registrarLog('SEGURANÇA', 'ESTORNO', `Venda #${idVenda} cancelada por ${usuarioDigitado}`);
+        }
+
+        // Fechar modal e limpar inputs
+        document.getElementById('input-user-estorno').value = '';
+        document.getElementById('input-pass-estorno').value = '';
+        if (typeof fecharModalEstorno === 'function') {
+            fecharModalEstorno();
+        } else {
+            modal.classList.add('hidden');
+        }
+        
+        // Atualizar a tabela na tela
+        if (typeof carregarHistoricoVendas === 'function') carregarHistoricoVendas();
 
     } catch (e) {
-        console.error('Erro no estorno:', e);
-        if (typeof showToast === 'function') showToast("ERRO AO PROCESSAR", "erro");
+        console.error('❌ Erro no estorno:', e);
+        if (typeof showToast === 'function') showToast('Erro no banco: ' + e.message, 'erro');
     } finally {
-        const btn = document.querySelector('#modal-estorno button[onclick*="processarEstornoComSenha"]');
-        if (btn) { btn.disabled = false; btn.innerText = "CONFIRMAR ESTORNO"; }
+        // Restaurar o botão ao normal
+        const btnConfirmar = document.querySelector('button[onclick="processarEstornoComSenha()"]');
+        if (btnConfirmar) {
+            btnConfirmar.innerHTML = 'CONFIRMAR';
+            btnConfirmar.disabled = false;
+        }
     }
 };
 

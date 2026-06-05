@@ -277,7 +277,13 @@ window.processarImpressaoCardapio = async function() {
 window.gerarTemplateClassico = function(produtos, loja, logoBase64, mensagem) {
     const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚' };
     const categoriesObj = {};
-    produtos.forEach(p => { const cat = (p.categoria || 'outros').toLowerCase(); if (!categoriesObj[cat]) categoriesObj[cat] = []; categoriesObj[cat].push(p); });
+    
+    produtos.forEach(p => { 
+        const cat = (p.categoria || 'outros').toLowerCase(); 
+        if (!categoriesObj[cat]) categoriesObj[cat] = []; 
+        categoriesObj[cat].push(p); 
+    });
+    
     const ordem = ['espetos', 'refeicao', 'acompanhamentos', 'bebidas'];
     const chaves = [...ordem.filter(c => categoriesObj[c]), ...Object.keys(categoriesObj).filter(c => !ordem.includes(c))];
     
@@ -295,15 +301,18 @@ window.gerarTemplateClassico = function(produtos, loja, logoBase64, mensagem) {
             </div>
         </div>`).join('');
         
-    window.abrirJanelaImpressao(loja, logoBase64, html, message, 'classico');
+    // CORREÇÃO AQUI: Trocado 'message' por 'mensagem'
+    window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'classico');
 }
 
 window.gerarTemplateModerno = function(produtos, loja, logoBase64, mensagem) {
-    const categorias = [...new Set(produtos.map(p => p.categoria))];
+    // CORREÇÃO AQUI: Garante que categorias vazias vão para 'Outros' e unifica letras maiúsculas/minúsculas
+    const categorias = [...new Set(produtos.map(p => (p.categoria || 'outros').toLowerCase()))];
+    
     let html = categorias.map(cat => `
         <div class="cat-section-moderno">
             <div class="cat-titulo-moderno">${cat.toUpperCase()}</div>
-            ${produtos.filter(p => p.categoria === cat).map(p => `
+            ${produtos.filter(p => (p.categoria || 'outros').toLowerCase() === cat).map(p => `
                 <div class="item-moderno">
                     <span class="item-nome-moderno">${p.nome.toUpperCase()}</span>
                     <div class="item-dots-moderno"></div>
@@ -312,13 +321,15 @@ window.gerarTemplateModerno = function(produtos, loja, logoBase64, mensagem) {
             `).join('')}
         </div>`).join('');
         
-    window.abrirJanelaImpressao(loja, logoBase64, html, message, 'moderno');
+    // CORREÇÃO AQUI: Trocado 'message' por 'mensagem'
+    window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'moderno');
 }
 
 window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, estilo) {
     const win = window.open('', '_blank');
     const dataHora = new Date().toLocaleString('pt-BR');
     
+    // 1. CSS Global + Regras de Impressão (O segredo para um PDF perfeito)
     const cssHeader = `
         .header-pdf { position: relative; border-bottom: 4px solid #e63946; padding-bottom: 20px; margin-bottom: 30px; min-height: 100px; }
         .header-info { padding-right: 110px; }
@@ -326,34 +337,59 @@ window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, est
         .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
         .header-logo { position: absolute; right: 0; top: 0; }
         .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* Proteções para a hora de salvar em PDF / Imprimir */
+        @media print {
+            @page { margin: 15mm; size: A4; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0 !important; }
+            /* Evita que categorias ou itens sejam cortados no meio da página */
+            .categoria-section, .cat-section-moderno, .item-info, .item-moderno { page-break-inside: avoid; break-inside: avoid; }
+            /* Evita que o título fique no final da folha e os itens na outra */
+            .categoria-titulo, .cat-titulo-moderno { page-break-after: avoid; break-after: avoid; }
+        }
     `;
 
-    const cssClassico = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');body{font-family:'Montserrat',sans-serif;padding:40px;color:#1e293b;} ${cssHeader} .categoria-titulo{color:#e63946;border-bottom:2px solid #e63946;margin-bottom:15px;text-transform:uppercase;font-size:18px;margin-top:30px;}.itens-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px 40px;}.item-info{display:flex;align-items:baseline;font-weight:700;font-size:13px;}.linha-pontilhada{flex-grow:1;border-bottom:1px dotted #ccc;margin:0 8px;}`;
+    // 2. CSS Clássico e Moderno
+    const cssClassico = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');body{font-family:'Montserrat',sans-serif;color:#1e293b;} ${cssHeader} .categoria-titulo{color:#e63946;border-bottom:2px solid #e63946;margin-bottom:15px;text-transform:uppercase;font-size:18px;margin-top:30px;}.itens-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px 40px;}.item-info{display:flex;align-items:baseline;font-weight:700;font-size:13px;}.linha-pontilhada{flex-grow:1;border-bottom:1px dotted #ccc;margin:0 8px;}`;
     
-    const cssModerno = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');body{font-family:'Inter',sans-serif;padding:40px;color:#1e293b;} ${cssHeader} .cat-titulo-moderno{color:#e63946;font-weight:900;border-bottom:2px solid #f1f5f9;margin:30px 0 15px 0;text-transform:uppercase;font-size:18px;}.item-moderno{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:13px;font-weight:700;}.item-dots-moderno{flex:1;border-bottom:1px dotted #cbd5e1;margin:0 12px;}`;
+    const cssModerno = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');body{font-family:'Inter',sans-serif;color:#1e293b;} ${cssHeader} .cat-titulo-moderno{color:#e63946;font-weight:900;border-bottom:2px solid #f1f5f9;margin:30px 0 15px 0;text-transform:uppercase;font-size:18px;}.item-moderno{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:13px;font-weight:700;}.item-dots-moderno{flex:1;border-bottom:1px dotted #cbd5e1;margin:0 12px;}`;
     
-    const html = `<html><head><title>Cardápio - ${loja}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body{margin:0;background:#fff;}
-        ${estilo === 'classico' ? cssClassico : cssModerno}
-        .footer{margin-top:50px;text-align:center;padding:20px;border-top:2px dashed #eee;font-weight:900;color:#e63946;font-size:14px;}
-    </style></head><body>
-    
-    <div class="header-pdf">
-        <div class="header-info">
-            <h1>${loja}</h1>
-            <p>Cardápio</p>
-            <small style="color: #94a3b8;">Atualizado em: ${dataHora}</small>
+    // 3. Estrutura HTML final
+    const html = `<!DOCTYPE html>
+    <html>
+    <head>
+        <title>Cardápio - ${loja}</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { background: #fff; padding: 40px; max-width: 1000px; margin: 0 auto; }
+            ${estilo === 'classico' ? cssClassico : cssModerno}
+            .footer { margin-top: 50px; text-align: center; padding: 20px; border-top: 2px dashed #eee; font-weight: 900; color: #e63946; font-size: 14px; page-break-inside: avoid; }
+        </style>
+    </head>
+    <body>
+        <div class="header-pdf">
+            <div class="header-info">
+                <h1>${loja}</h1>
+                <p>Cardápio</p>
+                <small style="color: #94a3b8;">Atualizado em: ${dataHora}</small>
+            </div>
+            <div class="header-logo">
+                <img src="${logoBase64 || ''}" onerror="this.style.display='none'">
+            </div>
         </div>
-        <div class="header-logo">
-            <img src="${logoBase64 || ''}" onerror="this.style.display='none'">
-        </div>
-    </div>
 
-    <div class="content">${conteudo}</div>
-    <div class="footer">${mensagem}</div>
-    <script>window.onload=()=>setTimeout(()=>{window.print();window.close();},800);<\/script></body></html>`;
+        <div class="content">${conteudo}</div>
+        <div class="footer">${mensagem}</div>
+        
+        <script>
+            // 1000ms garante que as fontes do Google carreguem antes do print dialog abrir
+            setTimeout(() => {
+                window.print();
+                window.close();
+            }, 1000);
+        </script>
+    </body>
+    </html>`;
     
     win.document.write(html);
     win.document.close();
@@ -458,16 +494,20 @@ window.imprimirCupom = function(venda) {
 
 // FORMATO 2: Imprimir resumo completo da conta (Ticket Consolidado)
 window.imprimirTicketVenda = function(dadosVenda) {
-    const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
+    const loja = localStorage.getItem('nomeLoja') || "ESPETINHO E CIA"; // Sem & para evitar bugs no RawBT
     const cnpj = localStorage.getItem('empresa_cnpj') || "";
     const layout = localStorage.getItem('ticketLayout') || 'original'; 
+    
+    // BLINDAGEM: Pega as duas variáveis possíveis para garantir que não vai escapar
+    const formatoGlobal = (localStorage.getItem('formatoImpressao') || '').toLowerCase();
     const modoConfigurado = (localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
+    const modoRawBT = ['direto', 'rawbt', 'termico'].includes(modoConfigurado) || 
+                      ['direto', 'rawbt', 'termico'].includes(formatoGlobal);
     
     const ua = navigator.userAgent.toLowerCase();
-    const isAndroid = /android/.test(ua);
     const isIOS = /iphone|ipad|ipod/.test(ua);
 
-    // 1. AGRUPAMENTO DOS ITENS (Comum para ambos os modos)
+    // 1. AGRUPAMENTO DOS ITENS
     const itensArray = Array.isArray(dadosVenda.itens) ? dadosVenda.itens : JSON.parse(dadosVenda.itens || '[]');
     const itensAgrupados = {};
 
@@ -488,39 +528,61 @@ window.imprimirTicketVenda = function(dadosVenda) {
     const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
 
     // ====================================================================================
-    // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) - OBRIGATÓRIO SER TEXTO PURO
+    // FUNÇÕES DE ALINHAMENTO PARA 32 COLUNAS (58MM)
     // ====================================================================================
-    if (modoConfigurado === 'direto' && isAndroid) {
-        let textoRaw = `\n    ${loja}    \n`;
-        if (cnpj) textoRaw += `      CNPJ: ${cnpj}      \n`;
-        textoRaw += `--------------------------------\n`;
-        textoRaw += `${dadosVenda.tipo || 'VENDA'}\n`;
-        textoRaw += `DATA: ${dataFormatada}\n`;
-        textoRaw += `--------------------------------\n\n`;
+    const alinharCentro = (texto) => {
+        const str = String(texto).substring(0, 32);
+        const espacos = Math.max(0, Math.floor((32 - str.length) / 2));
+        return ' '.repeat(espacos) + str;
+    };
+
+    const alinharLados = (esq, dir) => {
+        const strEsq = String(esq);
+        const strDir = String(dir);
+        const espacosLivres = 32 - strEsq.length - strDir.length;
+        if (espacosLivres > 0) return strEsq + ' '.repeat(espacosLivres) + strDir;
+        // Se ficar muito grande, corta o nome do produto para caber o preço
+        return strEsq.substring(0, 32 - strDir.length - 1) + ' ' + strDir;
+    };
+
+    // ====================================================================================
+    // ROTA 1: IMPRESSÃO DIRETA (RAWBT) - OBRIGATÓRIO SER TEXTO PURO
+    // ====================================================================================
+    if (modoRawBT) {
+        let textoRaw = '\n'; // Quebra de linha inicial
+        
+        textoRaw += alinharCentro(loja) + '\n';
+        if (cnpj) textoRaw += alinharCentro(`CNPJ: ${cnpj}`) + '\n';
+        textoRaw += '-'.repeat(32) + '\n';
+        textoRaw += alinharCentro(dadosVenda.tipo || 'VENDA') + '\n';
+        textoRaw += alinharLados('DATA:', dataFormatada) + '\n';
+        textoRaw += '-'.repeat(32) + '\n';
 
         Object.values(itensAgrupados).forEach(i => {
-            const precoExibicao = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
-            textoRaw += `[${i.qtd}x] ${i.nome.toUpperCase()}\n`;
+            const precoStr = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
+            // Formata: "2x ESPETINHO               20,00"
+            textoRaw += alinharLados(`${i.qtd}x ${i.nome.toUpperCase()}`, precoStr) + '\n';
             
             if (i.detalhes || i.observacao) {
-                textoRaw += `  ↳ OBS: ${i.detalhes || i.observacao}\n`;
+                // Remove quebras de linha HTML (<br>) da observação e recua o texto
+                const obsLimpa = (i.detalhes || i.observacao).replace(/<br>/g, ' | ');
+                textoRaw += `  OBS: ${obsLimpa}\n`;
             }
-            textoRaw += `              VALOR: R$ ${precoExibicao}\n\n`;
         });
 
-        textoRaw += `--------------------------------\n`;
-        const totalExibicao = window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2);
-        textoRaw += `TOTAL:                  R$ ${totalExibicao}\n`;
-        textoRaw += `--------------------------------\n`;
+        textoRaw += '-'.repeat(32) + '\n';
+        const totalStr = window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2);
+        textoRaw += alinharLados('TOTAL:', `R$ ${totalStr}`) + '\n';
+        textoRaw += '-'.repeat(32) + '\n';
         
         if (!isPreConta) {
             const formaPgto = (dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase();
-            textoRaw += `PAGAMENTO: ${formaPgto}\n`;
+            textoRaw += alinharLados('PAGAMENTO:', formaPgto) + '\n';
         }
         
-        textoRaw += `\n    OBRIGADO PELA PREFERENCIA   \n\n\n`;
+        textoRaw += '\n' + alinharCentro('OBRIGADO PELA PREFERENCIA') + '\n\n\n\n';
 
-        // Transforma o texto puro em link para o App e dispara
+        // Dispara o Intent para o RawBT imprimir
         const textoCodificado = encodeURIComponent(textoRaw);
         window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
         return;
@@ -591,7 +653,6 @@ window.imprimirTicketVenda = function(dadosVenda) {
         return; 
     }
     
-    // Fallback normal para abrir a janela de impressão no PC
     const win = window.open('', '_blank', 'width=350,height=600');
     win.document.write(htmlCompleto); 
     win.document.close();

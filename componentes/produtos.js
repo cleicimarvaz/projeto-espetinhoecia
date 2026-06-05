@@ -130,10 +130,13 @@ window.salvarProduto = async function() {
     const controlaEstoque = document.getElementById('p-controla-estoque') ? document.getElementById('p-controla-estoque').checked : false;
     
     // ====================================================
-    // 1. CAPTURA O NOVO CAMPO DE INGREDIENTES
+    // 1. CAPTURA O CAMPO DE INGREDIENTES E O NOVO TOGGLE
     // ====================================================
     const inputIngredientes = document.getElementById('p-ingredientes');
     const ingredientes = inputIngredientes ? inputIngredientes.value.trim() : null;
+    
+    // Captura o novo botão (Se não encontrar na tela, assume TRUE por padrão)
+    const pedirComplementos = document.getElementById('p-pedir-complementos') ? document.getElementById('p-pedir-complementos').checked : true;
     
     let prepara = false;
     if (cat !== 'bebidas' && cat !== 'cervejas') {
@@ -161,10 +164,11 @@ window.salvarProduto = async function() {
             status: true, 
             precisa_preparo: prepara,
             controlar_estoque: controlaEstoque,
+            ingredientes: ingredientes,
             // ====================================================
-            // 2. ENVIA OS INGREDIENTES PARA O BANCO DE DADOS
+            // 2. ENVIA A OPÇÃO DE COMPLEMENTOS PARA O BANCO
             // ====================================================
-            ingredientes: ingredientes 
+            pedir_complementos: pedirComplementos
         };
 
         if (window.produtoEdicaoId) {
@@ -217,13 +221,18 @@ window.prepararEdicao = async function(id) {
         if (inputIngredientes) {
             inputIngredientes.value = p.ingredientes || '';
         }
-        // ====================================================
 
         const checkboxPreparo = document.getElementById('p-preparo');
         if(checkboxPreparo) checkboxPreparo.checked = p.precisa_preparo !== false;
 
         const checkboxEstoque = document.getElementById('p-controla-estoque');
         if(checkboxEstoque) checkboxEstoque.checked = p.controlar_estoque === true;
+        
+        // ====================================================
+        // PREENCHE O TOGGLE DE PEDIR COMPLEMENTOS
+        // ====================================================
+        const checkboxComplementos = document.getElementById('p-pedir-complementos');
+        if(checkboxComplementos) checkboxComplementos.checked = p.pedir_complementos !== false;
         
         window.produtoEdicaoId = id;
         if (typeof alternarAbasAdminProdutos === 'function') alternarAbasAdminProdutos('cadastro');
@@ -233,19 +242,24 @@ window.prepararEdicao = async function(id) {
 }
 
 window.cancelarEdicao = function() {
-    window.produtoEdicaoId = null;
     document.getElementById('p-nome').value = '';
     document.getElementById('p-preco').value = '';
     
-    // ====================================================
-    // LIMPA O CAMPO DE INGREDIENTES
-    // ====================================================
-    if (document.getElementById('p-ingredientes')) {
-        document.getElementById('p-ingredientes').value = '';
-    }
-    // ====================================================
+    const inputIngredientes = document.getElementById('p-ingredientes');
+    if(inputIngredientes) inputIngredientes.value = '';
 
-    alternarAbasAdminProdutos('lista');
+    const checkboxPreparo = document.getElementById('p-preparo');
+    if(checkboxPreparo) checkboxPreparo.checked = true;
+
+    const checkboxEstoque = document.getElementById('p-controla-estoque');
+    if(checkboxEstoque) checkboxEstoque.checked = false;
+
+    // Reseta o botão de complementos para o padrão (ligado)
+    const checkboxComplementos = document.getElementById('p-pedir-complementos');
+    if(checkboxComplementos) checkboxComplementos.checked = true;
+
+    window.produtoEdicaoId = null;
+    if (typeof alternarAbasAdminProdutos === 'function') alternarAbasAdminProdutos('lista');
 }
 
 window.toggleStatusProduto = async function(id, novoStatus) {

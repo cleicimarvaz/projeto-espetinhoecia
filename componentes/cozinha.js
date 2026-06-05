@@ -340,7 +340,6 @@ window.renderizarMonitor = function() {
         (c.itens || []).forEach((item, indexOriginal) => {
             if (!window.isItemCozinha(item) || item.cozinha_status === 'pronto') return;
 
-            // Criamos a referência de hora (DNA do lote)
             const dataISO = item.hora_pedido || item.hora || c.created_at;
             const loteKey = `${c.id}_${dataISO}`;
 
@@ -348,7 +347,7 @@ window.renderizarMonitor = function() {
                 lotes[loteKey] = {
                     comandaId: c.id,
                     identificacao: c.identificacao,
-                    idLote: dataISO, // Guardamos a string original aqui
+                    idLote: dataISO,
                     tempo: new Date(dataISO),
                     itens: []
                 };
@@ -361,71 +360,65 @@ window.renderizarMonitor = function() {
     if (contador) contador.innerText = listaLotes.length;
 
     if (listaLotes.length === 0) {
-        monitor.innerHTML =  `
-            <div class="col-span-full py-32 text-center opacity-40">
-                <div class="w-24 h-24 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 transition-colors">
-                    <i class="ph-bold ph-cooking-pot text-5xl text-slate-400"></i>
-                </div>
-                <h3 class="text-slate-500 dark:text-slate-300 font-black text-xl uppercase tracking-widest italic">Sem pedidos no momento...</h3>
-            </div>`;
+        monitor.innerHTML = `<div class="col-span-full py-32 text-center opacity-40"><h3 class="text-slate-500 font-black text-xl uppercase italic">Sem pedidos no momento...</h3></div>`;
         return;
     }
 
     monitor.innerHTML = listaLotes.map(lote => {
-        const tempoMin = Math.floor((new Date() - lote.tempo) / 60000);
-        const horaAbertura = lote.tempo.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const temItemNovo = lote.itens.some(obj => !obj.cozinha_status || obj.cozinha_status === 'novo');
+        
+        const badgeLoteHtml = temItemNovo 
+            ? `<div class="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 px-3 py-1.5 rounded-full shrink-0 animate-pulse">
+                   <i class="ph-fill ph-fire text-red-500 text-[10px]"></i>
+                   <span class="text-[9px] font-black text-red-500 uppercase tracking-tighter">NOVO</span>
+               </div>`
+            : `<div class="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full shrink-0">
+                   <i class="ph-bold ph-hourglass-high text-blue-400 text-[10px] animate-spin-slow"></i>
+                   <span class="text-[9px] font-black text-blue-400 uppercase tracking-tighter">PREPARANDO...</span>
+               </div>`;
         
         return `
-            <div class="card-pedido-kds flex flex-col h-full border-2 border-slate-800 rounded-[2.5rem] bg-[#0f172a] shadow-2xl overflow-hidden">
-                <div class="p-5 border-b border-slate-700/50 bg-slate-800/20 relative">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="min-w-0">
-                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">MESA / CLIENTE</span>
-                            <h3 class="text-xl font-black text-white uppercase italic leading-none truncate pr-2">${lote.identificacao}</h3>
+            <div class="flex flex-col h-auto border-2 ${temItemNovo ? 'border-red-900/50' : 'border-slate-200 dark:border-slate-800'} bg-white dark:bg-[#0f172a] rounded-[2.5rem] shadow-2xl overflow-hidden mb-4 transition-colors duration-300">
+                <div class="p-6 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/20 transition-colors">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">MESA / CLIENTE</span>
+                            <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase italic leading-none">${lote.identificacao}</h3>
                         </div>
-                        <div class="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full shrink-0">
-                            <i class="ph-bold ph-hourglass-high text-blue-400 text-[10px] animate-spin-slow"></i>
-                            <span class="text-[9px] font-black text-blue-400 uppercase tracking-tighter">PREPARANDO</span>
+                        <div class="flex items-center gap-3">
+                            ${badgeLoteHtml}
+                            <button onclick="window.imprimirTicket58mm(${lote.comandaId}, '${lote.idLote}')" class="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all">
+                                <i class="ph-bold ph-printer text-2xl"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 font-black text-[10px] uppercase">
-                        <span class="text-slate-500">${horaAbertura}</span>
-                        <span class="${tempoMin > 15 ? 'text-red-500 animate-pulse' : 'text-red-400'}">HÁ ${tempoMin}M</span>
-                    </div>
-
-                    <button onclick="window.imprimirTicket58mm(${lote.comandaId}, '${lote.idLote}')" class="absolute bottom-5 right-5 text-slate-500 hover:text-white transition-all active:scale-90">
-                        <i class="ph-bold ph-printer text-2xl"></i>
-                    </button>
                 </div>
 
-                <div class="p-4 space-y-3 flex-1 overflow-y-auto">
-${lote.itens.map(obj => {
+                <div class="p-4 space-y-3">
+                    ${lote.itens.map(obj => {
                         const isNovo = (!obj.cozinha_status || obj.cozinha_status === 'novo');
                         
-                        // 1. Refinamento da Observação: Adicionado break-words e margin corretas
-                        const observacaoHtml = (obj.detalhes || obj.observacao) 
-                            ? `<div class="mt-1.5 pl-2.5 border-l-2 border-[#e63946]">
-                                   <p class="text-[9px] font-black text-red-400 uppercase leading-relaxed whitespace-normal break-words">${obj.detalhes || obj.observacao}</p>
-                               </div>` 
+                        const renderObservacoes = (obj.detalhes || obj.observacao) 
+                            ? (obj.detalhes || obj.observacao)
+                                .split('|')
+                                .map(parte => parte.trim())
+                                .filter(parte => parte.length > 0)
+                                .map(parte => `
+                                    <p class="text-[10px] font-black text-red-500 dark:text-red-400 italic mt-1 leading-tight whitespace-normal break-words flex items-start">
+                                        <span class="mr-1">↳</span> ${parte}
+                                    </p>`)
+                                .join('')
                             : '';
 
                         return `
-                        <div class="flex items-center gap-3 p-3 rounded-[1.5rem] border border-slate-700/50 bg-slate-800/60 shadow-sm mb-2 last:mb-0">
-                            
-                            <div class="flex items-start gap-3 flex-1 min-w-0">
-                                
-                                <div class="flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-500 w-10 h-10 rounded-xl shrink-0 mt-0.5">
-                                    <span class="font-black text-sm">${obj.qtd}X</span>
-                                </div>
-                                
-                                <div class="flex flex-col flex-1 min-w-0">
-                                    <p class="font-bold text-slate-100 uppercase text-[11px] truncate tracking-tight pt-1">${obj.nome}</p>
-                                    ${observacaoHtml}
-                                </div>
+                        <div class="flex items-start gap-4 p-4 rounded-[2rem] border ${isNovo ? 'border-red-500/20' : 'border-slate-200 dark:border-slate-700/50'} bg-slate-50 dark:bg-slate-800/40 transition-colors duration-300">
+                            <div class="w-14 h-14 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 mt-1">${obj.qtd}X</div>
+                            <div class="flex-1 min-w-0 flex flex-col justify-center py-1">
+                                <p class="font-bold text-slate-800 dark:text-slate-100 uppercase text-[12px] leading-tight whitespace-normal break-words">${obj.nome}</p>
+                                ${renderObservacoes}
                             </div>
-
-                            <button onclick="${isNovo ? `window.aceitarItemProducao(${lote.comandaId}, ${obj.indexOriginal})` : `window.concluirItemProducao(${lote.comandaId}, ${obj.indexOriginal})`}" 
-                                class="shrink-0 flex items-center justify-center ${isNovo ? 'bg-orange-500 hover:bg-orange-600' : 'bg-emerald-600 hover:bg-emerald-500'} text-white w-24 h-10 rounded-xl font-black text-[10px] uppercase shadow-lg transition-all active:scale-95 border border-white/10">
+                            <button onclick="window.${isNovo ? 'aceitarItemProducao' : 'concluirItemProducao'}(${lote.comandaId}, ${obj.indexOriginal})" 
+                                class="w-28 h-12 rounded-2xl font-black text-[10px] uppercase ${isNovo ? 'bg-red-600' : 'bg-emerald-600'} text-white shadow-lg shrink-0 self-center active:scale-95 transition-all">
                                 ${isNovo ? 'ACEITAR' : 'CONCLUIR'}
                             </button>
                         </div>`;
@@ -773,30 +766,45 @@ window.imprimirTicket58mm = async function(id, idLote) {
         <html>
         <head>
             <style>
-                @page { margin: 0; size: 58mm 200mm; }
-                body { font-family: 'Courier New', monospace; width: 54mm; padding: 2mm; margin: 0; color: #000; }
-                .center { text-align: center; font-weight: bold; }
-                .mesa { font-size: 22px; background: #000; color: #fff; padding: 5px; margin: 5px 0; border-radius: 4px; }
-                .item { display: flex; font-size: 15px; font-weight: bold; margin-top: 5px; border-top: 1px dashed #000; padding-top: 5px; align-items: flex-start; word-break: break-word; }
-                .qtd { min-width: 25px; font-size: 16px; }
-                .nome { flex: 1; }
-                .obs { font-size: 13px; font-weight: bold; font-style: italic; margin-left: 25px; margin-top: 2px; padding-bottom: 2px; text-transform: uppercase; }
+                @page { margin: 0; size: 58mm auto; }
+                body { font-family: 'Courier New', Courier, monospace; width: 54mm; padding: 2mm; margin: 0; color: #000; }
+                .center { text-align: center; }
+                .header { font-weight: bold; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+                .mesa { font-size: 26px; font-weight: 900; margin: 10px 0; }
+                .item-container { margin-top: 10px; }
+                
+                .item-row { display: flex; align-items: flex-start; margin-bottom: 2px; }
+                .qtd { font-weight: 900; font-size: 18px; min-width: 30px; }
+                .nome { font-weight: bold; font-size: 16px; text-transform: uppercase; line-height: 1.2; word-wrap: break-word; flex: 1; }
+                
+                .obs { font-size: 13px; font-style: italic; font-weight: bold; margin-left: 30px; margin-bottom: 6px; color: #333; }
+                .footer { border-top: 2px solid #000; margin-top: 15px; padding-top: 5px; font-size: 12px; }
             </style>
         </head>
         <body onload="window.print(); window.close();">
-            <div class="center" style="font-size: 18px;">PEDIDO COZINHA</div>
+            <div class="center header">PEDIDO COZINHA</div>
             <div class="center mesa">${c.identificacao}</div>
-            <div class="center" style="font-size: 11px; margin-bottom: 5px;">${dataHora}</div>
+            <div class="center" style="font-size: 11px; margin-bottom: 10px;">${dataHora}</div>
             
-            ${itensParaImprimir.map(i => `
-                <div class="item">
-                    <div class="qtd">${i.qtd}x</div>
-                    <div class="nome">${i.nome}</div>
-                </div>
-                ${(i.detalhes || i.observacao) ? `<div class="obs">↳ ${i.detalhes || i.observacao}</div>` : ''}
-            `).join('')}
+            <div class="item-container">
+                ${itensParaImprimir.map(i => `
+                    <div class="item-row">
+                        <div class="qtd">${i.qtd}x</div>
+                        <div class="nome">${i.nome}</div>
+                    </div>
+                    ${(i.detalhes || i.observacao) ? `
+                        ${(i.detalhes || i.observacao)
+                            .split('|')
+                            .map(parte => parte.trim())
+                            .filter(parte => parte.length > 0)
+                            .map(parte => `<div class="obs">↳ ${parte}</div>`)
+                            .join('')
+                        }
+                    ` : ''}
+                `).join('')}
+            </div>
             
-            <div style="border-top: 2px solid #000; margin-top: 10px; padding-top: 5px;" class="center">*** FIM DO PEDIDO ***</div>
+            <div class="footer center">*** FIM DO PEDIDO ***</div>
         </body>
         </html>
     `);

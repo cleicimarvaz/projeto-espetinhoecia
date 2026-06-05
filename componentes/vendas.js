@@ -4,6 +4,7 @@
 
 window.carrinho = window.carrinho || [];
 window.produtosCache = []; 
+window.complementosCache = []; // Variável global para guardar os itens em memória
 
 /* --- 0. CARREGAMENTO INICIAL DO CATÁLOGO --- */
 window.carregarCatalogoVendas = async function() {
@@ -21,9 +22,19 @@ window.carregarCatalogoVendas = async function() {
     }
 
     try {
+        // 1. CARREGA OS PRODUTOS
         const { data: pds, error } = await _supabase.from('produtos').select('*').eq('status', true).order('nome');
         if (error) throw error;
         window.produtosCache = pds || [];
+
+        // ==========================================================
+        // 2. CARREGA OS COMPLEMENTOS (Molhos e Farinhas do banco)
+        // ==========================================================
+        if (typeof window.carregarComplementos === 'function') {
+            await window.carregarComplementos();
+        }
+
+        // 3. RENDERIZA A TELA (agora com produtos e complementos em memória)
         renderizarVenda();
     } catch (e) {
         console.error("Erro ao carregar catálogo:", e);
@@ -31,6 +42,26 @@ window.carregarCatalogoVendas = async function() {
         if (cont) cont.innerHTML = '<p class="col-span-2 text-center text-red-500 font-bold py-10">Erro ao carregar produtos. Verifique sua conexão.</p>';
     }
 }
+
+
+
+window.carregarComplementos = async function() {
+    try {
+        // Vai buscar à base de dados apenas os complementos ativos
+        const { data, error } = await _supabase
+            .from('complementos')
+            .select('*')
+            .eq('ativo', true)
+            .order('nome', { ascending: true }); // Ordena alfabeticamente
+        
+        if (error) throw error;
+        
+        window.complementosCache = data || [];
+        console.log('[SISTEMA] Complementos carregados com sucesso:', window.complementosCache.length);
+    } catch (e) {
+        console.error('[ERRO] Falha ao carregar complementos:', e);
+    }
+};
 
 /* --- 1. VITRINE --- */
 
@@ -118,24 +149,40 @@ window.adicionarAoCarrinho = function(id) {
     if (!p) return;
     
     // ====================================================
-    // INTERCEPTADOR: Se for refeição, abre a personalização!
+    // INTERCEPTADORES: Abrir modais de personalização
     // ====================================================
-    if (p.categoria === 'refeicao') {
+    
+    // 1. Refeições
+    // Só abre o modal se for refeição E a opção de pedir complementos NÃO estiver desativada
+    if (p.categoria === 'refeicao' && p.pedir_complementos !== false) {
         if(typeof abrirModalRefeicao === 'function') {
             abrirModalRefeicao(p);
         } else {
             console.error("Função abrirModalRefeicao não encontrada.");
         }
-        return; // Para a execução aqui para não jogar direto no carrinho
+        return; 
+    }
+
+    // 2. Espetos
+    // Só abre o modal se for espeto E a opção de pedir complementos NÃO estiver desativada
+    if (p.categoria === 'espetos' && p.pedir_complementos !== false) {
+        if(typeof abrirModalEspeto === 'function') {
+            abrirModalEspeto(p);
+        } else {
+            console.error("Função abrirModalEspeto não encontrada.");
+        }
+        return;
     }
     // ====================================================
 
-    // Fluxo normal para bebidas, cervejas, porções, etc.
+    // Fluxo normal para bebidas, cervejas, porções simples, 
+    // OU produtos (espetos/refeições) que estão marcados para venda rápida (ticket)
     const item = window.carrinho.find(i => i.id === id && !i.observacao);
     if (item) {
         item.qtd++;
     } else {
-        const statusCozinha = p.precisa_preparo === false ? 'pronto' : null;
+        // Assume 'pronto' se não precisar de preparo
+        const statusCozinha = p.precisa_preparo === false ? 'pronto' : 'novo';
         window.carrinho.push({ ...p, qtd: 1, cozinha_status: statusCozinha });
     }
     renderizarVenda();
@@ -445,7 +492,7 @@ window.finalizarPedidoComandaVenda = async function() {
             const qtdDireta = item.qtd - qtdCozinha;
 
             if (qtdCozinha > 0) {
-                const copiaCozinha = { ...item, qtd: qtdCozinha, cozinha_status: 'em_preparo' };
+                const copiaCozinha = { ...item, qtd: qtdCozinha, cozinha_status: 'novo' };
                 delete copiaCozinha.qtd_cozinha; 
                 carrinhoProcessado.push(copiaCozinha);
             }
@@ -776,7 +823,7 @@ window.confirmarRefeicao = function() {
             preco: precoFinal, // Preço cravado com todos os cálculos automáticos!
             observacao: obs,
             qtd: 1,
-            cozinha_status: 'em_preparo'
+            cozinha_status: 'novo'
         });
     }
 
@@ -785,3 +832,98 @@ window.confirmarRefeicao = function() {
     
     if(typeof showToast === 'function') showToast("REFEIÇÃO ADICIONADA!", "sucesso");
 }
+
+window.abrirModalEspeto = function(produto) {
+    window.espetoAtual = produto;
+    
+    // 1. FILTRA OS ITENS QUE VIERAM DO BANCO (Aqui está a mágica!)
+    const molhos = window.complementosCache.filter(c => c.tipo === 'molho');
+    const farinhas = window.complementosCache.filter(c => c.tipo === 'farinha');
+
+    document.getElementById('modal-esp-nome').innerText = produto.nome;
+
+    // 2. Renderizar Molhos dinâmicos
+    const divMolhos = document.getElementById('espeto-molhos-lista');
+    if (divMolhos) {
+        divMolhos.innerHTML = molhos.length > 0 
+            ? molhos.map(m => `
+                <label class="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-100 dark:border-slate-700 cursor-pointer">
+                    <input type="checkbox" value="${m.nome}" class="espeto-molho w-4 h-4 text-red-500 accent-red-500">
+                    <span class="text-[9px] font-bold uppercase">${m.nome}</span>
+                </label>
+            `).join('')
+            : '<p class="text-xs text-slate-400 italic">Nenhum molho cadastrado.</p>';
+    }
+
+    // 3. Renderizar Farinha dinâmica
+    const divFarinhas = document.getElementById('espeto-farinha-lista');
+    if (divFarinhas) {
+        divFarinhas.innerHTML = farinhas.length > 0 
+            ? farinhas.map(f => `
+                <label class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 cursor-pointer">
+                    <input type="radio" name="farinha" value="${f.nome}" ${f.nome === 'Mandioca' ? 'checked' : ''} class="espeto-farinha w-4 h-4 text-red-500 accent-red-500">
+                    <span class="text-[9px] font-bold uppercase">${f.nome}</span>
+                </label>
+            `).join('')
+            : '<p class="text-xs text-slate-400 italic">Nenhuma farinha cadastrada.</p>';
+    }
+
+    document.getElementById('modal-espeto').classList.remove('hidden');
+}
+
+// =========================================================================
+// CONFIRMAR ESPETO (Pega os dados do modal e joga no carrinho)
+// =========================================================================
+window.confirmarEspetoPersonalizado = function() {
+    // 1. Pega os molhos que o usuário marcou
+    let molhos = [];
+    document.querySelectorAll('.espeto-molho:checked').forEach(c => molhos.push(c.value));
+    
+    // 2. Pega a farinha selecionada
+    const farinhaRadio = document.querySelector('.espeto-farinha:checked');
+    const farinha = farinhaRadio ? farinhaRadio.value : 'Sem Farinha';
+
+    // 3. Monta o texto em destaque que vai aparecer para a cozinha
+    const obs = `[MOLHOS: ${molhos.length > 0 ? molhos.join(', ') : 'Nenhum'}] - [FARINHA: ${farinha}]`;
+
+    // 4. Adiciona o espeto ao carrinho com a observação e status para a cozinha
+    window.carrinho.push({
+        ...window.espetoAtual,
+        observacao: obs,
+        qtd: 1,
+        cozinha_status: 'novo'
+    });
+
+    // 5. Atualiza o carrinho na tela e fecha o modal
+    if (typeof renderizarVenda === 'function') renderizarVenda();
+    
+    const modal = document.getElementById('modal-espeto');
+    if (modal) modal.classList.add('hidden');
+    
+    if (typeof showToast === 'function') showToast("Espeto adicionado ao pedido!");
+};
+
+window.confirmarEspetoPersonalizado = function() {
+    let molhos = [];
+    document.querySelectorAll('.espeto-molho:checked').forEach(c => molhos.push(c.value));
+    
+    const farinhaRadio = document.querySelector('.espeto-farinha:checked');
+    const farinha = farinhaRadio ? farinhaRadio.value : 'Sem Farinha';
+
+    // A mágica da quebra de linha está no <br> aqui no meio:
+    const obs = `[MOLHO] ${molhos.length > 0 ? molhos.join(', ') : 'Nenhum'}<br>↳ [FARINHA] ${farinha}`;
+
+    window.carrinho.push({
+        ...window.espetoAtual,
+        observacao: obs,
+        qtd: 1,
+        cozinha_status: 'novo'
+    });
+
+    if (typeof renderizarVenda === 'function') renderizarVenda();
+    
+    const modal = document.getElementById('modal-espeto');
+    if (modal) modal.classList.add('hidden');
+    
+    if (typeof showToast === 'function') showToast("Espeto adicionado!");
+};

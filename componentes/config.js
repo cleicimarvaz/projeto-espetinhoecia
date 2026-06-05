@@ -191,3 +191,164 @@ window.mascaraCNPJ = function(input) {
     
     input.value = v;
 };
+
+// =========================================================================
+// GESTÃO DE COMPLEMENTOS (MOLHOS E FARINHAS)
+// =========================================================================
+
+// Abre o modal principal e carrega os dados
+window.abrirModalAdminComplementos = function() {
+    const modal = document.getElementById('modal-admin-complementos');
+    if (modal) modal.classList.remove('hidden');
+    carregarAdminComplementos();
+};
+
+// Fecha o modal principal
+window.fecharModalAdminComplementos = function() {
+    const modal = document.getElementById('modal-admin-complementos');
+    if (modal) modal.classList.add('hidden');
+};
+
+// Função genérica para exibir erros (Substitui o "alert")
+window.mostrarAlertaComplemento = function(mensagem) {
+    const modal = document.getElementById('modal-alerta-complemento');
+    const texto = document.getElementById('texto-alerta-complemento');
+    if (texto) texto.innerText = mensagem;
+    if (modal) modal.classList.remove('hidden');
+};
+
+// Busca os itens no Supabase
+window.carregarAdminComplementos = async function() {
+    const divLista = document.getElementById('lista-admin-complementos');
+    if (!divLista) return;
+    
+    try {
+        const { data, error } = await _supabase
+            .from('complementos')
+            .select('*')
+            .order('tipo', { ascending: true })
+            .order('nome', { ascending: true });
+        
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            divLista.innerHTML = '<p class="text-xs text-slate-400 italic">Nenhum complemento cadastrado.</p>';
+            return;
+        }
+
+        // ATUALIZADO: Os botões de Editar e Excluir agora chamam os modais e passam o nome
+        divLista.innerHTML = data.map(c => `
+            <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border ${c.ativo ? 'border-slate-100 dark:border-slate-700' : 'border-red-100 dark:border-red-900/30 opacity-60'} mb-2">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">${c.tipo === 'molho' ? '🥫' : '🥣'}</span>
+                    <div>
+                        <p class="text-sm font-bold text-slate-700 dark:text-slate-200 ${!c.ativo && 'line-through'}">${c.nome}</p>
+                        <p class="text-[9px] uppercase font-black ${c.ativo ? 'text-emerald-500' : 'text-red-500'}">${c.ativo ? 'Visível' : 'Oculto'}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button onclick="abrirModalEditar('${c.id}', '${c.nome}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Editar Nome">
+                        ✏️
+                    </button>
+                    <button onclick="abrirModalExcluir('${c.id}', '${c.nome}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Excluir Definitivamente">
+                        🗑️
+                    </button>
+                    <button onclick="alternarStatusComplemento('${c.id}', ${c.ativo})" class="text-[10px] font-bold px-2 h-8 rounded-lg uppercase tracking-wider ${c.ativo ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} transition-colors ml-1">
+                        ${c.ativo ? 'Ocultar' : 'Ativar'}
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error("Erro ao carregar lista admin de complementos:", e);
+        divLista.innerHTML = '<p class="text-xs text-red-500 font-bold">Erro ao carregar lista.</p>';
+    }
+};
+
+// Adiciona novo item
+window.adicionarComplemento = async function(e) {
+    e.preventDefault();
+    const nomeInput = document.getElementById('novo-comp-nome');
+    const tipoInput = document.getElementById('novo-comp-tipo');
+    
+    if (!nomeInput.value) return;
+
+    try {
+        const { error } = await _supabase.from('complementos').insert([
+            { nome: nomeInput.value, tipo: tipoInput.value, ativo: true }
+        ]);
+        if (error) throw error;
+
+        nomeInput.value = ''; 
+        if(typeof showToast === 'function') showToast("Adicionado com sucesso!");
+        carregarAdminComplementos(); 
+    } catch (e) {
+        console.error("Erro ao adicionar complemento:", e);
+        mostrarAlertaComplemento("Erro ao adicionar item. Verifique sua conexão.");
+    }
+};
+
+// Alterna entre Visível e Oculto
+window.alternarStatusComplemento = async function(id, statusAtual) {
+    try {
+        const { error } = await _supabase.from('complementos').update({ ativo: !statusAtual }).eq('id', id);
+        if (error) throw error;
+        carregarAdminComplementos();
+    } catch (e) {
+        console.error("Erro ao atualizar status:", e);
+        mostrarAlertaComplemento("Erro ao atualizar status do item.");
+    }
+};
+
+// --- FLUXO DE EXCLUSÃO (Substitui o window.excluirComplemento) ---
+window.abrirModalExcluir = function(id, nome) {
+    document.getElementById('excluir-comp-id').value = id;
+    document.getElementById('excluir-comp-nome-display').innerText = nome;
+    document.getElementById('modal-excluir-complemento').classList.remove('hidden');
+};
+
+window.confirmarExclusaoComplemento = async function() {
+    const id = document.getElementById('excluir-comp-id').value;
+    
+    try {
+        const { error } = await _supabase.from('complementos').delete().eq('id', id);
+        if (error) throw error;
+        
+        document.getElementById('modal-excluir-complemento').classList.add('hidden');
+        if(typeof showToast === 'function') showToast("Item excluído!");
+        carregarAdminComplementos(); 
+    } catch (e) {
+        console.error("Erro ao excluir:", e);
+        document.getElementById('modal-excluir-complemento').classList.add('hidden');
+        mostrarAlertaComplemento("Não foi possível excluir este item. Tente novamente.");
+    }
+};
+
+// --- FLUXO DE EDIÇÃO (Substitui o window.editarComplemento) ---
+window.abrirModalEditar = function(id, nomeAtual) {
+    document.getElementById('edit-comp-id').value = id;
+    document.getElementById('edit-comp-nome').value = nomeAtual;
+    document.getElementById('modal-editar-complemento').classList.remove('hidden');
+    
+    // Dá foco automático no campo de texto ao abrir
+    setTimeout(() => document.getElementById('edit-comp-nome').focus(), 100);
+};
+
+window.salvarEdicaoComplemento = async function() {
+    const id = document.getElementById('edit-comp-id').value;
+    const novoNome = document.getElementById('edit-comp-nome').value.trim();
+    
+    if (!novoNome) return;
+
+    try {
+        const { error } = await _supabase.from('complementos').update({ nome: novoNome }).eq('id', id);
+        if (error) throw error;
+        
+        document.getElementById('modal-editar-complemento').classList.add('hidden');
+        if(typeof showToast === 'function') showToast("Nome atualizado!");
+        carregarAdminComplementos(); 
+    } catch (e) {
+        console.error("Erro ao editar:", e);
+        mostrarAlertaComplemento("Não foi possível salvar o novo nome. Verifique sua conexão.");
+    }
+};
