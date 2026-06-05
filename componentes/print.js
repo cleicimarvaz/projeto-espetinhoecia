@@ -461,13 +461,54 @@ window.enviarParaImpressora = function(texto) {
 
 // FORMATO 1: Imprimir cupons (Retirar no Balcão)
 window.imprimirCupom = function(venda) {
-    // SE ESTIVER EM MODO RAWBT -> ABORTA O HTML E MANDA PARA A ROTA DE TEXTO PURO
+    // 1. SE FOR MODO RAWBT -> GERAR TEXTO PURO COM LAYOUT
     if (window.isRawBTThermalMode()) {
-        window.imprimirTicketVenda(venda);
+        const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
+        const layout = localStorage.getItem('ticketLayout') || 'original';
+        const operador = localStorage.getItem('userName') || 'Admin';
+        const itensArray = Array.isArray(venda.itens) ? venda.itens : JSON.parse(venda.itens || '[]');
+        
+        let textoRaw = '\n';
+
+        itensArray.forEach(item => {
+            if(parseFloat(item.preco) > 0) {
+                for (let i = 0; i < (item.qtd || 1); i++) {
+                    const pedidoId = Math.floor(Math.random()*9000)+1000;
+                    
+                    // Desenho da caixa baseado no layout
+                    if (layout === 'padrao') {
+                        textoRaw += '┌' + '─'.repeat(30) + '┐\n';
+                        textoRaw += '│' + ' '.repeat(11) + loja.substring(0,8) + ' '.repeat(11) + '│\n';
+                        textoRaw += '├' + '─'.repeat(30) + '┤\n';
+                        textoRaw += '│' + item.nome.toUpperCase().padEnd(30, ' ').substring(0, 30) + '│\n';
+                        textoRaw += '│' + `VALOR: R$ ${window.fmSeguro(item.preco)}`.padEnd(30, ' ') + '│\n';
+                        textoRaw += '├' + '─'.repeat(30) + '┤\n';
+                        textoRaw += '│    RETIRAR NO BALCÃO     │\n';
+                        textoRaw += '└' + '─'.repeat(30) + '┘\n';
+                    } else {
+                        // Layout Original / Padrão
+                        textoRaw += '------------------------------\n';
+                        textoRaw += `       ${loja.toUpperCase()}\n`;
+                        textoRaw += '------------------------------\n';
+                        textoRaw += ` ITEM: ${item.nome.toUpperCase()}\n`;
+                        textoRaw += ` VALOR: R$ ${window.fmSeguro(item.preco)}\n`;
+                        textoRaw += '------------------------------\n';
+                        textoRaw += '      RETIRAR NO BALCÃO       \n';
+                        textoRaw += '------------------------------\n';
+                    }
+                    
+                    textoRaw += ` PEDIDO #${pedidoId} | OP: ${operador}\n\n\n`;
+                }
+            }
+        });
+
+        // Dispara para o RawBT
+        const textoCodificado = encodeURIComponent(textoRaw);
+        window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
         return;
     }
 
-    // SE FOR NAVEGADOR -> CONTINUA NO PROCESSO DE HTML DA GAVETA DE IMPRESSÃO
+    // 2. SE FOR NAVEGADOR -> MANTÉM SEU CÓDIGO HTML ORIGINAL
     const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
     const layout = localStorage.getItem('ticketLayout') || 'original';
     const dataVenda = new Date(venda.data || Date.now());
