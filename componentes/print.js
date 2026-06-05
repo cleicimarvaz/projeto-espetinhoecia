@@ -398,17 +398,25 @@ window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, est
 /* ---------------------------------------------------------------------------------
    4. IMPRESSÃO TÉRMICA DE VENDAS E DESPESAS (58MM - UNIFICADA COM PREFERÊNCIA GLOBAL)
    --------------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------------
+   4. IMPRESSÃO TÉRMICA DE VENDAS E DESPESAS (58MM - UNIFICADA COM PREFERÊNCIA GLOBAL)
+   --------------------------------------------------------------------------------- */
+
+// Validador Universal de Modo Térmico/RawBT
+window.isRawBTThermalMode = function() {
+    const formatoGlobal = (localStorage.getItem('formatoImpressao') || '').toLowerCase();
+    const modoConfigurado = (localStorage.getItem('modoImpressao') || '').toLowerCase();
+    return ['direto', 'rawbt', 'termico'].includes(modoConfigurado) || 
+           ['direto', 'rawbt', 'termico'].includes(formatoGlobal);
+};
 
 window.dispararImpressao = function(conteudoHtml, layout) {
-    const modoConfigurado = (localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
     const ua = navigator.userAgent.toLowerCase();
     const isAndroid = /android/.test(ua);
 
-    // =================================================================================
-    // MÁGICA DE INTEGRAÇÃO COM O APP RAWBT (MODO GRÁFICO / HTML COM LAYOUT)
-    // =================================================================================
-    if (modoConfigurado === 'direto' && isAndroid) {
-        // Monta o documento HTML completo com o CSS do layout para o RawBT renderizar
+    // Se por algum motivo o HTML chegou aqui e estamos no modo térmico, enviamos para o RawBT
+    // NOTA: O ideal é não chegar HTML aqui, mas se chegar, o RawBT tenta renderizar como imagem
+    if (window.isRawBTThermalMode() && isAndroid) {
         const htmlCompleto = `
             <!DOCTYPE html>
             <html>
@@ -425,20 +433,13 @@ window.dispararImpressao = function(conteudoHtml, layout) {
             </html>
         `;
 
-        // Transforma o HTML estruturado em Base64, preservando os acentos (UTF-8)
         const base64Html = btoa(unescape(encodeURIComponent(htmlCompleto)));
-        
-        // CORREÇÃO: Usando a estrutura oficial de "Intent" do Android.
-        // Isso obriga o Chrome a acordar o RawBT e injetar a imagem do cupom direto lá!
         const urlRawBT = `intent:base64,${base64Html}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-        
         window.location.href = urlRawBT;
         return;
     }
 
-    // =================================================================================
-    // ROTA PADRÃO (SE ESTIVER EM MODO PDF / WINDOWS)
-    // =================================================================================
+    // ROTA PADRÃO (SE ESTIVER EM MODO PDF / WINDOWS / IOS)
     const w = window.open('', '_blank');
     w.document.write(`<html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;width:58mm;}@media print{.no-print{display:none!important;}}.btn-voltar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:10px 20px;border-radius:20px;text-decoration:none;z-index:9999;}${getTicketCSS(layout)}</style></head><body>${conteudoHtml}<a href="javascript:window.close()" class="no-print btn-voltar">FECHAR</a><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
     w.document.close();
@@ -449,7 +450,7 @@ window.enviarParaImpressora = function(texto) {
     const isAndroid = /android/.test(ua);
     const base64Texto = btoa(unescape(encodeURIComponent(texto)));
     
-    if (isAndroid) { 
+    if (isAndroid && window.isRawBTThermalMode()) { 
         window.location.href = "rawbt:base64," + base64Texto; 
     } else { 
         const win = window.open('', '_blank'); 
@@ -458,12 +459,10 @@ window.enviarParaImpressora = function(texto) {
     }
 }
 
-// FORMATO 1: Imprimir cupons individuais por item (Retirar no Balcão)
+// FORMATO 1: Imprimir cupons (Retirar no Balcão)
 window.imprimirCupom = function(venda) {
-    const formatoGlobal = localStorage.getItem('formatoImpressao') || 'pdf';
-
-    // SE ESTIVER EM MODO RAWBT -> PEGA O TEXTO PURO GERADO PELO MOTOR DO SISTEMA
-    if (formatoGlobal === 'termico' || formatoGlobal === 'rawbt') {
+    // SE ESTIVER EM MODO RAWBT -> ABORTA O HTML E MANDA PARA A ROTA DE TEXTO PURO
+    if (window.isRawBTThermalMode()) {
         window.imprimirTicketVenda(venda);
         return;
     }
@@ -492,20 +491,11 @@ window.imprimirCupom = function(venda) {
     window.dispararImpressao(html, layout);
 }
 
-// FORMATO 2: Imprimir resumo completo da conta (Ticket Consolidado)
+// FORMATO 2: Imprimir resumo completo da conta (Ticket Consolidado - Blindado p/ Texto)
 window.imprimirTicketVenda = function(dadosVenda) {
     const loja = localStorage.getItem('nomeLoja') || "ESPETINHO E CIA";
     const cnpj = localStorage.getItem('empresa_cnpj') || "";
     const layout = localStorage.getItem('ticketLayout') || 'original'; 
-    
-    // --- CORREÇÃO DO CONFLITO DE CHAVES ---
-    // Lemos as duas chaves possíveis do localStorage para garantir que o sistema não se perca
-    const formatoGlobal = (localStorage.getItem('formatoImpressao') || '').toLowerCase();
-    const modoConfigurado = (localStorage.getItem('modoImpressao') || '').toLowerCase();
-    
-    // Se qualquer uma das chaves indicar que é para usar a térmica/RawBT, ativamos o modo texto puro
-    const modoRawBT = ['direto', 'rawbt', 'termico'].includes(modoConfigurado) || 
-                      ['direto', 'rawbt', 'termico'].includes(formatoGlobal);
     
     const ua = navigator.userAgent.toLowerCase();
     const isAndroid = /android/.test(ua);
@@ -549,7 +539,7 @@ window.imprimirTicketVenda = function(dadosVenda) {
     // ====================================================================================
     // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) - TEXTO PURO FORMATADO
     // ====================================================================================
-    if (modoRawBT && isAndroid) {
+    if (window.isRawBTThermalMode() && isAndroid) {
         let textoRaw = '\n'; 
         
         textoRaw += alinharCentro(loja) + '\n';
@@ -646,7 +636,7 @@ window.imprimirTicketVenda = function(dadosVenda) {
     </body>
     </html>`;
 
-    if (modoConfigurado === 'direto' && isIOS) { 
+    if (localStorage.getItem('modoImpressao') === 'direto' && isIOS) { 
         window.location.href = "openlabels://print?text=" + encodeURIComponent(htmlCompleto); 
         return; 
     }
@@ -656,6 +646,7 @@ window.imprimirTicketVenda = function(dadosVenda) {
     win.document.close();
     setTimeout(() => { win.print(); win.close(); }, 500);
 }
+
 
 window.gerarTicketHTML = function(dados, loja) {
     const cnpj = localStorage.getItem('empresa_cnpj') || "";
@@ -1294,36 +1285,77 @@ window.imprimirPDFEstoque = async function() {
 
 window.reimprimirComanda = async function(id) {
     try {
-        const { data: m, error } = await _supabase
-            .from('comandas')
-            .select('*')
-            .eq('id', id)
-            .single();
-
+        const { data: m, error } = await _supabase.from('comandas').select('*').eq('id', id).single();
         if (error || !m) throw new Error("Comanda não encontrada.");
 
+        const loja = localStorage.getItem('nomeLoja') || 'ESPETINHO E CIA';
+        const cnpj = localStorage.getItem('empresa_cnpj') || '';
         const itens = typeof m.itens === 'string' ? JSON.parse(m.itens) : m.itens;
         const dataF = new Date(m.fechada_em);
-        const dataFormatada = dataF.toLocaleDateString('pt-BR') + ', ' + dataF.toLocaleTimeString('pt-BR');
+        const dataFormatada = dataF.toLocaleDateString('pt-BR') + ' ' + dataF.toLocaleTimeString('pt-BR');
 
+        const ua = navigator.userAgent.toLowerCase();
+        const isAndroid = /android/.test(ua);
+
+        // SE FOR MODO RAWBT -> GERA TEXTO PURO ALINHADO
+        if (window.isRawBTThermalMode() && isAndroid) {
+            const alinharCentro = (texto) => {
+                const str = String(texto).substring(0, 32);
+                const espacos = Math.max(0, Math.floor((32 - str.length) / 2));
+                return ' '.repeat(espacos) + str;
+            };
+
+            const alinharLados = (esq, dir) => {
+                const strEsq = String(esq);
+                const strDir = String(dir);
+                const espacosLivres = 32 - strEsq.length - strDir.length;
+                if (espacosLivres > 0) return strEsq + ' '.repeat(espacosLivres) + strDir;
+                return strEsq.substring(0, 32 - strDir.length - 1) + ' ' + strDir;
+            };
+
+            let textoRaw = '\n'; 
+            textoRaw += alinharCentro(loja) + '\n';
+            if (cnpj) textoRaw += alinharCentro(`CNPJ: ${cnpj}`) + '\n';
+            textoRaw += '-'.repeat(32) + '\n';
+            textoRaw += alinharCentro(`2 VIA - ${m.identificacao.toUpperCase()}`) + '\n';
+            textoRaw += alinharLados('DATA:', dataFormatada) + '\n';
+            textoRaw += '-'.repeat(32) + '\n\n';
+
+            itens.forEach(item => {
+                const precoStr = (parseFloat(item.preco) * item.qtd).toFixed(2).replace('.', ',');
+                textoRaw += alinharLados(`${item.qtd}x ${item.nome.toUpperCase()}`, `R$ ${precoStr}`) + '\n';
+                if (item.detalhes || item.observacao) {
+                    const obsLimpa = (item.detalhes || item.observacao).replace(/<br>/g, ' | ');
+                    textoRaw += `  OBS: ${obsLimpa}\n`;
+                }
+            });
+
+            textoRaw += '\n' + '-'.repeat(32) + '\n';
+            textoRaw += alinharLados('TOTAL:', `R$ ${parseFloat(m.total).toFixed(2).replace('.', ',')}`) + '\n';
+            textoRaw += '-'.repeat(32) + '\n';
+            textoRaw += alinharLados('PAGAMENTO:', m.forma_pagamento || 'DINHEIRO') + '\n';
+            textoRaw += '\n' + alinharCentro('OBRIGADO PELA PREFERENCIA') + '\n\n\n\n';
+
+            const textoCodificado = encodeURIComponent(textoRaw);
+            window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+            return;
+        }
+
+        // ROTA NAVEGADOR / PC (MANTIDA ORIGINAL)
         let html = `
             <div style="font-family: 'Courier New', Courier, monospace; width: 300px; padding: 5px; color: #000;">
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <div style="font-size: 18px; font-weight: bold;">${localStorage.getItem('nomeLoja') || 'Espetinho & Cia'}</div>
-                    ${localStorage.getItem('empresa_cnpj') ? `<div style="font-size: 11px; text-align: center;">CNPJ: ${localStorage.getItem('empresa_cnpj')}</div>` : ''}
+                    <div style="font-size: 18px; font-weight: bold;">${loja}</div>
+                    ${cnpj ? `<div style="font-size: 11px; text-align: center;">CNPJ: ${cnpj}</div>` : ''}
                     <div style="font-size: 13px; font-weight: bold; margin-top: 4px;">2ª VIA - ${m.identificacao.toUpperCase()}</div>
                     <div style="font-size: 10px; margin-top: 4px;">DATA: ${new Date(m.fechada_em).toLocaleString('pt-BR')}</div>
                 </div>
                 <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
                 <div style="margin-top: 10px;">
                     ${itens.map(item => {
-                        // ===============================================================
-                        // INJETA A OBSERVAÇÃO (INGREDIENTES/ESPETOS) NO CUPOM DE IMPRESSÃO
-                        // ===============================================================
                         const obsHtml = (item.detalhes || item.observacao) 
                             ? `<div style="font-size: 11px; margin-top: 2px; padding-left: 5px; font-style: italic;">Obs: ${item.detalhes || item.observacao}</div>` 
                             : '';
-
                         return `
                         <div style="margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
