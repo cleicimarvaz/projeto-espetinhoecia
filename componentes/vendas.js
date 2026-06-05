@@ -748,29 +748,32 @@ window.renderizarAdicionaisRefeicao = function() {
 window.atualizarTotalRefeicao = function() {
     if (!window.refeicaoAtual) return;
 
-    let total = parseFloat(window.refeicaoAtual.preco);
+    // 1. PREÇO MÍNIMO DA JANTINHA (Base fixa)
+    const precoBaseJantinha = 25.00;
+    const precoReferenciaEspeto = 10.00; // O espeto padrão que já está incluso nos R$ 25,00
+    
+    let total = precoBaseJantinha;
 
-    // =================================================================
-    // LÓGICA DA DIFERENÇA DO ESPETO (Ex: Medalhão, Pão de Alho, etc)
-    // =================================================================
+    // 2. Lógica do Espeto Incluído
     const selectIncluso = document.getElementById('ref-espeto-incluso');
     if (selectIncluso && selectIncluso.selectedIndex >= 0) {
         const opcaoSelecionada = selectIncluso.options[selectIncluso.selectedIndex];
         const precoEspetoSelecionado = parseFloat(opcaoSelecionada.getAttribute('data-preco') || 0);
         
-        // Se o espeto escolhido for mais caro que o Padrão, soma a diferença!
-        if (precoEspetoSelecionado > window.precoBaseEspeto) {
-            const diferenca = precoEspetoSelecionado - window.precoBaseEspeto;
+        // SÓ soma a diferença se o espeto for MAIS CARO que o padrão de R$ 10,00
+        if (precoEspetoSelecionado > precoReferenciaEspeto) {
+            const diferenca = precoEspetoSelecionado - precoReferenciaEspeto;
             total += diferenca;
         }
+        // Se for 9,00 ou 10,00, o total continua sendo R$ 25,00 (não entra no IF)
     }
 
-    // Lógica dos espetos Extras/Adicionais
+    // 3. Lógica dos espetos Adicionais (são sempre somados integralmente)
     if (window.refeicaoAdicionais && window.refeicaoAdicionais.length > 0) {
         total += window.refeicaoAdicionais.reduce((acc, item) => acc + parseFloat(item.preco), 0);
     }
 
-    // Atualiza a tela e guarda na variável Global para a confirmação
+    // Atualiza a tela e a variável Global
     window.refeicaoTotalAtual = total; 
     
     const spanTotal = document.getElementById('modal-ref-total');
