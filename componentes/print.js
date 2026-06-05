@@ -494,17 +494,21 @@ window.imprimirCupom = function(venda) {
 
 // FORMATO 2: Imprimir resumo completo da conta (Ticket Consolidado)
 window.imprimirTicketVenda = function(dadosVenda) {
-    const loja = localStorage.getItem('nomeLoja') || "ESPETINHO E CIA"; // Sem & para evitar bugs no RawBT
+    const loja = localStorage.getItem('nomeLoja') || "ESPETINHO E CIA";
     const cnpj = localStorage.getItem('empresa_cnpj') || "";
     const layout = localStorage.getItem('ticketLayout') || 'original'; 
     
-    // BLINDAGEM: Pega as duas variáveis possíveis para garantir que não vai escapar
+    // --- CORREÇÃO DO CONFLITO DE CHAVES ---
+    // Lemos as duas chaves possíveis do localStorage para garantir que o sistema não se perca
     const formatoGlobal = (localStorage.getItem('formatoImpressao') || '').toLowerCase();
-    const modoConfigurado = (localStorage.getItem('modoImpressao') || 'pdf').toLowerCase();
+    const modoConfigurado = (localStorage.getItem('modoImpressao') || '').toLowerCase();
+    
+    // Se qualquer uma das chaves indicar que é para usar a térmica/RawBT, ativamos o modo texto puro
     const modoRawBT = ['direto', 'rawbt', 'termico'].includes(modoConfigurado) || 
                       ['direto', 'rawbt', 'termico'].includes(formatoGlobal);
     
     const ua = navigator.userAgent.toLowerCase();
+    const isAndroid = /android/.test(ua);
     const isIOS = /iphone|ipad|ipod/.test(ua);
 
     // 1. AGRUPAMENTO DOS ITENS
@@ -527,9 +531,7 @@ window.imprimirTicketVenda = function(dadosVenda) {
     const dataFormatada = new Date(dadosVenda.created_at || dadosVenda.data || Date.now()).toLocaleString('pt-BR');
     const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
 
-    // ====================================================================================
-    // FUNÇÕES DE ALINHAMENTO PARA 32 COLUNAS (58MM)
-    // ====================================================================================
+    // Funções auxiliares para alinhar perfeitamente em 32 colunas (largura de 58mm)
     const alinharCentro = (texto) => {
         const str = String(texto).substring(0, 32);
         const espacos = Math.max(0, Math.floor((32 - str.length) / 2));
@@ -541,36 +543,33 @@ window.imprimirTicketVenda = function(dadosVenda) {
         const strDir = String(dir);
         const espacosLivres = 32 - strEsq.length - strDir.length;
         if (espacosLivres > 0) return strEsq + ' '.repeat(espacosLivres) + strDir;
-        // Se ficar muito grande, corta o nome do produto para caber o preço
         return strEsq.substring(0, 32 - strDir.length - 1) + ' ' + strDir;
     };
 
     // ====================================================================================
-    // ROTA 1: IMPRESSÃO DIRETA (RAWBT) - OBRIGATÓRIO SER TEXTO PURO
+    // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) - TEXTO PURO FORMATADO
     // ====================================================================================
-    if (modoRawBT) {
-        let textoRaw = '\n'; // Quebra de linha inicial
+    if (modoRawBT && isAndroid) {
+        let textoRaw = '\n'; 
         
         textoRaw += alinharCentro(loja) + '\n';
         if (cnpj) textoRaw += alinharCentro(`CNPJ: ${cnpj}`) + '\n';
         textoRaw += '-'.repeat(32) + '\n';
         textoRaw += alinharCentro(dadosVenda.tipo || 'VENDA') + '\n';
         textoRaw += alinharLados('DATA:', dataFormatada) + '\n';
-        textoRaw += '-'.repeat(32) + '\n';
+        textoRaw += '-'.repeat(32) + '\n\n';
 
         Object.values(itensAgrupados).forEach(i => {
             const precoStr = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
-            // Formata: "2x ESPETINHO               20,00"
             textoRaw += alinharLados(`${i.qtd}x ${i.nome.toUpperCase()}`, precoStr) + '\n';
             
             if (i.detalhes || i.observacao) {
-                // Remove quebras de linha HTML (<br>) da observação e recua o texto
                 const obsLimpa = (i.detalhes || i.observacao).replace(/<br>/g, ' | ');
                 textoRaw += `  OBS: ${obsLimpa}\n`;
             }
         });
 
-        textoRaw += '-'.repeat(32) + '\n';
+        textoRaw += '\n' + '-'.repeat(32) + '\n';
         const totalStr = window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2);
         textoRaw += alinharLados('TOTAL:', `R$ ${totalStr}`) + '\n';
         textoRaw += '-'.repeat(32) + '\n';
@@ -582,7 +581,7 @@ window.imprimirTicketVenda = function(dadosVenda) {
         
         textoRaw += '\n' + alinharCentro('OBRIGADO PELA PREFERENCIA') + '\n\n\n\n';
 
-        // Dispara o Intent para o RawBT imprimir
+        // Envia o texto puro limpo direto para o aplicativo RawBT
         const textoCodificado = encodeURIComponent(textoRaw);
         window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
         return;
@@ -620,7 +619,6 @@ window.imprimirTicketVenda = function(dadosVenda) {
             html, body { font-family: 'Courier New', monospace; width: 58mm !important; max-width: 58mm !important; background-color: #fff; color: #000; font-size: 11px; line-height: 1.2; }
             .ticket-container { width: 58mm !important; max-width: 58mm !important; padding: 2mm 3mm; overflow: hidden; }
             .divisor { border-top: 1px dashed #000; margin: 6px 0; }
-            ${typeof getTicketCSS === 'function' ? getTicketCSS(layout) : ''}
         </style>
     </head>
     <body>
