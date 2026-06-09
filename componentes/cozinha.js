@@ -763,25 +763,50 @@ window.imprimirTicket58mm = async function(id, idLote) {
 
     const win = window.open('', '_blank', 'width=300,height=600');
     win.document.write(`
+        <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="utf-8">
             <style>
+                /* 1. Força a página a ter exatamente 58mm e evita margens automáticas do Windows */
                 @page { margin: 0; size: 58mm auto; }
-                body { font-family: 'Courier New', Courier, monospace; width: 54mm; padding: 2mm; margin: 0; color: #000; }
+                
+                /* 2. Regra de ferro: Nada pode ultrapassar a bobina e tudo usa Box Sizing */
+                * { 
+                    margin: 0; 
+                    padding: 0; 
+                    box-sizing: border-box; 
+                    max-width: 58mm !important; 
+                }
+
+                /* 3. Ajustes do Body: Preto puro, controle de cor e bloqueio de vazamento lateral */
+                body { 
+                    font-family: 'Courier New', Courier, monospace; 
+                    width: 58mm; 
+                    padding: 2mm; 
+                    background: #fff;
+                    color: #000 !important; 
+                    overflow-x: hidden;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                
                 .center { text-align: center; }
                 .header { font-weight: bold; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 5px; }
                 .mesa { font-size: 26px; font-weight: 900; margin: 10px 0; }
                 .item-container { margin-top: 10px; }
                 
-                .item-row { display: flex; align-items: flex-start; margin-bottom: 2px; }
-                .qtd { font-weight: 900; font-size: 18px; min-width: 30px; }
-                .nome { font-weight: bold; font-size: 16px; text-transform: uppercase; line-height: 1.2; word-wrap: break-word; flex: 1; }
+                /* 4. Controle flexível para não espremer a quantidade contra o nome */
+                .item-row { display: flex; align-items: flex-start; margin-bottom: 2px; width: 100%; }
+                .qtd { font-weight: 900; font-size: 18px; min-width: 25px; }
+                .nome { font-weight: bold; font-size: 16px; text-transform: uppercase; line-height: 1.1; word-wrap: break-word; flex: 1; padding-right: 2mm; }
                 
-                .obs { font-size: 13px; font-style: italic; font-weight: bold; margin-left: 30px; margin-bottom: 6px; color: #333; }
+                /* 5. Correção de Cor (#333 para #000) e quebra de palavras seguras */
+                .obs { font-size: 13px; font-style: italic; font-weight: bold; margin-left: 25px; margin-bottom: 6px; color: #000; word-wrap: break-word; }
                 .footer { border-top: 2px solid #000; margin-top: 15px; padding-top: 5px; font-size: 12px; }
             </style>
         </head>
-        <body onload="window.print(); window.close();">
+        <body onload="setTimeout(() => { window.print(); window.close(); }, 500);">
             <div class="center header">PEDIDO COZINHA</div>
             <div class="center mesa">${c.identificacao}</div>
             <div class="center" style="font-size: 11px; margin-bottom: 10px;">${dataHora}</div>

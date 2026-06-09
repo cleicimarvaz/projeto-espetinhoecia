@@ -558,27 +558,23 @@ window.imprimirTicketVenda = function(dadosVenda) {
     const dataFormatada = new Date(dadosVenda.created_at || dadosVenda.data || Date.now()).toLocaleString('pt-BR');
     const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
 
-    // Funções auxiliares para alinhar perfeitamente em 32 colunas (largura de 58mm)
-    const alinharCentro = (texto) => {
-        const str = String(texto).substring(0, 32);
-        const espacos = Math.max(0, Math.floor((32 - str.length) / 2));
-        return ' '.repeat(espacos) + str;
-    };
-
-    const alinharLados = (esq, dir) => {
-        const strEsq = String(esq);
-        const strDir = String(dir);
-        const espacosLivres = 32 - strEsq.length - strDir.length;
-        if (espacosLivres > 0) return strEsq + ' '.repeat(espacosLivres) + strDir;
-        return strEsq.substring(0, 32 - strDir.length - 1) + ' ' + strDir;
-    };
-
     // ====================================================================================
-    // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) - TEXTO PURO FORMATADO
+    // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) - MANTIDA POR SEGURANÇA
     // ====================================================================================
-    if (window.isRawBTThermalMode() && isAndroid) {
+    if (typeof window.isRawBTThermalMode === 'function' && window.isRawBTThermalMode() && isAndroid) {
+        // Funções auxiliares 32 colunas
+        const alinharCentro = (texto) => {
+            const str = String(texto).substring(0, 32);
+            return ' '.repeat(Math.max(0, Math.floor((32 - str.length) / 2))) + str;
+        };
+        const alinharLados = (esq, dir) => {
+            const strEsq = String(esq); const strDir = String(dir);
+            const espacosLivres = 32 - strEsq.length - strDir.length;
+            if (espacosLivres > 0) return strEsq + ' '.repeat(espacosLivres) + strDir;
+            return strEsq.substring(0, 32 - strDir.length - 1) + ' ' + strDir;
+        };
+
         let textoRaw = '\n'; 
-        
         textoRaw += alinharCentro(loja) + '\n';
         if (cnpj) textoRaw += alinharCentro(`CNPJ: ${cnpj}`) + '\n';
         textoRaw += '-'.repeat(32) + '\n';
@@ -589,7 +585,6 @@ window.imprimirTicketVenda = function(dadosVenda) {
         Object.values(itensAgrupados).forEach(i => {
             const precoStr = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
             textoRaw += alinharLados(`${i.qtd}x ${i.nome.toUpperCase()}`, precoStr) + '\n';
-            
             if (i.detalhes || i.observacao) {
                 const obsLimpa = (i.detalhes || i.observacao).replace(/<br>/g, ' | ');
                 textoRaw += `  OBS: ${obsLimpa}\n`;
@@ -607,33 +602,34 @@ window.imprimirTicketVenda = function(dadosVenda) {
         }
         
         textoRaw += '\n' + alinharCentro('OBRIGADO PELA PREFERENCIA') + '\n\n\n\n';
-
-        // Envia o texto puro limpo direto para o aplicativo RawBT
         const textoCodificado = encodeURIComponent(textoRaw);
         window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
         return;
     }
 
     // ====================================================================================
-    // ROTA 2: IMPRESSÃO NO WINDOWS / IOS / NAVEGADOR (HTML + CSS)
+    // ROTA 2: IMPRESSÃO NO WINDOWS (NOTEBOOK) / NAVEGADOR
     // ====================================================================================
     let htmlItens = '';
     Object.values(itensAgrupados).forEach(i => {
         const obsHtml = (i.detalhes || i.observacao) 
-            ? `<div style="font-size: 9px; font-style: italic; margin-top: 2px; text-transform: uppercase;">Obs: ${i.detalhes || i.observacao}</div>` 
+            ? `<div class="obs">↳ ${i.detalhes || i.observacao}</div>` 
             : '';
 
+        const precoFormatado = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
+
+        // Uso de Flexbox para garantir que o preço NUNCA seja cortado
         htmlItens += `
-        <div style="margin-bottom: 4px; border-bottom: 1px dashed #ccc; padding-bottom: 3px;">
-            <div class="item-name">${i.qtd}x ${i.nome.toUpperCase()}</div>
-            ${obsHtml}
-            <div class="item-price" style="text-align: right; font-size:11px; font-weight: bold; margin-top: 2px;">
-                R$ ${window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2)}
+        <div class="item-row-container">
+            <div class="item-row">
+                <div class="item-name">${i.qtd}x ${i.nome.toUpperCase()}</div>
+                <div class="item-price">R$ ${precoFormatado}</div>
             </div>
+            ${obsHtml}
         </div>`;
     });
 
-    let pgtoHtml = !isPreConta ? `<div class="instruction-text" style="font-size:11px; margin-top:5px;">PAGAMENTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}</div>` : '';
+    let pgtoHtml = !isPreConta ? `<div class="pgto-box">PAGAMENTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}</div>` : '';
 
     const htmlCompleto = `
     <!DOCTYPE html>
@@ -641,35 +637,71 @@ window.imprimirTicketVenda = function(dadosVenda) {
     <head>
         <meta charset="utf-8">
         <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
+            /* Reset Global Blindado para 58mm */
             @page { margin: 0; size: 58mm auto; }
-            html, body { font-family: 'Courier New', monospace; width: 58mm !important; max-width: 58mm !important; background-color: #fff; color: #000; font-size: 11px; line-height: 1.2; }
-            .ticket-container { width: 58mm !important; max-width: 58mm !important; padding: 2mm 3mm; overflow: hidden; }
-            .divisor { border-top: 1px dashed #000; margin: 6px 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; max-width: 58mm !important; }
+
+            /* Corpo do Cupom */
+            body { 
+                font-family: 'Courier New', Courier, monospace; 
+                width: 58mm; 
+                padding: 2mm; 
+                background: #fff; 
+                color: #000 !important; 
+                font-size: 11px; 
+                line-height: 1.2;
+                overflow-x: hidden;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .text-center { text-align: center; }
+            .bold { font-weight: bold; }
+            .uppercase { text-transform: uppercase; }
+            .divisor { border-top: 1px dashed #000; margin: 6px 0; width: 100%; }
+
+            /* Cabecalho */
+            .store-name { font-size: 14px; font-weight: 900; margin-bottom: 2px; }
+            .meta { font-size: 9px; margin-bottom: 6px; }
+
+            /* Linhas dos Itens (Flexbox evita cortes laterais) */
+            .item-row-container { margin-bottom: 4px; border-bottom: 1px dashed #ccc; padding-bottom: 3px; }
+            .item-row { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
+            .item-name { font-weight: bold; word-wrap: break-word; flex: 1; padding-right: 4px; }
+            .item-price { font-weight: bold; white-space: nowrap; text-align: right; }
+            .obs { font-size: 10px; font-style: italic; font-weight: bold; margin-top: 2px; margin-left: 10px; color: #000; }
+
+            /* Total e Pagamento */
+            .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; margin-top: 6px; width: 100%; }
+            .pgto-box { font-size: 11px; font-weight: bold; margin-top: 5px; }
+            .footer { margin-top: 12px; font-size: 10px; }
         </style>
     </head>
-    <body>
-        <div class="ticket-container">
-            <div class="ticket-wrapper">
-                <div class="header">
-                    <div class="store-name text-center bold">${loja}</div>
-                    ${cnpj ? `<div class="text-center" style="font-size:10px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
-                    <div class="text-center bold uppercase" style="font-size:12px; margin-bottom: 4px;">${dadosVenda.tipo || 'VENDA'}</div>
-                    <div class="meta text-center" style="font-size:9px; margin-bottom: 6px;">DATA: ${dataFormatada}</div>
-                </div>
-                <div class="divisor"></div>
-                <div class="unified-box">
-                    ${htmlItens}
-                </div>
-                <div class="divisor"></div>
-                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold; margin-top:6px;">
-                    <span class="bold">TOTAL</span>
-                    <span class="bold">R$ ${window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2)}</span>
-                </div>
-                ${pgtoHtml}
-                <div class="footer text-center bold" style="margin-top:12px; font-size:10px;">OBRIGADO PELA PREFERÊNCIA</div>
-            </div>
+    <body onload="setTimeout(() => { window.print(); window.close(); }, 500);">
+        <div class="text-center">
+            <div class="store-name">${loja}</div>
+            ${cnpj ? `<div style="font-size:10px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
+            <div class="bold uppercase" style="font-size:12px; margin-bottom: 4px;">${dadosVenda.tipo || 'VENDA'}</div>
+            <div class="meta">DATA: ${dataFormatada}</div>
         </div>
+        
+        <div class="divisor"></div>
+        
+        <div>
+            ${htmlItens}
+        </div>
+        
+        <div class="divisor"></div>
+        
+        <div class="total-row">
+            <span>TOTAL</span>
+            <span>R$ ${window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2)}</span>
+        </div>
+        
+        ${pgtoHtml}
+        
+        <div class="divisor"></div>
+        <div class="footer text-center bold">OBRIGADO PELA PREFERÊNCIA</div>
     </body>
     </html>`;
 
@@ -681,7 +713,6 @@ window.imprimirTicketVenda = function(dadosVenda) {
     const win = window.open('', '_blank', 'width=350,height=600');
     win.document.write(htmlCompleto); 
     win.document.close();
-    setTimeout(() => { win.print(); win.close(); }, 500);
 }
 
 
