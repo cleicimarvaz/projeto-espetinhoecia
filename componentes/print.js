@@ -275,7 +275,7 @@ window.processarImpressaoCardapio = async function() {
 }
 
 window.gerarTemplateClassico = function(produtos, loja, logoBase64, mensagem) {
-    const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚' };
+    const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚', 'combos': '🍻' };
     const categoriesObj = {};
     
     produtos.forEach(p => { 
@@ -538,7 +538,7 @@ window.imprimirTicketVenda = function(dadosVenda) {
     const isAndroid = /android/.test(ua);
     const isIOS = /iphone|ipad|ipod/.test(ua);
 
-    // 1. AGRUPAMENTO DOS ITENS
+    // 1. AGRUPAMENTO DOS ITENS (Mantemos a lógica de agrupar por obs para não somar preços diferentes, mas não vamos imprimi-la)
     const itensArray = Array.isArray(dadosVenda.itens) ? dadosVenda.itens : JSON.parse(dadosVenda.itens || '[]');
     const itensAgrupados = {};
 
@@ -559,10 +559,9 @@ window.imprimirTicketVenda = function(dadosVenda) {
     const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
 
     // ====================================================================================
-    // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) - MANTIDA POR SEGURANÇA
+    // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) 
     // ====================================================================================
     if (typeof window.isRawBTThermalMode === 'function' && window.isRawBTThermalMode() && isAndroid) {
-        // Funções auxiliares 32 colunas
         const alinharCentro = (texto) => {
             const str = String(texto).substring(0, 32);
             return ' '.repeat(Math.max(0, Math.floor((32 - str.length) / 2))) + str;
@@ -585,15 +584,20 @@ window.imprimirTicketVenda = function(dadosVenda) {
         Object.values(itensAgrupados).forEach(i => {
             const precoStr = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
             textoRaw += alinharLados(`${i.qtd}x ${i.nome.toUpperCase()}`, precoStr) + '\n';
-            if (i.detalhes || i.observacao) {
-                const obsLimpa = (i.detalhes || i.observacao).replace(/<br>/g, ' | ');
-                textoRaw += `  OBS: ${obsLimpa}\n`;
-            }
+            // OBSERVAÇÕES REMOVIDAS DAQUI TAMBÉM (Para manter o padrão)
         });
 
         textoRaw += '\n' + '-'.repeat(32) + '\n';
         const totalStr = window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2);
         textoRaw += alinharLados('TOTAL:', `R$ ${totalStr}`) + '\n';
+        
+        if (dadosVenda.troco > 0) {
+            const recStr = window.fmSeguro ? window.fmSeguro(dadosVenda.recebido) : parseFloat(dadosVenda.recebido).toFixed(2);
+            const trcStr = window.fmSeguro ? window.fmSeguro(dadosVenda.troco) : parseFloat(dadosVenda.troco).toFixed(2);
+            textoRaw += alinharLados('RECEBIDO:', `R$ ${recStr}`) + '\n';
+            textoRaw += alinharLados('TROCO:', `R$ ${trcStr}`) + '\n';
+        }
+
         textoRaw += '-'.repeat(32) + '\n';
         
         if (!isPreConta) {
@@ -612,24 +616,35 @@ window.imprimirTicketVenda = function(dadosVenda) {
     // ====================================================================================
     let htmlItens = '';
     Object.values(itensAgrupados).forEach(i => {
-        const obsHtml = (i.detalhes || i.observacao) 
-            ? `<div class="obs">↳ ${i.detalhes || i.observacao}</div>` 
-            : '';
-
         const precoFormatado = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
 
-        // Uso de Flexbox para garantir que o preço NUNCA seja cortado
+        // OBSERVAÇÕES REMOVIDAS (Cupom focado apenas no produto e valor)
         htmlItens += `
         <div class="item-row-container">
             <div class="item-row">
                 <div class="item-name">${i.qtd}x ${i.nome.toUpperCase()}</div>
                 <div class="item-price">R$ ${precoFormatado}</div>
             </div>
-            ${obsHtml}
         </div>`;
     });
 
     let pgtoHtml = !isPreConta ? `<div class="pgto-box">PAGAMENTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}</div>` : '';
+
+    let trocoHtml = '';
+    if (dadosVenda.troco > 0) {
+        const recFormat = window.fmSeguro ? window.fmSeguro(dadosVenda.recebido) : parseFloat(dadosVenda.recebido).toFixed(2);
+        const trocoFormat = window.fmSeguro ? window.fmSeguro(dadosVenda.troco) : parseFloat(dadosVenda.troco).toFixed(2);
+        
+        trocoHtml = `
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px; width: 100%;">
+            <span class="bold">RECEBIDO</span>
+            <span class="bold">R$ ${recFormat}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; margin-top: 2px; width: 100%;">
+            <span>TROCO</span>
+            <span>R$ ${trocoFormat}</span>
+        </div>`;
+    }
 
     const htmlCompleto = `
     <!DOCTYPE html>
@@ -637,15 +652,15 @@ window.imprimirTicketVenda = function(dadosVenda) {
     <head>
         <meta charset="utf-8">
         <style>
-            /* Reset Global Blindado para 58mm */
             @page { margin: 0; size: 58mm auto; }
-            * { margin: 0; padding: 0; box-sizing: border-box; max-width: 58mm !important; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
 
-            /* Corpo do Cupom */
             body { 
                 font-family: 'Courier New', Courier, monospace; 
-                width: 58mm; 
-                padding: 2mm; 
+                width: 48mm !important; 
+                max-width: 48mm !important; 
+                margin: 0 auto; 
+                padding: 0 2mm; 
                 background: #fff; 
                 color: #000 !important; 
                 font-size: 11px; 
@@ -656,33 +671,30 @@ window.imprimirTicketVenda = function(dadosVenda) {
             }
 
             .text-center { text-align: center; }
-            .bold { font-weight: bold; }
+            /* Negrito forçado para evitar letras claras na impressão térmica */
+            .bold { font-weight: 900 !important; color: #000 !important; }
             .uppercase { text-transform: uppercase; }
             .divisor { border-top: 1px dashed #000; margin: 6px 0; width: 100%; }
 
-            /* Cabecalho */
             .store-name { font-size: 14px; font-weight: 900; margin-bottom: 2px; }
-            .meta { font-size: 9px; margin-bottom: 6px; }
+            .meta { font-size: 10px; margin-bottom: 6px; }
 
-            /* Linhas dos Itens (Flexbox evita cortes laterais) */
-            .item-row-container { margin-bottom: 4px; border-bottom: 1px dashed #ccc; padding-bottom: 3px; }
+            .item-row-container { margin-bottom: 4px; padding-bottom: 2px; width: 100%; }
             .item-row { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
-            .item-name { font-weight: bold; word-wrap: break-word; flex: 1; padding-right: 4px; }
-            .item-price { font-weight: bold; white-space: nowrap; text-align: right; }
-            .obs { font-size: 10px; font-style: italic; font-weight: bold; margin-top: 2px; margin-left: 10px; color: #000; }
+            .item-name { font-weight: 900; flex: 1; padding-right: 4px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; }
+            .item-price { font-weight: 900; white-space: nowrap; text-align: right; }
 
-            /* Total e Pagamento */
             .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; margin-top: 6px; width: 100%; }
-            .pgto-box { font-size: 11px; font-weight: bold; margin-top: 5px; }
+            .pgto-box { font-size: 11px; font-weight: 900; margin-top: 5px; }
             .footer { margin-top: 12px; font-size: 10px; }
         </style>
     </head>
     <body onload="setTimeout(() => { window.print(); window.close(); }, 500);">
         <div class="text-center">
             <div class="store-name">${loja}</div>
-            ${cnpj ? `<div style="font-size:10px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
+            ${cnpj ? `<div class="bold" style="font-size:11px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
             <div class="bold uppercase" style="font-size:12px; margin-bottom: 4px;">${dadosVenda.tipo || 'VENDA'}</div>
-            <div class="meta">DATA: ${dataFormatada}</div>
+            <div class="meta bold">DATA: ${dataFormatada}</div>
         </div>
         
         <div class="divisor"></div>
@@ -698,6 +710,7 @@ window.imprimirTicketVenda = function(dadosVenda) {
             <span>R$ ${window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2)}</span>
         </div>
         
+        ${trocoHtml}
         ${pgtoHtml}
         
         <div class="divisor"></div>
@@ -802,6 +815,28 @@ window.gerarTicketHTML = function(dados, loja) {
     const win = window.open('', '_blank', 'width=350,height=600');
     win.document.write(html); 
     win.document.close();
+}
+
+// Dispara a impressão a partir do modal de confirmação
+window.imprimirComprovanteModal = function() {
+    if (window.dadosComprovanteAtual) {
+        // Chama a nossa função blindada de 48mm/Flexbox!
+        window.imprimirTicketVenda(window.dadosComprovanteAtual);
+        
+        // Fecha o modal após enviar para a impressora
+        window.fecharModalImpressaoComprovante();
+    } else {
+        if(typeof showToast === 'function') showToast("Dados da venda não encontrados.", "erro");
+    }
+}
+
+// Função para fechar o modal
+window.fecharModalImpressaoComprovante = function() {
+    const modal = document.getElementById('modal-confirmacao-impressao');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
 }
 
 window.imprimirComprovanteDespesa = function(id) {

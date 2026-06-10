@@ -49,7 +49,7 @@ window.renderizarCatalogo = async function() {
         return;
     }
 
-    const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚' };
+    const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚', 'combos': '🍻' };
     
     container.innerHTML = produtosExibicao.map(p => {
         const statusClass = p.status ? 'opacity-100' : 'opacity-50 grayscale bg-slate-50 dark:bg-slate-800';

@@ -768,41 +768,57 @@ window.imprimirTicket58mm = async function(id, idLote) {
         <head>
             <meta charset="utf-8">
             <style>
-                /* 1. Força a página a ter exatamente 58mm e evita margens automáticas do Windows */
+                /* O papel tem 58mm, mas avisamos o sistema. */
                 @page { margin: 0; size: 58mm auto; }
                 
-                /* 2. Regra de ferro: Nada pode ultrapassar a bobina e tudo usa Box Sizing */
                 * { 
                     margin: 0; 
                     padding: 0; 
                     box-sizing: border-box; 
-                    max-width: 58mm !important; 
                 }
 
-                /* 3. Ajustes do Body: Preto puro, controle de cor e bloqueio de vazamento lateral */
                 body { 
                     font-family: 'Courier New', Courier, monospace; 
-                    width: 58mm; 
-                    padding: 2mm; 
+                    /* A MÁGICA ESTÁ AQUI: 48mm é a área real da cabeça térmica! */
+                    width: 48mm !important; 
+                    max-width: 48mm !important;
+                    padding: 0 2mm; /* Pequeno respiro lateral */
+                    margin: 0 auto; /* Centraliza na bobina */
                     background: #fff;
                     color: #000 !important; 
                     overflow-x: hidden;
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
                 }
                 
                 .center { text-align: center; }
                 .header { font-weight: bold; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 5px; }
-                .mesa { font-size: 26px; font-weight: 900; margin: 10px 0; }
+                .mesa { font-size: 24px; font-weight: 900; margin: 10px 0; }
                 .item-container { margin-top: 10px; }
                 
-                /* 4. Controle flexível para não espremer a quantidade contra o nome */
                 .item-row { display: flex; align-items: flex-start; margin-bottom: 2px; width: 100%; }
-                .qtd { font-weight: 900; font-size: 18px; min-width: 25px; }
-                .nome { font-weight: bold; font-size: 16px; text-transform: uppercase; line-height: 1.1; word-wrap: break-word; flex: 1; padding-right: 2mm; }
+                .qtd { font-weight: 900; font-size: 16px; min-width: 22px; }
                 
-                /* 5. Correção de Cor (#333 para #000) e quebra de palavras seguras */
-                .obs { font-size: 13px; font-style: italic; font-weight: bold; margin-left: 25px; margin-bottom: 6px; color: #000; word-wrap: break-word; }
+                /* word-break força a palavra a quebrar se for maior que a tela */
+                .nome { 
+                    font-weight: bold; 
+                    font-size: 14px; 
+                    text-transform: uppercase; 
+                    line-height: 1.1; 
+                    flex: 1; 
+                    word-wrap: break-word; 
+                    overflow-wrap: break-word; 
+                    word-break: break-word; 
+                }
+                
+                .obs { 
+                    font-size: 12px; 
+                    font-style: italic; 
+                    font-weight: bold; 
+                    margin-left: 22px; 
+                    margin-bottom: 6px; 
+                    color: #000; 
+                    word-wrap: break-word; 
+                    overflow-wrap: break-word; 
+                }
                 .footer { border-top: 2px solid #000; margin-top: 15px; padding-top: 5px; font-size: 12px; }
             </style>
         </head>

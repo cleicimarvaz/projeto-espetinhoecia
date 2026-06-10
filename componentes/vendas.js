@@ -125,7 +125,7 @@ window.renderizarVenda = function() {
     }
     // ====================================================
 
-    const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚' };
+    const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚', 'combos': '🍻' };
     
     cont.innerHTML = produtosFiltrados.map(p => {
         const itemNoCarrinho = window.carrinho.find(c => c.id === p.id);
@@ -839,7 +839,7 @@ window.confirmarRefeicao = function() {
 window.abrirModalEspeto = function(produto) {
     window.espetoAtual = produto;
     
-    // 1. FILTRA OS ITENS QUE VIERAM DO BANCO (Aqui está a mágica!)
+    // 1. FILTRA OS ITENS QUE VIERAM DO BANCO
     const molhos = window.complementosCache.filter(c => c.tipo === 'molho');
     const farinhas = window.complementosCache.filter(c => c.tipo === 'farinha');
 
@@ -852,10 +852,10 @@ window.abrirModalEspeto = function(produto) {
             ? molhos.map(m => `
                 <label class="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-100 dark:border-slate-700 cursor-pointer">
                     <input type="checkbox" value="${m.nome}" class="espeto-molho w-4 h-4 text-red-500 accent-red-500">
-                    <span class="text-[9px] font-bold uppercase">${m.nome}</span>
+                    <span class="text-[9px] font-bold uppercase text-slate-800 dark:text-slate-200">${m.nome}</span>
                 </label>
             `).join('')
-            : '<p class="text-xs text-slate-400 italic">Nenhum molho cadastrado.</p>';
+            : '<p class="text-xs text-slate-400 dark:text-slate-500 italic">Nenhum molho cadastrado.</p>';
     }
 
     // 3. Renderizar Farinha dinâmica
@@ -865,10 +865,10 @@ window.abrirModalEspeto = function(produto) {
             ? farinhas.map(f => `
                 <label class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 cursor-pointer">
                     <input type="radio" name="farinha" value="${f.nome}" ${f.nome === 'Mandioca' ? 'checked' : ''} class="espeto-farinha w-4 h-4 text-red-500 accent-red-500">
-                    <span class="text-[9px] font-bold uppercase">${f.nome}</span>
+                    <span class="text-[9px] font-bold uppercase text-slate-800 dark:text-slate-200">${f.nome}</span>
                 </label>
             `).join('')
-            : '<p class="text-xs text-slate-400 italic">Nenhuma farinha cadastrada.</p>';
+            : '<p class="text-xs text-slate-400 dark:text-slate-500 italic">Nenhuma farinha cadastrada.</p>';
     }
 
     document.getElementById('modal-espeto').classList.remove('hidden');

@@ -748,10 +748,23 @@ window.fecharModalImpressao = function() {
     window.dadosComprovanteAtual = null; // Limpa a memória
 };
 
+// Ação do botão "SIM"
 window.confirmarImpressaoComprovante = function() {
-    // Se o usuário clicar em "SIM", manda imprimir os dados que salvamos e fecha
-    if (window.dadosComprovanteAtual && typeof window.imprimirTicketVenda === 'function') {
+    if (window.dadosComprovanteAtual) {
+        // Dispara a impressão com os dados salvos no fechamento
         window.imprimirTicketVenda(window.dadosComprovanteAtual);
+        // Fecha o modal logo em seguida
+        window.fecharModalImpressao();
+    } else {
+        if(typeof showToast === 'function') showToast("Dados da venda não encontrados.", "erro");
     }
-    window.fecharModalImpressao();
+};
+
+// Ação do botão "NÃO"
+window.fecharModalImpressao = function() {
+    const modal = document.getElementById('modal-confirmacao-impressao');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
 };

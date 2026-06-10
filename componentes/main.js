@@ -1655,39 +1655,32 @@ window.visualizarDetalhesVenda = async function(id, tabelaOrigem) {
     if (typeof showToast === 'function') showToast("Buscando cupom...", "aviso");
     
     try {
-        // 1. Define quais colunas buscar dependendo da tabela!
-        let colunasDaBusca = '';
-        if (tabelaOrigem === 'comandas') {
-            colunasDaBusca = 'identificacao, itens, total, forma_pagamento, fechada_em';
-        } else {
-            // Para a tabela historico_vendas (Balcão)
-            colunasDaBusca = 'comanda_origem, itens, total, forma_pagamento, criado_em';
-        }
-
-        // 2. Busca os detalhes da venda no banco usando as colunas certas
+        // 1. Usa select('*') para não dar erro caso falte alguma coluna no banco
         const { data, error } = await _supabase
             .from(tabelaOrigem)
-            .select(colunasDaBusca)
+            .select('*')
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error("[SUPABASE ERRO]:", error);
+            throw error;
+        }
 
-        // 3. Normaliza os dados (Se vier da comanda pega um nome, se for balcão pega outro)
-        const identificador = data.identificacao || data.comanda_origem || 'BALCÃO';
+        // 2. Normaliza o identificador (Cobre os nomes antigos e novos do banco)
+        const identificador = data.identificacao || (data.comanda_id ? `MESA ${data.comanda_id}` : (data.comanda_origem ? `MESA ${data.comanda_origem}` : 'BALCÃO'));
         document.getElementById('recibo-titulo').innerText = `2ª VIA - ${identificador}`;
 
-        // 4. Preenche a Data
-        const dataVenda = new Date(data.fechada_em || data.criado_em);
+        // 3. Preenche a Data (Cobre criado_em, created_at ou fechada_em)
+        const dataVenda = new Date(data.fechada_em || data.criado_em || data.created_at || new Date());
         const dataStr = dataVenda.toLocaleDateString('pt-BR');
-        const horaStr = dataVenda.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const horaStr = dataVenda.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         document.getElementById('recibo-data').innerText = `DATA: ${dataStr}, ${horaStr}`;
 
-        // 5. Converte e preenche os Itens
+        // 4. Normaliza os Itens para exibir na tela
         let htmlItens = '';
         let itensArray = [];
         
-        // Verifica se os itens vieram como String (JSON) ou Array direto do Supabase
         if (typeof data.itens === 'string') {
             try { itensArray = JSON.parse(data.itens); } catch (e) { itensArray = []; }
         } else if (Array.isArray(data.itens)) {
@@ -1703,8 +1696,8 @@ window.visualizarDetalhesVenda = async function(id, tabelaOrigem) {
                 
                 return `
                 <div class="flex justify-between items-start gap-2">
-                    <span class="flex-1 leading-tight">${qtd}X ${nome}</span>
-                    <span class="whitespace-nowrap">R$ ${totalItem.toFixed(2).replace('.', ',')}</span>
+                    <span class="flex-1 leading-tight text-left">${qtd}X ${nome.toUpperCase()}</span>
+                    <span class="whitespace-nowrap font-bold">R$ ${totalItem.toFixed(2).replace('.', ',')}</span>
                 </div>`;
             }).join('');
         } else {
@@ -1713,16 +1706,37 @@ window.visualizarDetalhesVenda = async function(id, tabelaOrigem) {
         
         document.getElementById('recibo-itens').innerHTML = htmlItens;
 
-        // 6. Preenche Total e Pagamento
+        // 5. Preenche Total e Pagamento na Tela
         document.getElementById('recibo-total').innerText = `R$ ${parseFloat(data.total).toFixed(2).replace('.', ',')}`;
-        document.getElementById('recibo-pagamento').innerText = data.forma_pagamento || 'DINHEIRO';
+        document.getElementById('recibo-pagamento').innerText = (data.forma_pagamento || 'DINHEIRO').toUpperCase();
 
-        // 7. Abre a tela do cupom virtual
+        // 6. Guarda os dados padronizados para a nossa Impressora!
+        window.dadosReimpressaoAtual = {
+            tipo: `2ª VIA - ${identificador}`,
+            total: data.total,
+            pagamento: data.forma_pagamento || 'DINHEIRO',
+            recebido: data.valor_recebido || data.recebido || 0,
+            troco: data.troco || 0,
+            itens: itensArray,
+            data: dataVenda 
+        };
+
+        // 7. Abre o modal
         document.getElementById('modal-preview-recibo').classList.remove('hidden');
 
     } catch (e) {
         console.error("Erro ao buscar detalhes:", e);
         if (typeof showToast === 'function') showToast("Erro ao gerar visualização", "erro");
+    }
+};
+
+// 8. Função que você vai chamar no botão "Imprimir" dentro do modal de preview
+window.dispararReimpressao = function() {
+    if (window.dadosReimpressaoAtual) {
+        // Dispara o nosso cupom perfeito de 48mm passando os dados retroativos
+        window.imprimirTicketVenda(window.dadosReimpressaoAtual);
+    } else {
+        if (typeof showToast === 'function') showToast("Dados para impressão não encontrados.", "erro");
     }
 };
 
