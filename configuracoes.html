@@ -312,6 +312,7 @@
                 <option value="cervejas">🍺 Cervejas</option>
                 <option value="refeicao">🍽️ Refeição</option>
                 <option value="acompanhamentos">🍚 Acompanhamento</option>
+                <option value="combos">🍻 Combos</option>
             </select>
         </div>
         <div>
@@ -1113,7 +1114,7 @@
         </div>
     </div>
 
-    <div id="modal-preview-recibo" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+<div id="modal-preview-recibo" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
         <div class="w-full max-w-sm flex flex-col items-center">
             <div class="bg-[#f8f9fa] w-full max-w-[320px] p-6 shadow-2xl font-mono text-black relative border-t-4 border-slate-300">
                 <div class="text-center font-black text-lg mb-1 tracking-tighter">Espetinho & Cia</div>
@@ -1134,9 +1135,18 @@
                     Obrigado pela preferência
                 </div>
             </div>
-            <button onclick="fecharPreviewRecibo()" class="mt-6 bg-white/10 text-white border border-white/30 px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all hover:bg-white/20">
-                Fechar Visualização ✕
-            </button>
+            
+            <div class="flex gap-3 mt-6 w-full max-w-[320px]">
+                <button onclick="fecharPreviewRecibo()" class="flex-1 bg-white/10 text-white border border-white/30 py-3 rounded-full font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all hover:bg-white/20">
+                    Fechar
+                </button>
+                <button onclick="window.dispararReimpressao()" class="flex-[2] flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-full font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-500/30 active:scale-95 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Imprimir 2ª Via
+                </button>
+            </div>
         </div>
     </div>
 
