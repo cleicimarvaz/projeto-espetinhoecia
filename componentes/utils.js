@@ -22,11 +22,24 @@ window.convMoedaFloat = function(valor) {
 /**
  * Máscara para campos de input de moeda
  */
-window.mascaraMoeda = function(event) {
-    let v = event.target.value.replace(/\D/g, "");
-    v = (v / 100).toFixed(2).replace(".", ",");
-    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
-    event.target.value = v;
+window.mascaraMoeda = function(elemento) {
+    // 1. Identifica se recebeu o input direto ('this') ou um evento ('event')
+    const input = elemento.target ? elemento.target : elemento;
+    
+    // 2. Pega o valor atual
+    let valor = input.value;
+    if (!valor) return;
+
+    // 3. Remove tudo que não for número
+    valor = valor.replace(/\D/g, '');
+    
+    // 4. Formata como moeda (ex: de 1000 para 10,00)
+    valor = (valor / 100).toFixed(2) + '';
+    valor = valor.replace('.', ',');
+    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    
+    // 5. Devolve para o input com o prefixo
+    input.value = valor === '0,00' ? '' : 'R$ ' + valor;
 };
 
 window.removerAcentos = function(str) {
