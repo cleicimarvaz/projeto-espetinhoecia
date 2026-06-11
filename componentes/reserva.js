@@ -97,6 +97,9 @@ function gerarGradeMesas(totalMesas) {
     if (!grade) return;
     grade.innerHTML = "";
     
+    // Classes Base
+    const baseClasses = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95";
+    
     for (let i = 1; i <= totalMesas; i++) {
         const estaConfirmada = mesasConfirmadas.includes(i);
         const estaPendente = mesasPendentes.includes(i);
@@ -105,23 +108,23 @@ function gerarGradeMesas(totalMesas) {
         const btn = document.createElement('button');
         btn.type = "button";
         btn.innerText = String(i).padStart(2, '0');
-        btn.className = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95";
-
+        
         if (estaConfirmada) {
-            btn.className += " bg-red-100 text-red-500 border-red-200 cursor-not-allowed opacity-70";
+            btn.className = baseClasses + " bg-red-100 text-red-500 border-red-200 cursor-not-allowed opacity-70";
             btn.disabled = true;
         } else if (estaPendente) {
-            btn.className += " bg-amber-100 text-amber-600 border-amber-200 cursor-not-allowed opacity-80 animate-pulse";
+            btn.className = baseClasses + " bg-amber-100 text-amber-600 border-amber-200 cursor-not-allowed opacity-80 animate-pulse";
             btn.disabled = true;
         } else if (estaSelecionada) {
-            // VERDE ESCURO SÓLIDO
-            btn.className += " bg-emerald-700 text-white border-emerald-800";
+            // VERDE ESCURO (Seletor ativo)
+            btn.className = baseClasses + " bg-emerald-800 text-white border-emerald-900";
             btn.onclick = () => alternarSelecaoMesa(i, btn);
         } else {
-            // BRANCO (LIVRE)
-            btn.className += " bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
+            // BRANCO (Livre)
+            btn.className = baseClasses + " bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
             btn.onclick = () => alternarSelecaoMesa(i, btn);
         }
+        
         grade.appendChild(btn);
     }
 }
@@ -130,22 +133,20 @@ function gerarGradeMesas(totalMesas) {
 // 4. SELEÇÃO E CÁLCULO
 // ==========================================
 function alternarSelecaoMesa(numeroMesa, elementoBotao) {
+    const baseClasses = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95";
     const index = mesasSelecionadas.indexOf(numeroMesa);
     
     if (index > -1) {
-        // DESMARCANDO: volta para Branco
+        // DESMARCANDO: Volta para BRANCO
         mesasSelecionadas.splice(index, 1);
-        
-        elementoBotao.classList.remove('bg-emerald-700', 'text-white', 'border-emerald-800');
-        elementoBotao.classList.add('bg-white', 'text-emerald-600', 'border-emerald-200');
+        elementoBotao.className = baseClasses + " bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
     } else {
-        // SELECIONANDO: aplica o mesmo Verde Escuro
+        // SELECIONANDO: Fica VERDE ESCURO
         mesasSelecionadas.push(numeroMesa);
-        
-        elementoBotao.classList.remove('bg-white', 'text-emerald-600', 'border-emerald-200');
-        elementoBotao.classList.add('bg-emerald-700', 'text-white', 'border-emerald-800');
+        elementoBotao.className = baseClasses + " bg-emerald-800 text-white border-emerald-900";
     }
 
+    // Atualiza o valor total
     const total = mesasSelecionadas.length * valorMesa;
     const elTotal = document.getElementById('valor-total');
     if (elTotal) {
