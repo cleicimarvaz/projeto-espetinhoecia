@@ -435,3 +435,18 @@ body.page-cozinha {
 .animate-spin-slow {
     animation: spin 3s linear infinite;
 }
+
+/* Padronização de botões para o sistema */
+.btn { @apply font-black text-[10px] uppercase tracking-widest py-3 px-4 rounded-xl transition-all active:scale-95 flex items-center justify-center; }
+
+/* Botão de Sucesso (Verde - Ações positivas/salvar) */
+.btn-success { @apply btn bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30; }
+
+/* Botão de Ação (Índigo - Exportar, Gerir, Salvar capacidade) */
+.btn-action { @apply btn bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20; }
+
+/* Botão Neutro (Cinza - Fechar, Reabrir, Pausar) */
+.btn-neutral { @apply btn bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300; }
+
+/* Botão Perigo (Vermelho - Excluir) */
+.btn-danger { @apply btn border border-red-500 text-red-500 hover:bg-red-500 hover:text-white; }
