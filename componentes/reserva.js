@@ -94,12 +94,9 @@ async function buscarMesasOcupadas(totalMesas) {
 // ==========================================
 function gerarGradeMesas(totalMesas) {
     const grade = document.getElementById('grade-mesas');
-    if (!grade) return; // Segurança extra
-    
     grade.innerHTML = "";
     
     for (let i = 1; i <= totalMesas; i++) {
-        // Verifica o estado da mesa
         const estaConfirmada = mesasConfirmadas.includes(i);
         const estaPendente = mesasPendentes.includes(i);
         const estaSelecionada = mesasSelecionadas.includes(i);
@@ -112,21 +109,19 @@ function gerarGradeMesas(totalMesas) {
         btn.className = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95 ";
 
         if (estaConfirmada) {
-            // Mesa Ocupada - Vermelho (Fixo)
+            // Mesa Ocupada (Vermelho)
             btn.className += "bg-red-100 text-red-500 border-red-200 cursor-not-allowed opacity-70";
             btn.disabled = true;
         } else if (estaPendente) {
-            // Mesa Pendente - Amarelo (Fixo)
+            // Mesa Pendente (Amarelo)
             btn.className += "bg-amber-100 text-amber-600 border-amber-200 cursor-not-allowed opacity-80 animate-pulse";
             btn.disabled = true;
         } else if (estaSelecionada) {
-            // MESA SELECIONADA - Verde Vibrante (Fixo)
-            // Aqui estava o problema (bg-slate-900), corrigido para verde:
+            // MESA SELECIONADA - AGORA VERDE (Era bg-slate-900)
             btn.className += "bg-emerald-500 text-white border-emerald-600";
             btn.onclick = () => alternarSelecaoMesa(i, btn);
         } else {
-            // MESA LIVRE - Branco (Fixo)
-            // Removi todos os 'dark:' para garantir que fique branca
+            // MESA LIVRE - Branco (Fixo, sem dark:)
             btn.className += "bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
             btn.onclick = () => alternarSelecaoMesa(i, btn);
         }
