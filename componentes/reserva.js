@@ -97,8 +97,10 @@ function gerarGradeMesas(totalMesas) {
     if (!grade) return;
     grade.innerHTML = "";
     
-    // Classes Base (mantendo seu layout)
+    // Classes que definem o visual (padrão)
     const baseClasses = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95";
+    const classeSelecionada = "bg-emerald-800 text-white border-emerald-900";
+    const classeLivre = "bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
     
     for (let i = 1; i <= totalMesas; i++) {
         const estaConfirmada = mesasConfirmadas.includes(i);
@@ -116,12 +118,10 @@ function gerarGradeMesas(totalMesas) {
             btn.className = baseClasses + " bg-amber-100 text-amber-600 border-amber-200 cursor-not-allowed opacity-80 animate-pulse";
             btn.disabled = true;
         } else if (estaSelecionada) {
-            // VERDE CLARO DE FUNDO + TEXTO VERDE MUITO ESCURO (Alto contraste)
-            btn.className = baseClasses + " bg-emerald-200 text-emerald-900 border-emerald-400";
+            btn.className = baseClasses + " " + classeSelecionada;
             btn.onclick = () => alternarSelecaoMesa(i, btn);
         } else {
-            // BRANCO (Livre)
-            btn.className = baseClasses + " bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
+            btn.className = baseClasses + " " + classeLivre;
             btn.onclick = () => alternarSelecaoMesa(i, btn);
         }
         
@@ -133,19 +133,24 @@ function gerarGradeMesas(totalMesas) {
 // 4. SELEÇÃO E CÁLCULO
 // ==========================================
 function alternarSelecaoMesa(numeroMesa, elementoBotao) {
+    // Classes idênticas às da função gerarGradeMesas
     const baseClasses = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95";
+    const classeSelecionada = "bg-emerald-800 text-white border-emerald-900";
+    const classeLivre = "bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
+    
     const index = mesasSelecionadas.indexOf(numeroMesa);
     
     if (index > -1) {
-        // DESMARCANDO: Volta para BRANCO
+        // DESMARCANDO: Volta para o estado Livre (Branco)
         mesasSelecionadas.splice(index, 1);
-        elementoBotao.className = baseClasses + " bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
+        elementoBotao.className = baseClasses + " " + classeLivre;
     } else {
-        // SELECIONANDO: Fundo Verde Claro, Texto Verde Escuro
+        // SELECIONANDO: Fica Verde Escuro (Sólido)
         mesasSelecionadas.push(numeroMesa);
-        elementoBotao.className = baseClasses + " bg-emerald-200 text-emerald-900 border-emerald-400";
+        elementoBotao.className = baseClasses + " " + classeSelecionada;
     }
 
+    // Atualiza valor
     const total = mesasSelecionadas.length * valorMesa;
     const elTotal = document.getElementById('valor-total');
     if (elTotal) {
