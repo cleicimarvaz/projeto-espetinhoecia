@@ -118,7 +118,7 @@ function gerarGradeMesas(totalMesas) {
             btn.disabled = true;
         } else if (estaSelecionada) {
             // MESA SELECIONADA - AGORA VERDE (Era bg-slate-900)
-            btn.className += "bg-emerald-500 text-white border-emerald-600";
+            btn.className += "bg-emerald-600 text-white border-emerald-700";
             btn.onclick = () => alternarSelecaoMesa(i, btn);
         } else {
             // MESA LIVRE - Branco (Fixo, sem dark:)
@@ -137,22 +137,22 @@ function alternarSelecaoMesa(numeroMesa, elementoBotao) {
     const index = mesasSelecionadas.indexOf(numeroMesa);
     
     if (index > -1) {
-        // DESMARCANDO: A mesa volta a ser "Livre" (Branca/Verde)
+        // DESMARCANDO: A mesa volta a ser "Livre" (Branca)
         mesasSelecionadas.splice(index, 1);
         
-        // Remove o verde de selecionado
-        elementoBotao.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-600');
+        // Remove o tom escuro de selecionado
+        elementoBotao.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-700');
         // Adiciona as classes de mesa "Livre" (Branca)
         elementoBotao.classList.add('bg-white', 'text-emerald-600', 'border-emerald-200');
         
     } else {
-        // SELECIONANDO: A mesa fica verde
+        // SELECIONANDO: A mesa fica Verde Escuro (mais sólido)
         mesasSelecionadas.push(numeroMesa);
         
         // Remove as classes de "Livre"
         elementoBotao.classList.remove('bg-white', 'text-emerald-600', 'border-emerald-200');
-        // Adiciona o Verde Esmeralda
-        elementoBotao.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
+        // Adiciona o Verde Escuro (emerald-600)
+        elementoBotao.classList.add('bg-emerald-600', 'text-white', 'border-emerald-700');
     }
 
     // Atualiza o valor total
