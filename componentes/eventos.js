@@ -338,16 +338,16 @@ window.desenharCardsReservas = function(reservas) {
     container.innerHTML = reservas.map(res => {
         const isConfirmada = res.status === 'confirmada';
         
-        // Melhoria: Cores de status com contraste otimizado para ambos os modos
+        // Cores fixas (sem dark:) para garantir modo claro sempre
         const statusClass = isConfirmada 
-            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
-            : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
+            ? 'bg-emerald-100 text-emerald-700' 
+            : 'bg-amber-100 text-amber-700';
             
         const mesaStr = Array.isArray(res.mesas) ? res.mesas.join(', ') : String(res.mesas || '');
         
         const nomeCliente = res.cliente_nome || 'SEM NOME';
         const telefoneCliente = res.cliente_telefone || '';
-        const telefoneInfo = telefoneCliente ? `<p class="text-[9px] md:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 truncate">WPP: ${telefoneCliente}</p>` : '';
+        const telefoneInfo = telefoneCliente ? `<p class="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mt-1 truncate">WPP: ${telefoneCliente}</p>` : '';
         
         const botaoAprovar = !isConfirmada ? `
             <button onclick="window.aprovarReserva('${res.id}')" class="flex-1 sm:flex-none w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest py-2.5 sm:py-2 px-1 rounded-lg shadow-sm transition-all active:scale-95 text-center">
@@ -362,29 +362,29 @@ window.desenharCardsReservas = function(reservas) {
         `;
 
         const botaoComprovante = res.comprovante_url ? `
-            <button onclick="window.verComprovante('${res.comprovante_url}')" class="flex-1 sm:flex-none w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 font-black text-[9px] uppercase tracking-widest py-2.5 sm:py-2 px-1 rounded-lg transition-all text-center">
+            <button onclick="window.verComprovante('${res.comprovante_url}')" class="flex-1 sm:flex-none w-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-black text-[9px] uppercase tracking-widest py-2.5 sm:py-2 px-1 rounded-lg transition-all text-center">
                 Ver PIX
             </button>
         ` : '';
 
         return `
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 md:gap-4 animate-fade-in shadow-sm hover:shadow-md transition-shadow">
+        <div class="bg-white p-4 rounded-xl md:rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 md:gap-4 animate-fade-in shadow-sm hover:shadow-md transition-shadow">
             
             <div class="flex-1 min-w-0 w-full">
                 <div class="flex items-center justify-between sm:justify-start gap-2 mb-1 flex-wrap">
-                    <h5 class="font-black text-sm md:text-base text-slate-800 dark:text-white uppercase tracking-tight leading-none truncate" title="${nomeCliente}">${nomeCliente}</h5>
+                    <h5 class="font-black text-sm md:text-base text-slate-800 uppercase tracking-tight leading-none truncate" title="${nomeCliente}">${nomeCliente}</h5>
                     <span class="text-[8px] md:text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${statusClass} shrink-0">
                         ${res.status}
                     </span>
                 </div>
                 ${telefoneInfo}
-                <div class="mt-2 md:mt-3 bg-slate-50 dark:bg-slate-950/30 inline-block px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                    <p class="text-[10px] md:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Mesa(s): <span class="text-emerald-600 dark:text-emerald-400 font-black text-sm md:text-base ml-1">${mesaStr}</span></p>
+                <div class="mt-2 md:mt-3 bg-slate-50 inline-block px-3 py-1.5 rounded-lg border border-slate-100">
+                    <p class="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wide">Mesa(s): <span class="text-emerald-600 font-black text-sm md:text-base ml-1">${mesaStr}</span></p>
                 </div>
-                ${res.tipo ? `<p class="text-[8px] md:text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase mt-2 tracking-wider">${res.tipo}</p>` : ''}
+                ${res.tipo ? `<p class="text-[8px] md:text-[9px] font-black text-indigo-500 uppercase mt-2 tracking-wider">${res.tipo}</p>` : ''}
             </div>
             
-            <div class="flex flex-row sm:flex-col gap-2 w-full sm:w-[90px] border-t sm:border-t-0 sm:border-l border-slate-100 dark:border-slate-700 pt-3 sm:pt-0 sm:pl-3 mt-2 sm:mt-0 shrink-0">
+            <div class="flex flex-row sm:flex-col gap-2 w-full sm:w-[90px] border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-3 mt-2 sm:mt-0 shrink-0">
                 ${botaoAprovar}
                 ${botaoCancelar}
                 ${botaoComprovante}
