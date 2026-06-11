@@ -97,7 +97,7 @@ function gerarGradeMesas(totalMesas) {
     if (!grade) return;
     grade.innerHTML = "";
     
-    // Classes Base
+    // Classes Base (mantendo seu layout)
     const baseClasses = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95";
     
     for (let i = 1; i <= totalMesas; i++) {
@@ -116,8 +116,8 @@ function gerarGradeMesas(totalMesas) {
             btn.className = baseClasses + " bg-amber-100 text-amber-600 border-amber-200 cursor-not-allowed opacity-80 animate-pulse";
             btn.disabled = true;
         } else if (estaSelecionada) {
-            // VERDE ESCURO (Seletor ativo)
-            btn.className = baseClasses + " bg-emerald-800 text-white border-emerald-900";
+            // VERDE CLARO DE FUNDO + TEXTO VERDE MUITO ESCURO (Alto contraste)
+            btn.className = baseClasses + " bg-emerald-200 text-emerald-900 border-emerald-400";
             btn.onclick = () => alternarSelecaoMesa(i, btn);
         } else {
             // BRANCO (Livre)
@@ -141,12 +141,11 @@ function alternarSelecaoMesa(numeroMesa, elementoBotao) {
         mesasSelecionadas.splice(index, 1);
         elementoBotao.className = baseClasses + " bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
     } else {
-        // SELECIONANDO: Fica VERDE ESCURO
+        // SELECIONANDO: Fundo Verde Claro, Texto Verde Escuro
         mesasSelecionadas.push(numeroMesa);
-        elementoBotao.className = baseClasses + " bg-emerald-800 text-white border-emerald-900";
+        elementoBotao.className = baseClasses + " bg-emerald-200 text-emerald-900 border-emerald-400";
     }
 
-    // Atualiza o valor total
     const total = mesasSelecionadas.length * valorMesa;
     const elTotal = document.getElementById('valor-total');
     if (elTotal) {
