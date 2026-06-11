@@ -135,17 +135,32 @@ function gerarGradeMesas(totalMesas) {
 // ==========================================
 function alternarSelecaoMesa(numeroMesa, elementoBotao) {
     const index = mesasSelecionadas.indexOf(numeroMesa);
+    
     if (index > -1) {
+        // DESMARCANDO: A mesa volta a ser "Livre" (Branca/Verde)
         mesasSelecionadas.splice(index, 1);
-        elementoBotao.classList.remove('bg-slate-900', 'text-white', 'border-black');
-        elementoBotao.classList.add('bg-emerald-50', 'text-emerald-600', 'border-emerald-100');
+        
+        // Remove o verde de selecionado
+        elementoBotao.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-600');
+        // Adiciona as classes de mesa "Livre" (Branca)
+        elementoBotao.classList.add('bg-white', 'text-emerald-600', 'border-emerald-200');
+        
     } else {
+        // SELECIONANDO: A mesa fica verde
         mesasSelecionadas.push(numeroMesa);
-        elementoBotao.classList.remove('bg-emerald-50', 'text-emerald-600', 'border-emerald-100');
-        elementoBotao.classList.add('bg-slate-900', 'text-white', 'border-black');
+        
+        // Remove as classes de "Livre"
+        elementoBotao.classList.remove('bg-white', 'text-emerald-600', 'border-emerald-200');
+        // Adiciona o Verde Esmeralda
+        elementoBotao.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
     }
+
+    // Atualiza o valor total
     const total = mesasSelecionadas.length * valorMesa;
-    document.getElementById('valor-total').innerText = total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    const elTotal = document.getElementById('valor-total');
+    if (elTotal) {
+        elTotal.innerText = total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    }
 }
 
 // ==========================================
