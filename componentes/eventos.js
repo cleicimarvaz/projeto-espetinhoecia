@@ -161,7 +161,18 @@ window.aplicarFiltrosEBusca = function() {
 };
 
 window.copiarLinkEvento = function(id) {
-    const link = `${window.location.origin}/reserva.html?e=${id}`;
+    // 1. Pega o caminho atual da URL (ex: /projeto-espetinhoecia/painel.html)
+    const pathParts = window.location.pathname.split('/');
+    
+    // 2. Remove o nome do arquivo atual para ficar apenas com a pasta
+    pathParts.pop(); 
+    
+    // 3. Reconstrói o caminho completo da base + o arquivo correto
+    const baseUrl = window.location.origin + pathParts.join('/') + '/reserva.html';
+    
+    const link = `${baseUrl}?e=${id}`;
+
+    // 4. Copia para o clipboard
     navigator.clipboard.writeText(link).then(() => {
         if(window.showToast) window.showToast("Link copiado para a área de transferência!", "sucesso");
         else alert("Link copiado!");
