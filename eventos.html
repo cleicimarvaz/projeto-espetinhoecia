@@ -74,20 +74,22 @@
 
     <main class="max-w-7xl mx-auto p-4 md:p-6 space-y-6 animate-fade-in">
         
-<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 shadow-sm gap-4">
-    <div>
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 shadow-sm gap-5">
+    
+    <div class="w-full sm:w-auto">
         <h2 class="text-lg font-black uppercase text-slate-800 dark:text-white tracking-tighter">Seus Eventos</h2>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Acompanhe as reservas e crie novos eventos</p>
     </div>
 
-    <div class="flex items-center gap-6">
-        <label class="flex items-center cursor-pointer gap-2">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto mt-2 sm:mt-0">
+        
+        <label class="flex items-center justify-between sm:justify-start w-full sm:w-auto cursor-pointer gap-2">
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Apenas Ativos</span>
             <input type="checkbox" id="filtro-ativos" checked onchange="window.filtrarEventos()" class="sr-only peer">
             <div class="relative w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-emerald-600 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
         </label>
 
-        <button onclick="window.abrirModalNovoEvento()" class="bg-slate-900 hover:bg-black dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-black text-[10px] px-6 py-4 rounded-xl uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap">
+        <button onclick="window.abrirModalNovoEvento()" class="w-full sm:w-auto bg-slate-900 hover:bg-black dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-black text-[10px] px-6 py-4 rounded-xl uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap">
             ➕ Criar Novo Evento
         </button>
     </div>
@@ -211,9 +213,9 @@
         🖨️ Lista
     </button>
 
-    <button onclick="window.imprimirTodasPlacasA5()" class="btn-info w-full !px-1 text-[9px] md:text-[10px]">
-        🔖 Placas A5
-    </button>
+<button onclick="window.abrirModalImpressaoPlacas()" class="btn-info w-full !px-1 text-[9px] md:text-[10px]">
+    🔖 Placas A5
+</button>
     
     <button onclick="window.abrirMapaOcupacao()" class="btn-action w-full !px-1 text-[9px] md:text-[10px]">
         🗺️ Mapa
@@ -284,7 +286,7 @@
         <select id="rm-tipo" class="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs font-bold text-slate-800 dark:text-white">
             <option value=""></option>
             <option value="CORTESIA">Cortesia / Patrocinador</option>
-            <option value="DINHEIRO/PIX">Presencial</option>
+            <option value="DIRETA">Presencial</option>
             <option value="BLOQUEIO">Bloqueio Técnico (Som/Staff)</option>
         </select>
     </div>
@@ -392,6 +394,69 @@
 
         <div id="grid-mapa-mesas" class="flex-1 overflow-y-auto custom-scrollbar grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 pb-4 pr-2">
             </div>
+
+           <div id="container-confirmar-mapa" class="hidden mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end animate-fade-in">
+            <button onclick="window.confirmarSelecaoMapa()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-500/30 transition-all active:scale-95">
+                Confirmar <span id="qtd-mesas-selecionadas" class="bg-white text-indigo-600 px-2 py-1 rounded-md ml-1">0</span> Mesas
+            </button>
+        </div>
+
+    </div>
+</div>
+            
+    </div>
+</div>
+
+<div id="modal-imprimir-placas" class="fixed inset-0 bg-slate-900/80 z-[200] hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-xl border border-slate-100 dark:border-slate-700">
+        <div class="flex justify-between items-center mb-5">
+            <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase">Imprimir Placas</h3>
+            <button onclick="window.fecharModalImpressaoPlacas()" class="text-slate-400 hover:text-red-500 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Total de Mesas no Evento</label>
+            <input type="number" id="input-total-mesas-imprimir" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ex: 40" value="40">
+            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-tight">*Necessário para calcular as mesas livres e o lote total.</p>
+        </div>
+
+        <div class="mb-4">
+            <span class="block text-[10px] font-black text-indigo-500 uppercase tracking-wider mb-2">📌 Mesas Reservadas</span>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="window.gerarPlacasA5('reservadas', 'imprimir')" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
+                    🖨️ Imprimir
+                </button>
+                <button onclick="window.gerarPlacasA5('reservadas', 'pdf')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-indigo-500/20">
+                    📄 Salvar PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <span class="block text-[10px] font-black text-emerald-500 uppercase tracking-wider mb-2">🍃 Mesas Disponíveis (Livres)</span>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="window.gerarPlacasA5('disponiveis', 'imprimir')" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
+                    🖨️ Imprimir
+                </button>
+                <button onclick="window.gerarPlacasA5('disponiveis', 'pdf')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-emerald-500/20">
+                    📄 Salvar PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="border-t border-slate-100 dark:border-slate-700 pt-4">
+            <span class="block text-[10px] font-black text-amber-500 uppercase tracking-wider mb-2">📊 Todas as Mesas (Lote Completo)</span>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="window.gerarPlacasA5('todas', 'imprimir')" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
+                    🖨️ Imprimir
+                </button>
+                <button onclick="window.gerarPlacasA5('todas', 'pdf')" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-amber-500/20">
+                    📄 Salvar PDF
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
