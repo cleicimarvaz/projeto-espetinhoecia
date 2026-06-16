@@ -15,9 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. CARREGAMENTO E LISTAGEM
 // ==========================================
 window.carregarEventosAdmin = async function() {
-    const container = document.getElementById('lista-eventos-admin');
-    if (!container) return;
-
     try {
         const { data: eventos, error } = await _supabase
             .from('eventos')
@@ -26,17 +23,54 @@ window.carregarEventosAdmin = async function() {
 
         if (error) throw error;
 
-        if (!eventos || eventos.length === 0) {
-            container.innerHTML = '<div class="col-span-full p-8 text-center text-slate-400 font-bold bg-white dark:bg-slate-900 rounded-[2rem] border border-dashed border-slate-300 dark:border-slate-700">Nenhum evento cadastrado.</div>';
-            return;
-        }
+        // Salva na variável global para o filtro usar depois
+        window.listaEventosCompleta = eventos || [];
 
-        container.innerHTML = eventos.map(ev => {
-            const dataFormatada = new Date(ev.data_evento).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-            const valorFormatado = parseFloat(ev.valor_mesa).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            const nomeEscapado = ev.nome.replace(/'/g, "\\'");
-            
-            return `
+        // Chama o filtro para renderizar pela primeira vez
+        window.filtrarEventos();
+
+    } catch (error) {
+        console.error("Erro ao carregar eventos:", error);
+    }
+};
+
+window.filtrarEventos = function() {
+    const apenasAtivos = document.getElementById('filtro-ativos').checked;
+    
+    if (!window.listaEventosCompleta) return;
+
+    const eventosFiltrados = apenasAtivos 
+        ? window.listaEventosCompleta.filter(ev => ev.status === 'ativo')
+        : window.listaEventosCompleta;
+
+    // Renderiza usando a nova função unificada
+    window.renderizarCardsEventos(eventosFiltrados);
+};
+
+// Este é o "motor" que desenha os cards na tela.
+// Coloque esta função no seu eventos.js
+window.renderizarCardsEventos = function(eventos) {
+    const container = document.getElementById('lista-eventos-admin');
+    if (!container) {
+        console.error("Elemento 'lista-eventos-admin' não encontrado no HTML!");
+        return;
+    }
+
+    // Limpa o conteúdo atual
+    container.innerHTML = '';
+
+    if (!eventos || eventos.length === 0) {
+        container.innerHTML = '<div class="col-span-full p-8 text-center text-slate-400 font-bold bg-white dark:bg-slate-900 rounded-[2rem] border border-dashed border-slate-300 dark:border-slate-700">Nenhum evento encontrado.</div>';
+        return;
+    }
+
+    // Renderiza os novos cards
+    container.innerHTML = eventos.map(ev => {
+        const dataFormatada = new Date(ev.data_evento).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        const valorFormatado = parseFloat(ev.valor_mesa).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const nomeEscapado = ev.nome.replace(/'/g, "\\'");
+        
+        return `
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 shadow-sm flex flex-col justify-between">
                 <div>
                     <div class="flex justify-between items-start mb-2">
@@ -49,35 +83,47 @@ window.carregarEventosAdmin = async function() {
                     <p class="text-xs font-bold text-slate-500 mb-4">💰 ${valorFormatado} / Mesa</p>
                 </div>
                 
-<div class="flex gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div class="flex gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <button onclick="window.abrirGestaoReservas('${ev.id}', '${nomeEscapado}')" class="btn-success relative flex-1">
                         Reservas
-                        <span id="badge-pendencia-${ev.id}" class="hidden absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full animate-bounce">
-                            0
-                        </span>
+                        <span id="badge-pendencia-${ev.id}" class="hidden absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full animate-bounce">0</span>
                     </button>
-                    
-                    <button onclick="window.abrirGerenciamentoEvento('${ev.id}', '${nomeEscapado}')" class="btn-neutral flex-1">
-                        ⚙️ Gerir
-                    </button>
+                    <button onclick="window.abrirGerenciamentoEvento('${ev.id}', '${nomeEscapado}')" class="btn-neutral flex-1">⚙️ Gerir</button>
                 </div>
-
                 <div class="mt-3">
-                    <button onclick="window.copiarLinkEvento('${ev.id}')" class="btn-info w-full">
-                        🔗 Copiar Link Público
-                    </button>
+                    <button onclick="window.copiarLinkEvento('${ev.id}')" class="btn-info w-full">🔗 Copiar Link Público</button>
                 </div>
             </div>`;
-        }).join('');
+    }).join('');
 
-        // Dispara a atualização dos badges assim que o HTML for renderizado
+    // Dispara a atualização dos badges após renderizar
+    if (typeof window.atualizarTodosOsBadges === 'function') {
         window.atualizarTodosOsBadges();
-
-    } catch (error) {
-        console.error("Erro ao carregar eventos:", error);
-        container.innerHTML = '<div class="col-span-full p-8 text-center text-red-500 font-bold">Erro ao carregar eventos.</div>';
     }
 };
+
+window.filtrarEventos = function() {
+    const apenasAtivos = document.getElementById('filtro-ativos').checked;
+    
+    if (!window.listaEventosCompleta) return;
+
+    // Filtra os eventos
+    const eventosFiltrados = apenasAtivos 
+        ? window.listaEventosCompleta.filter(ev => {
+            // Ajuste aqui a sua lógica: Exemplo, coluna 'status' igual a 'ativo'
+            // Ou se preferir por data: new Date(ev.data_evento) >= new Date()
+            return ev.status === 'ativo'; 
+        })
+        : window.listaEventosCompleta;
+
+    // Chama a sua função original de renderização
+    renderizarCardsEventos(eventosFiltrados); 
+};
+
+// Quando carregar a página inicialmente:
+// 1. Busque do Supabase
+// 2. Salve: window.listaEventosCompleta = dadosDoSupabase;
+// 3. Chame: window.filtrarEventos();
 
 // 2. Função para atualizar os cards do Dashboard Financeiro
 window.atualizarDashboardFinanceiro = async function(eventoId) {
@@ -537,15 +583,26 @@ window.abrirGerenciamentoEvento = async function(id, nome) {
     window.eventoIdAtivo = id;
     document.getElementById('gerenciar-nome-evento').innerText = `GERENCIAR: ${nome}`;
     
-    // Busca a capacidade atual no banco
+    // Busca a capacidade atual E o whatsapp no banco de uma vez só
     const { data: evento, error } = await _supabase
         .from('eventos')
-        .select('quantidade_mesas')
+        .select('quantidade_mesas, whatsapp_notificacao')
         .eq('id', id)
         .single();
 
     if (!error && evento) {
+        // Preenche a capacidade
         document.getElementById('input-capacidade-mesas').value = evento.quantidade_mesas || 0;
+        
+        // Preenche o WhatsApp (se existir)
+const inputWpp = document.getElementById('input-editar-whatsapp');
+if (inputWpp) {
+    // Agora o "55" será tratado corretamente e a máscara mostrará apenas o DDD e o Número
+    inputWpp.value = window.formatarTelefone(evento.whatsapp_notificacao || "");
+}
+        
+        // Atualiza a global caso outras funções dependam dela
+        window.whatsappNotificacaoAtivo = evento.whatsapp_notificacao || "";
     }
 
     document.getElementById('modal-gerenciar-evento').classList.remove('hidden');
@@ -609,25 +666,35 @@ window.salvarReservaManual = async function(e) {
 
     const btn = document.getElementById('btn-salvar-rm');
     btn.disabled = true;
-    btn.innerText = "BLOQUEANDO...";
+    btn.innerText = "RESERVANDO...";
 
     try {
-        const mesa = parseInt(document.getElementById('rm-mesa').value);
+        // 1. Pega a string do input e converte para um array de números [10, 11, 12]
+        const inputMesas = document.getElementById('rm-mesa').value;
+        const listaMesas = inputMesas.split(',').map(m => parseInt(m.trim())).filter(m => !isNaN(m));
+        
         const nome = document.getElementById('rm-nome').value;
         const tipo = document.getElementById('rm-tipo').value;
 
-        const { data: ocupadas } = await _supabase.from('reservas_evento')
+        if (listaMesas.length === 0) throw new Error("Selecione pelo menos uma mesa no mapa.");
+
+        // 2. Validação: Verifica se alguma das mesas selecionadas já está ocupada
+        // O Supabase .overlaps verifica se há qualquer intersecção entre arrays
+        const { data: ocupadas, error: errBusca } = await _supabase
+            .from('reservas_evento')
             .select('mesas')
             .eq('evento_id', String(window.eventoIdAtivo))
-            .contains('mesas', [mesa]);
+            .overlaps('mesas', listaMesas);
 
+        if (errBusca) throw errBusca;
         if (ocupadas && ocupadas.length > 0) {
-            throw new Error(`A mesa ${mesa} já está reservada!`);
+            throw new Error(`Uma ou mais mesas selecionadas já estão reservadas!`);
         }
 
+        // 3. Monta a nova reserva com o array completo
         const novaReserva = {
-            evento_id: window.eventoIdAtivo,
-            mesas: [mesa],
+            evento_id: String(window.eventoIdAtivo),
+            mesas: listaMesas, // Supabase salvará como um array [10, 11, 12]
             cliente_nome: `${nome} (${tipo})`,
             cliente_telefone: 'MANUAL - ADMIN',
             status: 'confirmada'
@@ -636,15 +703,18 @@ window.salvarReservaManual = async function(e) {
         const { error } = await _supabase.from('reservas_evento').insert([novaReserva]);
         if (error) throw error;
 
-        if(window.showToast) window.showToast(`Mesa ${mesa} bloqueada com sucesso!`, "sucesso");
+        if(window.showToast) window.showToast(`Reservas efetuadas com sucesso!`, "sucesso");
+        
+        // 4. Limpa tudo
         document.getElementById('form-reserva-manual').reset();
+        if(window.limparSelecao) window.limparSelecao(); // Limpa as cores do mapa
 
     } catch (error) {
         console.error(error);
         if(window.showToast) window.showToast(error.message, "erro");
     } finally {
         btn.disabled = false;
-        btn.innerText = "BLOQUEAR MESA";
+        btn.innerText = "RESERVAR MESA";
     }
 };
 
@@ -908,26 +978,43 @@ window.abrirMapaOcupacao = async function() {
     if (!eventoId) return;
 
     try {
-        const { data: evento } = await _supabase.from('eventos').select('quantidade_mesas').eq('id', eventoId).single();
-        const capacidade = evento ? (parseInt(evento.quantidade_mesas) || 0) : 0;
+        // 1. Busca os dados do evento e as reservas ATUALIZADAS do banco
+        const [ { data: evento }, { data: reservas } ] = await Promise.all([
+            _supabase.from('eventos').select('quantidade_mesas').eq('id', eventoId).single(),
+            _supabase.from('reservas_evento').select('mesas, status').eq('evento_id', String(eventoId))
+        ]);
 
+        const capacidade = evento ? (parseInt(evento.quantidade_mesas) || 0) : 0;
         if (capacidade === 0) {
             alert("Defina a capacidade de mesas no menu 'Gerenciar' primeiro.");
             return;
         }
 
+        // 2. Monta o mapeamento de status
         const statusMesas = {}; 
         
-        window.listaReservasLocal.forEach(res => {
-            const arrMesas = Array.isArray(res.mesas) ? res.mesas : [res.mesas];
-            arrMesas.forEach(num => {
-                const n = parseInt(num);
-                if (n && statusMesas[n] !== 'confirmada') {
-                    statusMesas[n] = res.status;
-                }
+        if (reservas) {
+            reservas.forEach(res => {
+                // Suporta se 'mesas' for Array ou String (como "1,2,3")
+                const arrMesas = Array.isArray(res.mesas) ? res.mesas : 
+                                 (typeof res.mesas === 'string' ? res.mesas.split(',') : [res.mesas]);
+                
+                arrMesas.forEach(num => {
+                    const n = parseInt(num);
+                    if (n) {
+                        // Prioriza 'confirmada' se a mesa aparecer em mais de uma reserva por erro
+                        if (res.status === 'confirmada' || statusMesas[n] !== 'confirmada') {
+                            statusMesas[n] = res.status;
+                        }
+                    }
+                });
             });
-        });
+        }
 
+        // 3. Desenha o Grid
+        window.mesasSelecionadas = []; // Reseta a seleção
+        document.getElementById('rm-mesa').value = '';
+        
         const grid = document.getElementById('grid-mapa-mesas');
         let html = '';
         
@@ -936,22 +1023,15 @@ window.abrirMapaOcupacao = async function() {
             let acaoClique = '';
             
             if (statusMesas[i] === 'confirmada') {
-                // Ocupada (Verde) - Não faz nada ao clicar
-                corClasses = 'bg-emerald-500 text-white shadow-md shadow-emerald-500/40 font-black border-none cursor-not-allowed opacity-90';
+                corClasses = 'bg-emerald-500 text-white opacity-90 cursor-not-allowed';
             } else if (statusMesas[i] === 'pendente') {
-                // Pendente (Amarelo) - Não faz nada ao clicar
-                corClasses = 'bg-amber-400 text-white shadow-md shadow-amber-400/40 font-black border-none cursor-not-allowed opacity-90';
+                corClasses = 'bg-amber-400 text-white opacity-90 cursor-not-allowed';
             } else {
-                // Livre (Cinza) - Clicável! Efeito de hover adicionado
-                corClasses = 'bg-slate-50 text-slate-400 dark:bg-slate-800 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400 transition-all active:scale-95';
-                acaoClique = `onclick="window.bloquearMesaRapido(${i})"`;
+                corClasses = 'bg-slate-50 text-slate-400 cursor-pointer hover:bg-indigo-50';
+                acaoClique = `onclick="window.toggleSelecaoMesa(${i}, this)"`;
             }
 
-            html += `
-                <div ${acaoClique} class="aspect-square rounded-xl flex items-center justify-center text-sm ${corClasses}" title="Mesa ${i}">
-                    ${i}
-                </div>
-            `;
+            html += `<div ${acaoClique} class="aspect-square rounded-xl flex items-center justify-center text-sm ${corClasses}" title="Mesa ${i}">${i}</div>`;
         }
 
         grid.innerHTML = html;
@@ -959,6 +1039,33 @@ window.abrirMapaOcupacao = async function() {
 
     } catch (err) {
         console.error("Erro ao gerar mapa:", err);
+        alert("Erro ao carregar reservas. Verifique sua conexão.");
+    }
+};
+
+window.toggleSelecaoMesa = function(numero, elemento) {
+    if (!window.mesasSelecionadas) window.mesasSelecionadas = [];
+    
+    const index = window.mesasSelecionadas.indexOf(numero);
+    
+    if (index > -1) {
+        // Se já está na lista, remove
+        window.mesasSelecionadas.splice(index, 1);
+        // Remove o estilo de selecionado
+        elemento.classList.remove('bg-indigo-600', 'text-white');
+        elemento.classList.add('bg-slate-50', 'text-slate-400');
+    } else {
+        // Se não está, adiciona
+        window.mesasSelecionadas.push(numero);
+        // Aplica o estilo de selecionado
+        elemento.classList.add('bg-indigo-600', 'text-white');
+        elemento.classList.remove('bg-slate-50', 'text-slate-400');
+    }
+
+    // Atualiza o input no seu formulário (rm-mesa)
+    const input = document.getElementById('rm-mesa');
+    if (input) {
+        input.value = window.mesasSelecionadas.sort((a, b) => a - b).join(', ');
     }
 };
 
@@ -1136,5 +1243,271 @@ window.excluirReserva = async function(reservaId) {
     } catch (err) {
         console.error("Erro ao cancelar:", err);
         if (window.showToast) window.showToast("Erro ao cancelar reserva.", "erro");
+    }
+};
+
+
+window.imprimirTodasPlacasA5 = async function() {
+    if (!window.eventoIdAtivo) return;
+
+    try {
+        const { data: reservas, error } = await _supabase
+            .from('reservas_evento')
+            .select('*')
+            .eq('evento_id', String(window.eventoIdAtivo))
+            .order('mesas', { ascending: true });
+
+        if (error) throw error;
+
+        let listaDetalhada = [];
+        reservas.forEach(res => {
+            if (Array.isArray(res.mesas)) {
+                res.mesas.forEach(mesa => {
+                    listaDetalhada.push({
+                        mesa: mesa,
+                        cliente: res.cliente_nome
+                    });
+                });
+            }
+        });
+        
+        listaDetalhada.sort((a, b) => a.mesa - b.mesa);
+
+        if (listaDetalhada.length === 0) {
+            if(window.showToast) window.showToast("Nenhuma reserva encontrada para imprimir.", "erro");
+            return;
+        }
+
+        const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+
+        const janelaPrint = window.open('', '_blank');
+        
+        let htmlStr = `<!DOCTYPE html>
+            <html>
+            <head>
+                <title>Impressão de Placas (4 por A4)</title>
+                <base href="${baseUrl}">
+                <style>
+                    @page { size: A4 portrait; margin: 0; }
+                    body {
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #fff;
+                        color: #1e293b;
+                        width: 210mm; 
+                    }
+                    .folha-a4 {
+                        width: 210mm;
+                        height: 296mm; 
+                        padding: 10mm;
+                        box-sizing: border-box;
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        grid-template-rows: 1fr 1fr;
+                        gap: 15px;
+                        page-break-after: always;
+                        margin: 0 auto;
+                    }
+                    .folha-a4:last-child {
+                        page-break-after: auto;
+                    }
+                    .card {
+                        border: 4px solid #1e293b;
+                        border-radius: 16px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        text-align: center;
+                        position: relative;
+                        box-sizing: border-box;
+                        padding: 20px 20px 85px 20px; 
+                        overflow: hidden; 
+                    }
+                    .badge {
+                        background-color: #1e293b;
+                        color: #fff;
+                        padding: 6px 20px;
+                        border-radius: 50px;
+                        font-size: 12px;
+                        font-weight: 900;
+                        text-transform: uppercase;
+                        letter-spacing: 4px;
+                        position: absolute;
+                        top: 20px;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .mesa {
+                        font-size: 70px;
+                        font-weight: 900;
+                        margin: 30px 0 0 0;
+                        line-height: 1;
+                        color: #0f172a;
+                    }
+                    .cliente-label {
+                        font-size: 12px;
+                        color: #64748b;
+                        text-transform: uppercase;
+                        letter-spacing: 2px;
+                        margin-top: 20px;
+                        font-weight: bold;
+                    }
+                    .cliente-nome {
+                        font-size: 24px;
+                        font-weight: 900;
+                        color: #0f172a;
+                        margin-top: 5px;
+                        text-transform: uppercase;
+                        word-break: break-word; 
+                        max-width: 90%;
+                    }
+                    .logo-rodape {
+                        position: absolute;
+                        bottom: 15px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 4px;
+                        width: 100%;
+                    }
+                    .logo-rodape img {
+                        height: 45px;
+                        width: 45px;
+                        object-fit: cover;
+                        border-radius: 50%;
+                        border: 2px solid #f8fafc;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    }
+                    .logo-texto {
+                        font-size: 11px;
+                        font-weight: 900;
+                        color: #0f172a;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                    }
+                </style>
+            </head>
+            <body>
+        `;
+
+        for (let i = 0; i < listaDetalhada.length; i += 4) {
+            const grupo4Mesas = listaDetalhada.slice(i, i + 4);
+            
+            htmlStr += `<div class="folha-a4">`;
+            
+            grupo4Mesas.forEach(item => {
+                htmlStr += `
+                    <div class="card">
+                        <div class="badge">Reservado</div>
+                        <div class="mesa">MESA ${String(item.mesa).padStart(2, '0')}</div>
+                        <div class="cliente-label">Responsável</div>
+                        <div class="cliente-nome">${item.cliente.toUpperCase()}</div>
+                        
+                        <div class="logo-rodape">
+                            <img src="img/logo.jpg?v=2" onerror="this.style.display='none'">
+                            <span class="logo-texto">Espetinho & CIA</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            htmlStr += `</div>`;
+        }
+
+        htmlStr += `
+                <script>
+                    setTimeout(() => { window.print(); window.close(); }, 1500);
+                </script>
+            </body>
+            </html>
+        `;
+
+        janelaPrint.document.write(htmlStr);
+        janelaPrint.document.close();
+
+    } catch (error) {
+        console.error(error);
+        if(window.showToast) window.showToast("Erro ao gerar placas.", "erro");
+    }
+};
+
+window.salvarWhatsAppNotificacaoEdicao = async function() {
+    if (!window.eventoIdAtivo) return;
+
+    const input = document.getElementById('input-editar-whatsapp');
+    let numeroLimpo = input.value.replace(/\D/g, "");
+
+    // Se o usuário digitou sem o 55, a lógica abaixo garante que salve certo
+    // Se o número tiver 11 ou 12 dígitos, ele assume que é um celular com DDD
+    if (numeroLimpo.length >= 10 && numeroLimpo.length <= 11) {
+        numeroLimpo = "55" + numeroLimpo;
+    }
+
+    try {
+        const { error } = await _supabase
+            .from('eventos')
+            .update({ whatsapp_notificacao: numeroLimpo })
+            .eq('id', String(window.eventoIdAtivo));
+
+        if (error) throw error;
+        
+        window.whatsappNotificacaoAtivo = numeroLimpo;
+        if(window.showToast) window.showToast("WhatsApp atualizado!", "sucesso");
+    } catch (error) {
+        if(window.showToast) window.showToast("Erro ao salvar.", "erro");
+    }
+};
+
+window.mascaraTelefone = function(input) {
+    let valor = input.value.replace(/\D/g, '');
+    valor = valor.replace(/^(\d{2})(\d)/g, '($1) $2');
+    valor = valor.replace(/(\d{5})(\d)/, '$1-$2');
+    input.value = valor.substring(0, 15);
+};
+
+window.formatarTelefone = function(value) {
+    if (!value) return "";
+    let v = value.replace(/\D/g, "");
+    
+    // Se começar com 55, removemos para formatar apenas o número nacional
+    if (v.startsWith("55")) {
+        v = v.substring(2);
+    }
+    
+    if (v.length > 9) {
+        return `(${v.substring(0, 2)}) ${v.substring(2, 7)}-${v.substring(7)}`;
+    } else if (v.length > 2) {
+        return `(${v.substring(0, 2)}) ${v.substring(2)}`;
+    } else if (v.length > 0) {
+        return `(${v}`;
+    }
+    return v;
+};
+
+window.carregarWhatsAppNoModal = async function() {
+    if (!window.eventoIdAtivo) return;
+
+    try {
+        const { data: evento, error } = await _supabase
+            .from('eventos')
+            .select('whatsapp_notificacao')
+            .eq('id', String(window.eventoIdAtivo))
+            .single();
+
+        if (error) throw error;
+
+        // Preenche o input se o dado existir
+        const input = document.getElementById('input-editar-whatsapp');
+        if (input && evento && evento.whatsapp_notificacao) {
+            // Removemos o '55' apenas para exibir formatado no input (se desejar)
+            // ou deixamos o número completo.
+            input.value = evento.whatsapp_notificacao;
+        }
+    } catch (error) {
+        console.error("Erro ao carregar WhatsApp para edição:", error);
     }
 };

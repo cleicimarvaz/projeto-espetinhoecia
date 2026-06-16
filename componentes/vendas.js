@@ -247,10 +247,15 @@ window.abrirResumoPedido = function() {
         const modalContainer = document.getElementById('itens-carrinho-modal');
         if (modalContainer) {
             modalContainer.innerHTML = window.carrinho.map(i => `
-                <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 mb-2">
-                    <span class="text-[11px] font-black uppercase">${i.qtd}x ${i.nome}</span>
-                    <span class="text-[10px] font-bold text-slate-400">R$ ${typeof formatarMoeda === 'function' ? formatarMoeda(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2)}</span>
-                </div>`).join('');
+    <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 mb-2">
+        <span class="text-[11px] font-black uppercase text-slate-800 dark:text-white">
+            ${i.qtd}x ${i.nome}
+        </span>
+        
+        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-300">
+            R$ ${typeof formatarMoeda === 'function' ? formatarMoeda(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2)}
+        </span>
+    </div>`).join('');
         }
 
         const totalEl = document.getElementById('total-modal');
@@ -930,3 +935,29 @@ window.confirmarEspetoPersonalizado = function() {
     
     if (typeof showToast === 'function') showToast("Espeto adicionado!");
 };
+
+function selecionarPagamento(metodo, elementoClicado) {
+    // 1. Atualiza o valor no input escondido
+    document.getElementById('forma-pagamento').value = metodo;
+
+    // 2. Define os estilos de estado
+    const classeSelecionado = "bg-emerald-500 text-white border-emerald-600 dark:bg-emerald-600 dark:border-emerald-500";
+    const classeInativo = "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+    
+    // Classes base atualizadas para o formato de 4 colunas com ícone em cima
+    const baseClasses = "btn-pagamento p-2 rounded-xl text-[10px] font-black uppercase border-2 transition-all active:scale-95 flex flex-col items-center justify-center gap-1";
+
+    // 3. Reseta todos os botões para o estado inativo
+    const botoes = document.querySelectorAll('.btn-pagamento');
+    botoes.forEach(btn => {
+        btn.className = baseClasses + " " + classeInativo;
+    });
+
+    // 4. Aplica o estado verde no botão clicado
+    elementoClicado.className = baseClasses + " " + classeSelecionado;
+
+    // 5. Chama a função existente para mostrar/esconder a área de troco
+    if (typeof handlePagamentoChange === 'function') {
+        handlePagamentoChange();
+    }
+}
