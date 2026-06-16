@@ -888,21 +888,39 @@ window.onload = async () => {
     await window.carregarPedidosIniciais();
     window.escutarNovosPedidos();
 };
+            
+// Controle de Abertura/Fechamento do Modal
+window.abrirModalImpressao = function() {
+    const modal = document.getElementById('modal-impressao');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
 
+window.fecharModalImpressao = function() {
+    const modal = document.getElementById('modal-impressao');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+// Fluxo de Impressão Contínua de 80mm via Iframe Oculto (Imprimir ou Salvar PDF)
 window.confirmarImpressao = function() {
     const inputQtd = document.getElementById('qtd-fichas-imprimir');
     const qtd = parseInt(inputQtd.value) || 1;
 
-    // 1. Fecha o modal imediatamente para não travar a tela
-    fecharModalImpressao();
+    // 1. Fecha o modal imediatamente para limpar a interface
+    window.fecharModalImpressao();
 
-    // 2. Cria um "Iframe" (uma janela invisível dentro da página atual)
-    // Isso burla qualquer bloqueador de pop-up de navegadores e celulares
+    // 2. Remove iframes de impressões anteriores para não acumular lixo na página
     let iframeAntigo = document.getElementById('iframe-impressao-cozinha');
     if (iframeAntigo) {
-        iframeAntigo.remove(); // Limpa impressões anteriores
+        iframeAntigo.remove();
     }
 
+    // 3. Cria o Iframe Invisível
     let iframe = document.createElement('iframe');
     iframe.id = 'iframe-impressao-cozinha';
     iframe.style.position = 'absolute';
@@ -911,58 +929,194 @@ window.confirmarImpressao = function() {
     iframe.style.border = 'none';
     document.body.appendChild(iframe);
 
-    // 3. Monta o HTML da bobina de 80mm
+    // 4. Monta a estrutura da bobina contínua de 80mm
     let htmlStr = `<!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
-        <title>Fichas de Contingência</title>
+        <title>Fichas de Preparação</title>
         <style>
+            /* Configurações específicas para rolo contínuo de 80mm */
             @media print {
-                @page { margin: 0; size: 80mm auto; }
-                html, body { margin: 0; padding: 0; background: #fff; }
+                @page { 
+                    margin: 0; 
+                    size: 80mm auto; /* Largura fixa de 80mm, altura infinita/dinâmica */
+                }
+                html, body { 
+                    margin: 0; 
+                    padding: 0; 
+                    background: #fff; 
+                }
             }
-            body { font-family: 'Courier New', Courier, monospace; width: 72mm; margin: 0 auto; color: #000; }
-            .ficha-container { width: 100%; text-align: center; padding-top: 5mm; padding-bottom: 2mm; box-sizing: border-box; page-break-after: always; break-after: page; }
-            .ficha-container:last-child { page-break-after: avoid; break-after: avoid; }
-            .titulo-principal { font-size: 24px; font-weight: 900; margin: 0 0 3px 0; }
-            .subtitulo { font-size: 13px; text-transform: uppercase; margin-bottom: 5px; }
-            .linha-tracejada { border-top: 2px dashed #000; margin: 8px 0; width: 100%; }
-            .data-hora-container { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 12px; }
-            .caixa-mesa { border: 2.5px solid #000; border-radius: 8px; padding: 12px 10px; margin-bottom: 12px; }
-            .caixa-mesa h2 { font-size: 24px; font-weight: 900; margin: 0 0 15px 0; }
-            .linha-preenchimento { border-bottom: 2px solid #000; width: 65%; margin: 0 auto; height: 5px; }
-            .secao-titulo { font-size: 14px; font-weight: bold; text-align: left; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 12px; text-transform: uppercase; }
-            .item-linha { display: flex; align-items: flex-end; margin-bottom: 12px; text-align: left; }
-            .checkbox { width: 20px; height: 20px; border: 2px solid #000; margin-right: 8px; flex-shrink: 0; }
-            .item-texto { font-size: 13px; font-weight: bold; white-space: nowrap; padding-bottom: 1px; }
-            .pontilhados { flex-grow: 1; border-bottom: 2px dotted #000; margin-left: 5px; height: 14px; }
-            .caixa-observacoes { border: 2px solid #000; border-radius: 8px; height: 70px; margin-top: 3px; margin-bottom: 12px; }
-            .rodape-contingencia { font-size: 11px; text-transform: uppercase; margin-top: 4px; font-weight: bold; letter-spacing: 0.5px; }
-            .espaco-corte { height: 8mm; }
+            
+            body {
+                font-family: 'Courier New', Courier, monospace;
+                width: 72mm; /* Largura segura para evitar cortes nas margens físicas */
+                margin: 0 auto;
+                color: #000;
+            }
+
+            .ficha-container {
+                width: 100%;
+                text-align: center;
+                padding-top: 5mm;
+                padding-bottom: 2mm;
+                box-sizing: border-box;
+                
+                /* Comando que avisa a guilhotina da impressora para cortar o papel após cada ficha */
+                page-break-after: always; 
+                break-after: page;
+            }
+
+            /* Evita que a última ficha envie um comando de corte em branco desnecessário */
+            .ficha-container:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            .titulo-principal {
+                font-size: 24px;
+                font-weight: 900;
+                margin: 0 0 3px 0;
+            }
+            .subtitulo {
+                font-size: 13px;
+                text-transform: uppercase;
+                margin-bottom: 5px;
+            }
+            .linha-tracejada {
+                border-top: 2px dashed #000;
+                margin: 8px 0;
+                width: 100%;
+            }
+            .data-hora-container {
+                display: flex;
+                justify-content: space-between;
+                font-size: 12px;
+                font-weight: bold;
+                margin-bottom: 12px;
+            }
+            .caixa-mesa {
+                border: 2.5px solid #000;
+                border-radius: 8px;
+                padding: 12px 10px;
+                margin-bottom: 12px;
+            }
+            .caixa-mesa h2 {
+                font-size: 24px;
+                font-weight: 900;
+                margin: 0 0 15px 0;
+            }
+            .linha-preenchimento {
+                border-bottom: 2px solid #000;
+                width: 65%;
+                margin: 0 auto;
+                height: 5px;
+            }
+            .secao-titulo {
+                font-size: 14px;
+                font-weight: bold;
+                text-align: left;
+                border-bottom: 2px solid #000;
+                padding-bottom: 3px;
+                margin-bottom: 12px;
+                text-transform: uppercase;
+            }
+            .item-linha {
+                display: flex;
+                align-items: flex-end;
+                margin-bottom: 12px;
+                text-align: left;
+            }
+            .checkbox {
+                width: 20px;
+                height: 20px;
+                border: 2px solid #000;
+                margin-right: 8px;
+                flex-shrink: 0;
+            }
+            .item-texto {
+                font-size: 13px;
+                font-weight: bold;
+                white-space: nowrap;
+                padding-bottom: 1px;
+            }
+            .pontilhados {
+                flex-grow: 1;
+                border-bottom: 2px dotted #000;
+                margin-left: 5px;
+                height: 14px;
+            }
+            .caixa-observacoes {
+                border: 2px solid #000;
+                border-radius: 8px;
+                height: 70px; 
+                margin-top: 3px;
+                margin-bottom: 12px;
+            }
+            .rodape-contingencia {
+                font-size: 11px;
+                text-transform: uppercase;
+                margin-top: 4px;
+                font-weight: bold;
+                letter-spacing: 0.5px;
+            }
+            .espaco-corte {
+                height: 8mm; /* Margem técnica para o papel avançar antes do corte físico */
+            }
         </style>
     </head>
     <body>
     `;
 
-    // Gera a quantidade de fichas
+    // 5. Laço para gerar o número de fichas contínuas solicitadas
     for (let i = 0; i < qtd; i++) {
         htmlStr += `
         <div class="ficha-container">
             <h1 class="titulo-principal">WEBCOMANDA</h1>
             <div class="subtitulo">FICHA DE PREPARAÇÃO</div>
+            
             <div class="linha-tracejada"></div>
-            <div class="data-hora-container"><span>DATA: __/__/____</span><span>HORA: __:__</span></div>
-            <div class="caixa-mesa"><h2>MESA:</h2><div class="linha-preenchimento"></div></div>
+            
+            <div class="data-hora-container">
+                <span>DATA: __/__/____</span>
+                <span>HORA: __:__</span>
+            </div>
+            
+            <div class="caixa-mesa">
+                <h2>MESA:</h2>
+                <div class="linha-preenchimento"></div>
+            </div>
+            
             <div class="secao-titulo">ITENS DO PEDIDO</div>
-            <div class="item-linha"><div class="checkbox"></div><div class="item-texto">QTD:_____ |</div><div class="pontilhados"></div></div>
-            <div class="item-linha"><div class="checkbox"></div><div class="item-texto">QTD:_____ |</div><div class="pontilhados"></div></div>
-            <div class="item-linha"><div class="checkbox"></div><div class="item-texto">QTD:_____ |</div><div class="pontilhados"></div></div>
-            <div class="item-linha"><div class="checkbox"></div><div class="item-texto">QTD:_____ |</div><div class="pontilhados"></div></div>
+            
+            <div class="item-linha">
+                <div class="checkbox"></div>
+                <div class="item-texto">QTD:_____ |</div>
+                <div class="pontilhados"></div>
+            </div>
+            <div class="item-linha">
+                <div class="checkbox"></div>
+                <div class="item-texto">QTD:_____ |</div>
+                <div class="pontilhados"></div>
+            </div>
+            <div class="item-linha">
+                <div class="checkbox"></div>
+                <div class="item-texto">QTD:_____ |</div>
+                <div class="pontilhados"></div>
+            </div>
+            <div class="item-linha">
+                <div class="checkbox"></div>
+                <div class="item-texto">QTD:_____ |</div>
+                <div class="pontilhados"></div>
+            </div>
+            
             <div class="secao-titulo">OBSERVAÇÕES</div>
             <div class="caixa-observacoes"></div>
+            
             <div class="linha-tracejada"></div>
             <div class="rodape-contingencia">EMISSÃO MANUAL DE CONTINGÊNCIA</div>
+            
             <div class="espaco-corte"></div>
         </div>
         `;
@@ -970,18 +1124,20 @@ window.confirmarImpressao = function() {
 
     htmlStr += `</body></html>`;
 
-    // 4. Injeta o código na janela invisível
+    // 6. Injeta o código HTML gerado no frame oculto
     const doc = iframe.contentWindow.document;
     doc.open();
     doc.write(htmlStr);
     doc.close();
 
-    // 5. Aciona o diálogo do sistema (Garante que a tela do navegador abra)
+    // 7. Dispara a janela de impressão nativa do dispositivo
     setTimeout(() => {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
         
-        if (window.showToast) window.showToast("Opções abertas! Escolha a impressora ou Salvar como PDF.", "sucesso");
+        if (window.showToast) {
+            window.showToast("Janela de sistema aberta!", "sucesso");
+        }
     }, 500);
 };
 
