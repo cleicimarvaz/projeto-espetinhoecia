@@ -88,7 +88,7 @@ window.renderizarCardsEventos = function(eventos) {
                         Reservas
                         <span id="badge-pendencia-${ev.id}" class="hidden absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full animate-bounce">0</span>
                     </button>
-                    <button onclick="window.abrirGerenciamentoEvento('${ev.id}', '${nomeEscapado}')" class="btn-neutral flex-1">⚙️ Gerir</button>
+                    <button onclick="window.abrirGerenciamentoEvento('${ev.id}', '${nomeEscapado}')" class="btn-neutral flex-1">⚙️ Gerenciar</button>
                 </div>
                 <div class="mt-3">
                     <button onclick="window.copiarLinkEvento('${ev.id}')" class="btn-info w-full">🔗 Copiar Link Público</button>
@@ -973,12 +973,19 @@ window.verificarPendencias = function(reservas, eventoId = null) {
     }
 };
 
+window.mesasSelecionadasMap = []; // Memória global das mesas selecionadas
+
 window.abrirMapaOcupacao = async function() {
     const eventoId = window.eventoIdAtivo;
     if (!eventoId) return;
 
+    // 1. Lê as mesas que já estão no input (para manter a seleção se a pessoa abrir o mapa de novo)
+    const inputMesa = document.getElementById('rm-mesa');
+    window.mesasSelecionadasMap = inputMesa && inputMesa.value 
+        ? inputMesa.value.split(',').map(m => parseInt(m.trim())).filter(m => !isNaN(m)) 
+        : [];
+
     try {
-        // 1. Busca os dados do evento e as reservas ATUALIZADAS do banco
         const [ { data: evento }, { data: reservas } ] = await Promise.all([
             _supabase.from('eventos').select('quantidade_mesas').eq('id', eventoId).single(),
             _supabase.from('reservas_evento').select('mesas, status').eq('evento_id', String(eventoId))
@@ -986,23 +993,18 @@ window.abrirMapaOcupacao = async function() {
 
         const capacidade = evento ? (parseInt(evento.quantidade_mesas) || 0) : 0;
         if (capacidade === 0) {
-            alert("Defina a capacidade de mesas no menu 'Gerenciar' primeiro.");
+            if(window.showToast) window.showToast("Defina a capacidade de mesas no menu 'Gerenciar' primeiro.", "erro");
             return;
         }
 
-        // 2. Monta o mapeamento de status
         const statusMesas = {}; 
         
         if (reservas) {
             reservas.forEach(res => {
-                // Suporta se 'mesas' for Array ou String (como "1,2,3")
-                const arrMesas = Array.isArray(res.mesas) ? res.mesas : 
-                                 (typeof res.mesas === 'string' ? res.mesas.split(',') : [res.mesas]);
-                
+                const arrMesas = Array.isArray(res.mesas) ? res.mesas : (typeof res.mesas === 'string' ? res.mesas.split(',') : [res.mesas]);
                 arrMesas.forEach(num => {
                     const n = parseInt(num);
                     if (n) {
-                        // Prioriza 'confirmada' se a mesa aparecer em mais de uma reserva por erro
                         if (res.status === 'confirmada' || statusMesas[n] !== 'confirmada') {
                             statusMesas[n] = res.status;
                         }
@@ -1011,36 +1013,145 @@ window.abrirMapaOcupacao = async function() {
             });
         }
 
-        // 3. Desenha o Grid
-        window.mesasSelecionadas = []; // Reseta a seleção
-        document.getElementById('rm-mesa').value = '';
-        
         const grid = document.getElementById('grid-mapa-mesas');
         let html = '';
         
         for (let i = 1; i <= capacidade; i++) {
             let corClasses = '';
-            let acaoClique = '';
+            let statusAtual = 'livre'; 
+            let isSelecionada = window.mesasSelecionadasMap.includes(i); // Verifica se já está selecionada
             
             if (statusMesas[i] === 'confirmada') {
                 corClasses = 'bg-emerald-500 text-white opacity-90 cursor-not-allowed';
+                statusAtual = 'ocupada';
             } else if (statusMesas[i] === 'pendente') {
                 corClasses = 'bg-amber-400 text-white opacity-90 cursor-not-allowed';
+                statusAtual = 'pendente';
             } else {
-                corClasses = 'bg-slate-50 text-slate-400 cursor-pointer hover:bg-indigo-50';
-                acaoClique = `onclick="window.toggleSelecaoMesa(${i}, this)"`;
+                statusAtual = 'livre';
+                // Se estiver na lista de selecionadas, fica azul (indigo). Se não, fica branca/cinza.
+                if (isSelecionada) {
+                    corClasses = 'bg-indigo-600 text-white font-black cursor-pointer shadow-lg transform scale-105 ring-2 ring-indigo-300';
+                } else {
+                    corClasses = 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:scale-105 transition-all font-bold shadow-sm';
+                }
             }
 
-            html += `<div ${acaoClique} class="aspect-square rounded-xl flex items-center justify-center text-sm ${corClasses}" title="Mesa ${i}">${i}</div>`;
+            let acaoClique = `onclick="window.toggleMesaMapaAcumulativo(${i}, '${statusAtual}', this)"`;
+
+            html += `<div ${acaoClique} class="aspect-square rounded-xl flex items-center justify-center text-sm transition-all duration-200 ${corClasses}" title="Mesa ${i}">${i}</div>`;
         }
 
         grid.innerHTML = html;
         document.getElementById('modal-mapa-ocupacao').classList.remove('hidden');
+        window.atualizarBotaoConfirmarMapa(); // Exibe o botão se já tiver mesa na memória
 
     } catch (err) {
         console.error("Erro ao gerar mapa:", err);
-        alert("Erro ao carregar reservas. Verifique sua conexão.");
     }
+};
+
+// ==========================================
+// FUNÇÕES DO MAPA ACUMULATIVO
+// ==========================================
+window.toggleMesaMapaAcumulativo = function(numero, status, elemento) {
+    if (status === 'ocupada') {
+        if(window.showToast) window.showToast(`Mesa ${numero} já ocupada!`, "erro");
+        return;
+    }
+    if (status === 'pendente') {
+        if(window.showToast) window.showToast(`Mesa ${numero} em análise.`, "aviso");
+        return;
+    }
+
+    const index = window.mesasSelecionadasMap.indexOf(numero);
+    
+    if (index > -1) {
+        // REMOVER MESA: Tira do array e volta a cor original
+        window.mesasSelecionadasMap.splice(index, 1);
+        elemento.className = `aspect-square rounded-xl flex items-center justify-center text-sm transition-all duration-200 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:scale-105 font-bold shadow-sm`;
+    } else {
+        // ADICIONAR MESA: Coloca no array e pinta de azul (indigo)
+        window.mesasSelecionadasMap.push(numero);
+        elemento.className = `aspect-square rounded-xl flex items-center justify-center text-sm transition-all duration-200 bg-indigo-600 text-white font-black cursor-pointer shadow-lg transform scale-105 ring-2 ring-indigo-300`;
+    }
+
+    // Ordena do menor para o maior (ex: 1, 2, 10)
+    window.mesasSelecionadasMap.sort((a, b) => a - b);
+    window.atualizarBotaoConfirmarMapa();
+};
+
+window.atualizarBotaoConfirmarMapa = function() {
+    const container = document.getElementById('container-confirmar-mapa');
+    const spanQtd = document.getElementById('qtd-mesas-selecionadas');
+    if (!container) return;
+
+    if (window.mesasSelecionadasMap.length > 0) {
+        container.classList.remove('hidden');
+        container.classList.add('flex');
+        spanQtd.innerText = window.mesasSelecionadasMap.length;
+    } else {
+        container.classList.add('hidden');
+        container.classList.remove('flex');
+    }
+};
+
+window.confirmarSelecaoMapa = function() {
+    const inputMesa = document.getElementById('rm-mesa');
+    if (inputMesa) {
+        inputMesa.value = window.mesasSelecionadasMap.join(', ');
+    }
+    
+    // Esconde o mapa e a gestão de reservas
+    document.getElementById('modal-mapa-ocupacao').classList.add('hidden');
+    document.getElementById('modal-gestao-reservas').classList.add('hidden');
+    document.getElementById('modal-gestao-reservas').classList.remove('flex');
+
+    // Mostra a tela de formulário
+    document.getElementById('modal-gerenciar-evento').classList.remove('hidden');
+    document.getElementById('modal-gerenciar-evento').classList.add('flex');
+    
+    setTimeout(() => {
+        document.getElementById('rm-nome').focus();
+    }, 400); 
+};
+
+// ==========================================
+// NOVA FUNÇÃO: Gerencia o clique na mesa
+// ==========================================
+window.selecionarMesaPeloMapa = function(numeroMesa, status) {
+    // Se estiver ocupada ou pendente, apenas avisa e bloqueia o clique
+    if (status === 'ocupada') {
+        if(window.showToast) window.showToast(`A Mesa ${numeroMesa} já está ocupada!`, "erro");
+        return;
+    }
+    if (status === 'pendente') {
+        if(window.showToast) window.showToast(`A Mesa ${numeroMesa} possui um pagamento em análise.`, "aviso");
+        return;
+    }
+
+    // Se estiver livre, executa o fluxo de reserva manual:
+    
+    // 1. Oculta o modal do mapa
+    document.getElementById('modal-mapa-ocupacao').classList.add('hidden');
+    
+    // 2. Oculta o modal de Gestão de Reservas (se estiver aberto por trás)
+    document.getElementById('modal-gestao-reservas').classList.add('hidden');
+    document.getElementById('modal-gestao-reservas').classList.remove('flex');
+
+    // 3. Abre o modal de Gerenciar Evento (onde fica o formulário)
+    document.getElementById('modal-gerenciar-evento').classList.remove('hidden');
+    document.getElementById('modal-gerenciar-evento').classList.add('flex');
+    
+    // 4. Preenche o input do número da mesa automaticamente
+    document.getElementById('rm-mesa').value = numeroMesa;
+    
+    // 5. Dá um feedback visual e foca no campo Nome para agilizar a digitação
+    if(window.showToast) window.showToast(`Mesa ${numeroMesa} selecionada!`, "sucesso");
+    
+    setTimeout(() => {
+        document.getElementById('rm-nome').focus();
+    }, 400); 
 };
 
 window.toggleSelecaoMesa = function(numero, elemento) {
@@ -1247,20 +1358,31 @@ window.excluirReserva = async function(reservaId) {
 };
 
 
-window.imprimirTodasPlacasA5 = async function() {
+// Controle do Modal
+window.abrirModalImpressaoPlacas = function() {
+    document.getElementById('modal-imprimir-placas').classList.remove('hidden');
+    document.getElementById('modal-imprimir-placas').classList.add('flex');
+}
+
+window.fecharModalImpressaoPlacas = function() {
+    document.getElementById('modal-imprimir-placas').classList.add('hidden');
+    document.getElementById('modal-imprimir-placas').classList.remove('flex');
+}
+
+// Lógica de Impressão
+window.gerarPlacasA5 = async function(tipo, formatoSaida) {
     if (!window.eventoIdAtivo) return;
 
-    // 1. FILTRO DE IMPRESSÃO: Pergunta ao usuário qual o modo desejado
-    const imprimirApenasReservadas = confirm("Deseja imprimir APENAS as mesas reservadas?\n\n[OK] = Apenas Reservadas\n[Cancelar] = Imprimir todas as mesas do evento");
-    
-    let totalMesas = 0;
-    if (!imprimirApenasReservadas) {
-        const inputTotal = prompt("Qual é a numeração máxima de mesas do evento? (Ex: 40)");
-        if (!inputTotal || isNaN(inputTotal) || parseInt(inputTotal) <= 0) {
-            return; // Cancela se o usuário fechar o prompt ou digitar valor inválido
-        }
-        totalMesas = parseInt(inputTotal);
+    const totalMesasInput = document.getElementById('input-total-mesas-imprimir').value;
+    const totalMesas = parseInt(totalMesasInput) || 0;
+
+    // Bloqueia se tentar gerar listas dependentes do tamanho total sem informá-lo
+    if ((tipo === 'disponiveis' || tipo === 'todas') && totalMesas <= 0) {
+        if(window.showToast) window.showToast("Informe o total de mesas do evento.", "aviso");
+        return;
     }
+
+    fecharModalImpressaoPlacas();
 
     try {
         const { data: reservas, error } = await _supabase
@@ -1270,16 +1392,13 @@ window.imprimirTodasPlacasA5 = async function() {
 
         if (error) throw error;
 
-        let listaDetalhada = [];
+        // 1. Mapeia e limpa os dados vindos do Supabase
+        let mesasReservadas = [];
         reservas.forEach(res => {
             if (Array.isArray(res.mesas)) {
-                // 2. LIMPEZA DO NOME: Remove tudo que estiver entre parênteses
-                let nomeLimpo = res.cliente_nome 
-                    ? res.cliente_nome.replace(/\s*\(.*?\)/g, '').trim() 
-                    : '';
-
+                let nomeLimpo = res.cliente_nome ? res.cliente_nome.replace(/\s*\(.*?\)/g, '').trim() : '';
                 res.mesas.forEach(mesa => {
-                    listaDetalhada.push({
+                    mesasReservadas.push({
                         mesa: parseInt(mesa),
                         cliente: nomeLimpo,
                         reservado: true
@@ -1288,30 +1407,46 @@ window.imprimirTodasPlacasA5 = async function() {
             }
         });
 
-        // Monta a lista final baseada na escolha do usuário
+        // 2. Filtra a lista com base na opção selecionada
         let listaFinal = [];
-        if (imprimirApenasReservadas) {
-            listaFinal = listaDetalhada.sort((a, b) => a.mesa - b.mesa);
-        } else {
-            // Se for todas as mesas, faz um loop de 1 até o total informado
+        
+        if (tipo === 'reservadas') {
+            listaFinal = mesasReservadas.sort((a, b) => a.mesa - b.mesa);
+            
+        } else if (tipo === 'disponiveis') {
             for (let i = 1; i <= totalMesas; i++) {
-                let reservaEncontrada = listaDetalhada.find(r => r.mesa === i);
-                if (reservaEncontrada) {
-                    listaFinal.push(reservaEncontrada);
+                let estaReservada = mesasReservadas.find(r => r.mesa === i);
+                if (!estaReservada) {
+                    listaFinal.push({ mesa: i, cliente: "", reservado: false });
+                }
+            }
+            
+        } else if (tipo === 'todas') {
+            // Varre do 1 até o fim: se tiver reserva põe os dados, se não, gera em branco
+            for (let i = 1; i <= totalMesas; i++) {
+                let estaReservada = mesasReservadas.find(r => r.mesa === i);
+                if (estaReservada) {
+                    listaFinal.push(estaReservada);
                 } else {
-                    listaFinal.push({
-                        mesa: i,
-                        cliente: "",
-                        reservado: false
-                    });
+                    listaFinal.push({ mesa: i, cliente: "", reservado: false });
                 }
             }
         }
 
         if (listaFinal.length === 0) {
-            if(window.showToast) window.showToast("Nenhuma mesa encontrada para imprimir.", "erro");
+            if(window.showToast) window.showToast("Nenhuma mesa encontrada para esta opção.", "erro");
             return;
         }
+
+        // 3. Define o nome do arquivo amigável para salvar em PDF
+        const dataHoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+        let sufixoNome = 'Todas';
+        if (tipo === 'reservadas') sufixoNome = 'Reservadas';
+        if (tipo === 'disponiveis') sufixoNome = 'Livres';
+
+        const nomeDoArquivo = formatoSaida === 'pdf' 
+            ? `Placas_${sufixoNome}_${dataHoje}`
+            : 'Impressão de Placas (4 por A4)';
 
         const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
         const janelaPrint = window.open('', '_blank');
@@ -1319,111 +1454,36 @@ window.imprimirTodasPlacasA5 = async function() {
         let htmlStr = `<!DOCTYPE html>
             <html>
             <head>
-                <title>Impressão de Placas (4 por A4)</title>
+                <title>${nomeDoArquivo}</title>
                 <base href="${baseUrl}">
                 <style>
                     @page { size: A4 portrait; margin: 0; }
                     body {
                         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        margin: 0;
-                        padding: 0;
-                        background-color: #fff;
-                        color: #1e293b;
-                        width: 210mm; 
+                        margin: 0; padding: 0; background-color: #fff; color: #1e293b; width: 210mm; 
                     }
                     .folha-a4 {
-                        width: 210mm;
-                        height: 296mm; 
-                        padding: 10mm;
-                        box-sizing: border-box;
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        grid-template-rows: 1fr 1fr;
-                        gap: 15px;
-                        page-break-after: always;
-                        margin: 0 auto;
+                        width: 210mm; height: 296mm; padding: 10mm; box-sizing: border-box;
+                        display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px;
+                        page-break-after: always; margin: 0 auto;
                     }
-                    .folha-a4:last-child {
-                        page-break-after: auto;
-                    }
+                    .folha-a4:last-child { page-break-after: auto; }
                     .card {
-                        border: 4px solid #1e293b;
-                        border-radius: 16px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;
-                        text-align: center;
-                        position: relative;
-                        box-sizing: border-box;
-                        padding: 20px 20px 85px 20px; 
-                        overflow: hidden; 
+                        border: 4px solid #1e293b; border-radius: 16px; display: flex; flex-direction: column;
+                        justify-content: center; align-items: center; text-align: center; position: relative;
+                        box-sizing: border-box; padding: 20px 20px 85px 20px; overflow: hidden; 
                     }
                     .badge {
-                        background-color: #1e293b;
-                        color: #fff;
-                        padding: 6px 20px;
-                        border-radius: 50px;
-                        font-size: 12px;
-                        font-weight: 900;
-                        text-transform: uppercase;
-                        letter-spacing: 4px;
-                        position: absolute;
-                        top: 20px;
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
+                        background-color: #1e293b; color: #fff; padding: 6px 20px; border-radius: 50px;
+                        font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 4px;
+                        position: absolute; top: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact;
                     }
-                    .mesa {
-                        font-size: 70px;
-                        font-weight: 900;
-                        margin: 30px 0 0 0;
-                        line-height: 1;
-                        color: #0f172a;
-                        white-space: nowrap; /* 3. CORREÇÃO DE LINHA: Impede a quebra de texto */
-                    }
-                    .cliente-label {
-                        font-size: 12px;
-                        color: #64748b;
-                        text-transform: uppercase;
-                        letter-spacing: 2px;
-                        margin-top: 20px;
-                        font-weight: bold;
-                    }
-                    .cliente-nome {
-                        font-size: 24px;
-                        font-weight: 900;
-                        color: #0f172a;
-                        margin-top: 5px;
-                        text-transform: uppercase;
-                        word-break: break-word; 
-                        max-width: 90%;
-                    }
-                    .logo-rodape {
-                        position: absolute;
-                        bottom: 15px;
-                        left: 50%;
-                        transform: translateX(-50%);
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 4px;
-                        width: 100%;
-                    }
-                    .logo-rodape img {
-                        height: 45px;
-                        width: 45px;
-                        object-fit: cover;
-                        border-radius: 50%;
-                        border: 2px solid #f8fafc;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    }
-                    .logo-texto {
-                        font-size: 11px;
-                        font-weight: 900;
-                        color: #0f172a;
-                        text-transform: uppercase;
-                        letter-spacing: 1px;
-                    }
+                    .mesa { font-size: 70px; font-weight: 900; margin: 30px 0 0 0; line-height: 1; color: #0f172a; white-space: nowrap; }
+                    .cliente-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-top: 20px; font-weight: bold; }
+                    .cliente-nome { font-size: 24px; font-weight: 900; color: #0f172a; margin-top: 5px; text-transform: uppercase; word-break: break-word; max-width: 90%; }
+                    .logo-rodape { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+                    .logo-rodape img { height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #f8fafc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    .logo-texto { font-size: 11px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
                 </style>
             </head>
             <body>
@@ -1431,11 +1491,8 @@ window.imprimirTodasPlacasA5 = async function() {
 
         for (let i = 0; i < listaFinal.length; i += 4) {
             const grupo4Mesas = listaFinal.slice(i, i + 4);
-            
             htmlStr += `<div class="folha-a4">`;
-            
             grupo4Mesas.forEach(item => {
-                // Condicional para renderizar nome e badge APENAS se estiver reservada
                 const badgeHtml = item.reservado ? `<div class="badge">Reservado</div>` : '';
                 const clienteHtml = item.reservado ? `
                     <div class="cliente-label">Responsável</div>
@@ -1447,7 +1504,6 @@ window.imprimirTodasPlacasA5 = async function() {
                         ${badgeHtml}
                         <div class="mesa">MESA ${String(item.mesa).padStart(2, '0')}</div>
                         ${clienteHtml}
-                        
                         <div class="logo-rodape">
                             <img src="img/logo.jpg?v=2" onerror="this.style.display='none'">
                             <span class="logo-texto">Espetinho & CIA</span>
@@ -1455,7 +1511,6 @@ window.imprimirTodasPlacasA5 = async function() {
                     </div>
                 `;
             });
-            
             htmlStr += `</div>`;
         }
 

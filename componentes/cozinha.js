@@ -888,3 +888,242 @@ window.onload = async () => {
     await window.carregarPedidosIniciais();
     window.escutarNovosPedidos();
 };
+
+window.confirmarImpressao = function() {
+    const inputQtd = document.getElementById('qtd-fichas-imprimir');
+    const qtd = parseInt(inputQtd.value) || 1;
+
+    const janelaPrint = window.open('', '_blank');
+    
+    if (!janelaPrint) {
+        if (window.showToast) window.showToast("O navegador bloqueou a janela de impressão. Permita os pop-ups.", "erro");
+        return;
+    }
+
+    let htmlStr = `<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Fichas de Preparação</title>
+        <style>
+            /* Configuração crucial para Impressão Contínua com Guilhotina */
+            @media print {
+                @page { 
+                    margin: 0; 
+                    size: 80mm auto; /* Largura fixa de 80mm, altura dinâmica (contínua) */
+                }
+                html, body {
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                }
+            }
+            
+            body {
+                font-family: 'Courier New', Courier, monospace;
+                width: 72mm; /* Margem de segurança para não comer texto nas laterais */
+                margin: 0 auto;
+                color: #000;
+            }
+
+            .ficha-container {
+                width: 100%;
+                text-align: center;
+                padding-top: 5mm;
+                padding-bottom: 2mm;
+                box-sizing: border-box;
+                
+                /* ESTE É O COMANDO DO CORTE: Força a guilhotina a acionar após cada bloco */
+                page-break-after: always; 
+                break-after: page;
+            }
+
+            /* Evita que a última ficha gere um corte em branco ou pule papel à toa */
+            .ficha-container:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            .titulo-principal {
+                font-size: 24px;
+                font-weight: 900;
+                margin: 0 0 3px 0;
+            }
+            .subtitulo {
+                font-size: 13px;
+                text-transform: uppercase;
+                margin-bottom: 5px;
+            }
+            .linha-tracejada {
+                border-top: 2px dashed #000;
+                margin: 8px 0;
+                width: 100%;
+            }
+            .data-hora-container {
+                display: flex;
+                justify-content: space-between;
+                font-size: 12px;
+                font-weight: bold;
+                margin-bottom: 12px;
+            }
+            .caixa-mesa {
+                border: 2.5px solid #000;
+                border-radius: 8px;
+                padding: 12px 10px;
+                margin-bottom: 12px;
+            }
+            .caixa-mesa h2 {
+                font-size: 24px;
+                font-weight: 900;
+                margin: 0 0 15px 0;
+            }
+            .linha-preenchimento {
+                border-bottom: 2px solid #000;
+                width: 65%;
+                margin: 0 auto;
+                height: 5px;
+            }
+            .secao-titulo {
+                font-size: 14px;
+                font-weight: bold;
+                text-align: left;
+                border-bottom: 2px solid #000;
+                padding-bottom: 3px;
+                margin-bottom: 12px;
+                text-transform: uppercase;
+            }
+            .item-linha {
+                display: flex;
+                align-items: flex-end;
+                margin-bottom: 12px;
+                text-align: left;
+            }
+            .checkbox {
+                width: 20px;
+                height: 20px;
+                border: 2px solid #000;
+                margin-right: 8px;
+                flex-shrink: 0;
+            }
+            .item-texto {
+                font-size: 13px;
+                font-weight: bold;
+                white-space: nowrap;
+                padding-bottom: 1px;
+            }
+            .pontilhados {
+                flex-grow: 1;
+                border-bottom: 2px dotted #000;
+                margin-left: 5px;
+                height: 14px;
+            }
+            .caixa-observacoes {
+                border: 2px solid #000;
+                border-radius: 8px;
+                height: 70px; 
+                margin-top: 3px;
+                margin-bottom: 12px;
+            }
+            .rodape-contingencia {
+                font-size: 11px;
+                text-transform: uppercase;
+                margin-top: 4px;
+                font-weight: bold;
+                letter-spacing: 0.5px;
+            }
+            .espaco-corte {
+                height: 8mm; /* Recuo milimétrico para o papel avançar o suficiente até a lâmina */
+            }
+        </style>
+    </head>
+    <body>
+    `;
+
+    for (let i = 0; i < qtd; i++) {
+        htmlStr += `
+        <div class="ficha-container">
+            <h1 class="titulo-principal">WEBCOMANDA</h1>
+            <div class="subtitulo">FICHA DE PREPARAÇÃO</div>
+            
+            <div class="linha-tracejada"></div>
+            
+            <div class="data-hora-container">
+                <span>DATA: __/__/____</span>
+                <span>HORA: __:__</span>
+            </div>
+            
+            <div class="caixa-mesa">
+                <h2>MESA:</h2>
+                <div class="linha-preenchimento"></div>
+            </div>
+            
+            <div class="secao-titulo">ITENS DO PEDIDO</div>
+            
+            <div class="item-linha">
+                <div class="checkbox"></div>
+                <div class="item-texto">QTD:_____ |</div>
+                <div class="pontilhados"></div>
+            </div>
+            <div class="item-linha">
+                <div class="checkbox"></div>
+                <div class="item-texto">QTD:_____ |</div>
+                <div class="pontilhados"></div>
+            </div>
+            <div class="item-linha">
+                <div class="checkbox"></div>
+                <div class="item-texto">QTD:_____ |</div>
+                <div class="pontilhados"></div>
+            </div>
+            <div class="item-linha">
+                <div class="checkbox"></div>
+                <div class="item-texto">QTD:_____ |</div>
+                <div class="pontilhados"></div>
+            </div>
+            
+            <div class="secao-titulo">OBSERVAÇÕES</div>
+            <div class="caixa-observacoes"></div>
+            
+            <div class="linha-tracejada"></div>
+            <div class="rodape-contingencia">EMISSÃO MANUAL DE CONTINGÊNCIA</div>
+            
+            <div class="espaco-corte"></div>
+        </div>
+        `;
+    }
+
+    htmlStr += `
+        <script>
+            setTimeout(() => { 
+                window.print(); 
+                window.close(); 
+            }, 400);
+        </script>
+    </body>
+    </html>
+    `;
+
+    janelaPrint.document.write(htmlStr);
+    janelaPrint.document.close();
+
+    if (typeof window.fecharModalImpressao === 'function') {
+        window.fecharModalImpressao();
+    }
+};
+
+// Abre o modal de impressão
+window.abrirModalImpressao = function() {
+    const modal = document.getElementById('modal-impressao');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+// Fecha o modal de impressão
+window.fecharModalImpressao = function() {
+    const modal = document.getElementById('modal-impressao');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
