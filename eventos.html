@@ -74,15 +74,24 @@
 
     <main class="max-w-7xl mx-auto p-4 md:p-6 space-y-6 animate-fade-in">
         
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 shadow-sm gap-4">
-            <div>
-                <h2 class="text-lg font-black uppercase text-slate-800 dark:text-white tracking-tighter">Seus Eventos</h2>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Acompanhe as reservas e crie novos eventos</p>
-            </div>
-            <button onclick="window.abrirModalNovoEvento()" class="bg-slate-900 hover:bg-black dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-black text-[10px] px-6 py-4 rounded-xl uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
-                ➕ Criar Novo Evento
-            </button>
-        </div>
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 shadow-sm gap-4">
+    <div>
+        <h2 class="text-lg font-black uppercase text-slate-800 dark:text-white tracking-tighter">Seus Eventos</h2>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Acompanhe as reservas e crie novos eventos</p>
+    </div>
+
+    <div class="flex items-center gap-6">
+        <label class="flex items-center cursor-pointer gap-2">
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Apenas Ativos</span>
+            <input type="checkbox" id="filtro-ativos" checked onchange="window.filtrarEventos()" class="sr-only peer">
+            <div class="relative w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-emerald-600 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+        </label>
+
+        <button onclick="window.abrirModalNovoEvento()" class="bg-slate-900 hover:bg-black dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-black text-[10px] px-6 py-4 rounded-xl uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap">
+            ➕ Criar Novo Evento
+        </button>
+    </div>
+</div>
 
         <div id="lista-eventos-admin" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             <div class="col-span-full p-8 text-center text-slate-400 font-bold bg-white dark:bg-slate-900 rounded-[2rem] border border-dashed border-slate-300 dark:border-slate-700 animate-pulse">
@@ -92,7 +101,7 @@
         
     </main>
 
-    <div id="modal-novo-evento" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+<div id="modal-novo-evento" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
         <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2rem] p-6 md:p-8 border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] animate-slide-up overflow-y-auto custom-scrollbar">
             
             <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
@@ -123,6 +132,12 @@
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Qtd. Mesas</label>
                         <input type="number" id="ev-qtd-mesas" required placeholder="Ex: 20" class="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">WhatsApp Notificações</label>
+                    <input type="tel" id="ev-whatsapp" placeholder="(00) 00000-0000" oninput="window.mascaraTelefone(this)" class="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <p class="text-[9px] text-slate-400 dark:text-slate-500 mt-1 ml-1 leading-tight">Número que receberá as confirmações deste evento.</p>
                 </div>
 
                 <div>
@@ -190,10 +205,14 @@
                 <div class="text-center text-sm font-bold py-8 text-slate-400 italic">Carregando solicitações...</div>
             </div>
 
-<div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2 md:gap-3">
+<div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
     
     <button onclick="window.imprimirListaReservas()" class="btn-info w-full !px-1 text-[9px] md:text-[10px]">
-        🖨️ Imprimir
+        🖨️ Lista
+    </button>
+
+    <button onclick="window.imprimirTodasPlacasA5()" class="btn-info w-full !px-1 text-[9px] md:text-[10px]">
+        🔖 Placas A5
     </button>
     
     <button onclick="window.abrirMapaOcupacao()" class="btn-action w-full !px-1 text-[9px] md:text-[10px]">
@@ -201,7 +220,7 @@
     </button>
 
     <button onclick="window.fecharModalReservas()" class="btn-neutral w-full !px-1 text-[9px] md:text-[10px]">
-        ✖️ Fechar
+        ❌ Fechar
     </button>
 
 </div>
@@ -225,7 +244,7 @@
         </div>
     </div>
 
-    <div id="modal-gerenciar-evento" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+<div id="modal-gerenciar-evento" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
         <div class="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-[2rem] p-6 md:p-8 border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] animate-slide-up overflow-y-auto custom-scrollbar">
             
             <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
@@ -247,21 +266,29 @@
                             <input type="text" id="rm-nome" required placeholder="Ex: Patrocinador" class="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-800 dark:text-white">
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nº da Mesa</label>
-                                <input type="number" id="rm-mesa" required placeholder="Ex: 12" class="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-800 dark:text-white">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo</label>
-                                <select id="rm-tipo" class="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs font-bold text-slate-800 dark:text-white">
-                                    <option value=""></option>
-                                    <option value="CORTESIA">Cortesia / Patrocinador</option>
-                                    <option value="DINHEIRO/PIX">Presencial</option>
-                                    <option value="BLOQUEIO">Bloqueio Técnico (Som/Staff)</option>
-                                </select>
-                            </div>
-                        </div>
+<div class="grid grid-cols-2 gap-3">
+    <div>
+        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nº da Mesa</label>
+        <div class="flex gap-2 mt-1">
+            <input type="text" id="rm-mesa" required readonly placeholder="Selecione no mapa" 
+                   class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-800 dark:text-white cursor-pointer"
+                   onclick="window.abrirMapaOcupacao()">
+            <button type="button" onclick="window.abrirMapaOcupacao()" 
+                    class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 rounded-xl font-black text-xs transition-all">
+                🗺️
+            </button>
+        </div>
+    </div>
+    <div>
+        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo</label>
+        <select id="rm-tipo" class="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs font-bold text-slate-800 dark:text-white">
+            <option value=""></option>
+            <option value="CORTESIA">Cortesia / Patrocinador</option>
+            <option value="DINHEIRO/PIX">Presencial</option>
+            <option value="BLOQUEIO">Bloqueio Técnico (Som/Staff)</option>
+        </select>
+    </div>
+</div>
 
                         <button type="submit" id="btn-salvar-rm" class="btn-success w-full">
                             Bloquear Mesa
@@ -279,6 +306,19 @@
                                    class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-800 dark:text-white" 
                                    placeholder="Qtd de mesas">
                             <button onclick="window.salvarNovaCapacidade()" class="btn-action whitespace-nowrap">
+                                Salvar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">WhatsApp Notificações</label>
+                        <div class="flex gap-2">
+                            <input type="tel" id="input-editar-whatsapp" 
+                                   oninput="window.mascaraTelefone(this)"
+                                   class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-800 dark:text-white" 
+                                   placeholder="(00) 00000-0000">
+                            <button onclick="window.salvarWhatsAppNotificacaoEdicao()" class="btn-action whitespace-nowrap">
                                 Salvar
                             </button>
                         </div>
