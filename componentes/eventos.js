@@ -1250,36 +1250,70 @@ window.excluirReserva = async function(reservaId) {
 window.imprimirTodasPlacasA5 = async function() {
     if (!window.eventoIdAtivo) return;
 
+    // 1. FILTRO DE IMPRESSÃO: Pergunta ao usuário qual o modo desejado
+    const imprimirApenasReservadas = confirm("Deseja imprimir APENAS as mesas reservadas?\n\n[OK] = Apenas Reservadas\n[Cancelar] = Imprimir todas as mesas do evento");
+    
+    let totalMesas = 0;
+    if (!imprimirApenasReservadas) {
+        const inputTotal = prompt("Qual é a numeração máxima de mesas do evento? (Ex: 40)");
+        if (!inputTotal || isNaN(inputTotal) || parseInt(inputTotal) <= 0) {
+            return; // Cancela se o usuário fechar o prompt ou digitar valor inválido
+        }
+        totalMesas = parseInt(inputTotal);
+    }
+
     try {
         const { data: reservas, error } = await _supabase
             .from('reservas_evento')
             .select('*')
-            .eq('evento_id', String(window.eventoIdAtivo))
-            .order('mesas', { ascending: true });
+            .eq('evento_id', String(window.eventoIdAtivo));
 
         if (error) throw error;
 
         let listaDetalhada = [];
         reservas.forEach(res => {
             if (Array.isArray(res.mesas)) {
+                // 2. LIMPEZA DO NOME: Remove tudo que estiver entre parênteses
+                let nomeLimpo = res.cliente_nome 
+                    ? res.cliente_nome.replace(/\s*\(.*?\)/g, '').trim() 
+                    : '';
+
                 res.mesas.forEach(mesa => {
                     listaDetalhada.push({
-                        mesa: mesa,
-                        cliente: res.cliente_nome
+                        mesa: parseInt(mesa),
+                        cliente: nomeLimpo,
+                        reservado: true
                     });
                 });
             }
         });
-        
-        listaDetalhada.sort((a, b) => a.mesa - b.mesa);
 
-        if (listaDetalhada.length === 0) {
-            if(window.showToast) window.showToast("Nenhuma reserva encontrada para imprimir.", "erro");
+        // Monta a lista final baseada na escolha do usuário
+        let listaFinal = [];
+        if (imprimirApenasReservadas) {
+            listaFinal = listaDetalhada.sort((a, b) => a.mesa - b.mesa);
+        } else {
+            // Se for todas as mesas, faz um loop de 1 até o total informado
+            for (let i = 1; i <= totalMesas; i++) {
+                let reservaEncontrada = listaDetalhada.find(r => r.mesa === i);
+                if (reservaEncontrada) {
+                    listaFinal.push(reservaEncontrada);
+                } else {
+                    listaFinal.push({
+                        mesa: i,
+                        cliente: "",
+                        reservado: false
+                    });
+                }
+            }
+        }
+
+        if (listaFinal.length === 0) {
+            if(window.showToast) window.showToast("Nenhuma mesa encontrada para imprimir.", "erro");
             return;
         }
 
         const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-
         const janelaPrint = window.open('', '_blank');
         
         let htmlStr = `<!DOCTYPE html>
@@ -1345,6 +1379,7 @@ window.imprimirTodasPlacasA5 = async function() {
                         margin: 30px 0 0 0;
                         line-height: 1;
                         color: #0f172a;
+                        white-space: nowrap; /* 3. CORREÇÃO DE LINHA: Impede a quebra de texto */
                     }
                     .cliente-label {
                         font-size: 12px;
@@ -1394,18 +1429,24 @@ window.imprimirTodasPlacasA5 = async function() {
             <body>
         `;
 
-        for (let i = 0; i < listaDetalhada.length; i += 4) {
-            const grupo4Mesas = listaDetalhada.slice(i, i + 4);
+        for (let i = 0; i < listaFinal.length; i += 4) {
+            const grupo4Mesas = listaFinal.slice(i, i + 4);
             
             htmlStr += `<div class="folha-a4">`;
             
             grupo4Mesas.forEach(item => {
+                // Condicional para renderizar nome e badge APENAS se estiver reservada
+                const badgeHtml = item.reservado ? `<div class="badge">Reservado</div>` : '';
+                const clienteHtml = item.reservado ? `
+                    <div class="cliente-label">Responsável</div>
+                    <div class="cliente-nome">${item.cliente.toUpperCase()}</div>
+                ` : '';
+
                 htmlStr += `
                     <div class="card">
-                        <div class="badge">Reservado</div>
+                        ${badgeHtml}
                         <div class="mesa">MESA ${String(item.mesa).padStart(2, '0')}</div>
-                        <div class="cliente-label">Responsável</div>
-                        <div class="cliente-nome">${item.cliente.toUpperCase()}</div>
+                        ${clienteHtml}
                         
                         <div class="logo-rodape">
                             <img src="img/logo.jpg?v=2" onerror="this.style.display='none'">
