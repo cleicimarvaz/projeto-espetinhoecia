@@ -1376,15 +1376,19 @@ window.gerarPlacasA5 = async function(tipo, formatoSaida) {
     const totalMesasInput = document.getElementById('input-total-mesas-imprimir').value;
     const totalMesas = parseInt(totalMesasInput) || 0;
 
-    // Bloqueia se tentar gerar listas dependentes do tamanho total sem informá-lo
     if ((tipo === 'disponiveis' || tipo === 'todas') && totalMesas <= 0) {
         if(window.showToast) window.showToast("Informe o total de mesas do evento.", "aviso");
         return;
     }
 
-    fecharModalImpressaoPlacas();
+    // Fecha o modal visualmente
+    if (typeof window.fecharModalImpressaoPlacas === 'function') {
+        window.fecharModalImpressaoPlacas();
+    }
 
     try {
+        if (window.showToast) window.showToast("Buscando dados e gerando placas...", "aviso");
+
         const { data: reservas, error } = await _supabase
             .from('reservas_evento')
             .select('*')
@@ -1392,7 +1396,6 @@ window.gerarPlacasA5 = async function(tipo, formatoSaida) {
 
         if (error) throw error;
 
-        // 1. Mapeia e limpa os dados vindos do Supabase
         let mesasReservadas = [];
         reservas.forEach(res => {
             if (Array.isArray(res.mesas)) {
@@ -1407,12 +1410,9 @@ window.gerarPlacasA5 = async function(tipo, formatoSaida) {
             }
         });
 
-        // 2. Filtra a lista com base na opção selecionada
         let listaFinal = [];
-        
         if (tipo === 'reservadas') {
             listaFinal = mesasReservadas.sort((a, b) => a.mesa - b.mesa);
-            
         } else if (tipo === 'disponiveis') {
             for (let i = 1; i <= totalMesas; i++) {
                 let estaReservada = mesasReservadas.find(r => r.mesa === i);
@@ -1420,9 +1420,7 @@ window.gerarPlacasA5 = async function(tipo, formatoSaida) {
                     listaFinal.push({ mesa: i, cliente: "", reservado: false });
                 }
             }
-            
         } else if (tipo === 'todas') {
-            // Varre do 1 até o fim: se tiver reserva põe os dados, se não, gera em branco
             for (let i = 1; i <= totalMesas; i++) {
                 let estaReservada = mesasReservadas.find(r => r.mesa === i);
                 if (estaReservada) {
@@ -1438,23 +1436,36 @@ window.gerarPlacasA5 = async function(tipo, formatoSaida) {
             return;
         }
 
-        // 3. Define o nome do arquivo amigável para salvar em PDF
+        // Define o nome dinâmico para o PDF
         const dataHoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
         let sufixoNome = 'Todas';
         if (tipo === 'reservadas') sufixoNome = 'Reservadas';
         if (tipo === 'disponiveis') sufixoNome = 'Livres';
 
-        const nomeDoArquivo = formatoSaida === 'pdf' 
-            ? `Placas_${sufixoNome}_${dataHoje}`
-            : 'Impressão de Placas (4 por A4)';
+        // Aqui está o truque para manter o nome do PDF no Iframe
+        const nomeDoArquivo = formatoSaida === 'pdf' ? `Placas_${sufixoNome}_${dataHoje}` : 'Impressao_Placas';
+        const tituloOriginal = document.title;
+        document.title = nomeDoArquivo;
+
+        // Limpa iframe anterior se existir
+        let iframeAntigo = document.getElementById('iframe-impressao-placas');
+        if (iframeAntigo) iframeAntigo.remove();
+
+        // Cria o iframe invisível
+        let iframe = document.createElement('iframe');
+        iframe.id = 'iframe-impressao-placas';
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0px';
+        iframe.style.height = '0px';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
 
         const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-        const janelaPrint = window.open('', '_blank');
         
         let htmlStr = `<!DOCTYPE html>
             <html>
             <head>
-                <title>${nomeDoArquivo}</title>
+                <meta charset="UTF-8">
                 <base href="${baseUrl}">
                 <style>
                     @page { size: A4 portrait; margin: 0; }
@@ -1514,16 +1525,24 @@ window.gerarPlacasA5 = async function(tipo, formatoSaida) {
             htmlStr += `</div>`;
         }
 
-        htmlStr += `
-                <script>
-                    setTimeout(() => { window.print(); window.close(); }, 1500);
-                </script>
-            </body>
-            </html>
-        `;
+        htmlStr += `</body></html>`;
 
-        janelaPrint.document.write(htmlStr);
-        janelaPrint.document.close();
+        // Escreve o HTML no iframe
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(htmlStr);
+        doc.close();
+
+        // Aguarda 1.5s para garantir que as logos (imagens) foram carregadas antes de chamar a tela de impressão
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            
+            // Devolve o título original para a sua página principal não ficar com nome estranho na aba
+            setTimeout(() => { document.title = tituloOriginal; }, 1000);
+            
+            if (window.showToast) window.showToast("Opções de impressão abertas!", "sucesso");
+        }, 1500);
 
     } catch (error) {
         console.error(error);
