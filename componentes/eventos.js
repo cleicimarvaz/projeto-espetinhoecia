@@ -1373,28 +1373,30 @@ window.fecharModalImpressaoPlacas = function() {
 window.gerarPlacasA5 = async function(tipo, formatoSaida) {
     if (!window.eventoIdAtivo) return;
 
-    const totalMesasInput = document.getElementById('input-total-mesas-imprimir').value;
-    const totalMesas = parseInt(totalMesasInput) || 0;
-
-    if ((tipo === 'disponiveis' || tipo === 'todas') && totalMesas <= 0) {
-        if(window.showToast) window.showToast("Informe o total de mesas do evento.", "aviso");
-        return;
-    }
-
-    // Fecha o modal visualmente
+    // Fecha o modal antes de processar
     if (typeof window.fecharModalImpressaoPlacas === 'function') {
         window.fecharModalImpressaoPlacas();
     }
 
     try {
-        if (window.showToast) window.showToast("Buscando dados e gerando placas...", "aviso");
+        if (window.showToast) window.showToast("Buscando dados do evento...", "aviso");
 
-        const { data: reservas, error } = await _supabase
-            .from('reservas_evento')
-            .select('*')
-            .eq('evento_id', String(window.eventoIdAtivo));
+        // BUSCA AUTOMÁTICA: Traz os dados do evento (capacidade) e as reservas em paralelo
+        const [ { data: evento, error: errEv }, { data: reservas, error: errRes } ] = await Promise.all([
+            _supabase.from('eventos').select('quantidade_mesas').eq('id', window.eventoIdAtivo).single(),
+            _supabase.from('reservas_evento').select('*').eq('evento_id', String(window.eventoIdAtivo))
+        ]);
 
-        if (error) throw error;
+        if (errEv) throw errEv;
+        if (errRes) throw errRes;
+
+        // Define a capacidade real configurada no banco de dados
+        const totalMesas = evento ? (parseInt(evento.quantidade_mesas) || 0) : 0;
+
+        if ((tipo === 'disponiveis' || tipo === 'todas') && totalMesas <= 0) {
+            if(window.showToast) window.showToast("Defina a capacidade de mesas no menu 'Gerenciar' primeiro.", "erro");
+            return;
+        }
 
         let mesasReservadas = [];
         reservas.forEach(res => {
@@ -1436,22 +1438,20 @@ window.gerarPlacasA5 = async function(tipo, formatoSaida) {
             return;
         }
 
-        // Define o nome dinâmico para o PDF
+        // Título dinâmico para o arquivo PDF
         const dataHoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
         let sufixoNome = 'Todas';
         if (tipo === 'reservadas') sufixoNome = 'Reservadas';
         if (tipo === 'disponiveis') sufixoNome = 'Livres';
 
-        // Aqui está o truque para manter o nome do PDF no Iframe
         const nomeDoArquivo = formatoSaida === 'pdf' ? `Placas_${sufixoNome}_${dataHoje}` : 'Impressao_Placas';
         const tituloOriginal = document.title;
         document.title = nomeDoArquivo;
 
-        // Limpa iframe anterior se existir
+        // Gerenciamento do Iframe Oculto (À prova de bloqueios de pop-up)
         let iframeAntigo = document.getElementById('iframe-impressao-placas');
         if (iframeAntigo) iframeAntigo.remove();
 
-        // Cria o iframe invisível
         let iframe = document.createElement('iframe');
         iframe.id = 'iframe-impressao-placas';
         iframe.style.position = 'absolute';
@@ -1527,26 +1527,22 @@ window.gerarPlacasA5 = async function(tipo, formatoSaida) {
 
         htmlStr += `</body></html>`;
 
-        // Escreve o HTML no iframe
         const doc = iframe.contentWindow.document;
         doc.open();
         doc.write(htmlStr);
         doc.close();
 
-        // Aguarda 1.5s para garantir que as logos (imagens) foram carregadas antes de chamar a tela de impressão
         setTimeout(() => {
             iframe.contentWindow.focus();
             iframe.contentWindow.print();
             
-            // Devolve o título original para a sua página principal não ficar com nome estranho na aba
             setTimeout(() => { document.title = tituloOriginal; }, 1000);
-            
-            if (window.showToast) window.showToast("Opções de impressão abertas!", "sucesso");
+            if (window.showToast) window.showToast("Lote de placas gerado com sucesso!", "sucesso");
         }, 1500);
 
     } catch (error) {
         console.error(error);
-        if(window.showToast) window.showToast("Erro ao gerar placas.", "erro");
+        if(window.showToast) window.showToast("Erro ao processar a base de dados.", "erro");
     }
 };
 
