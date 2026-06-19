@@ -27,24 +27,40 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. CARREGA DADOS BÁSICOS DO EVENTO
 // ==========================================
 // Exemplo de como deve ser a chamada dentro do seu componente
-async function carregarDadosEvento(eventoId) {
+window.carregarDadosEvento = async function() {
+    // 1. Extração segura do ID da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const idDaUrl = urlParams.get('e');
+
+    if (!idDaUrl) {
+        console.error("ID não encontrado na URL");
+        return;
+    }
+    
+    // Atualiza a variável global
+    eventoId = idDaUrl;
+
     try {
+        // 2. Busca o evento no Supabase
         const { data, error } = await _supabase
             .from('eventos')
-            .select('quantidade_mesas, whatsapp_notificacao, patrocinadores')
+            .select('quantidade_mesas, valor_mesa, whatsapp_notificacao')
             .eq('id', eventoId)
             .single();
 
         if (error) throw error;
+
+        // 3. Atualiza variáveis globais
+        valorMesa = parseFloat(data.valor_mesa) || 0;
         
-        console.log("Dados carregados:", data);
-        // Aqui você preenche os campos do modal com 'data.patrocinadores'
-        document.getElementById('lista-patrocinadores-input').value = data.patrocinadores || '';
-        
+        // 4. Inicia a grade de mesas
+        buscarMesasOcupadas(data.quantidade_mesas);
+
     } catch (err) {
         console.error("Erro ao carregar dados do evento:", err);
+        if(window.showToast) window.showToast("Erro ao carregar evento.", "erro");
     }
-}
+};
 
 // ==========================================
 // 2. VERIFICA QUAIS MESAS JÁ ESTÃO OCUPADAS
