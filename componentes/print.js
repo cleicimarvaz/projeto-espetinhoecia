@@ -1,6 +1,46 @@
 /* =================================================================================
-   MÓDULO: MOTOR DE IMPRESSÃO UNIVERSAL (Versão Corrigida e Unificada p/ RawBT)
+   MÓDULO: MOTOR DE IMPRESSÃO UNIVERSAL (Com Iframe Anti-Bloqueio)
    ================================================================================= */
+
+/* ---------------------------------------------------------------------------------
+   0. MOTOR CENTRAL DE RENDERIZAÇÃO (IFRAME OCULTO)
+   --------------------------------------------------------------------------------- */
+window.imprimirConteudoIframe = function(htmlContent, tituloPDF = null) {
+    let tituloOriginal = document.title;
+    
+    // Altera o título para o PDF herdar o nome correto ao salvar
+    if (tituloPDF) document.title = tituloPDF;
+
+    let iframeAntigo = document.getElementById('iframe-impressao-universal');
+    if (iframeAntigo) iframeAntigo.remove();
+
+    let iframe = document.createElement('iframe');
+    iframe.id = 'iframe-impressao-universal';
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    // Remove tags script contendo window.print() para evitar duplicação
+    const htmlLimpo = htmlContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlLimpo);
+    doc.close();
+
+    // Aguarda carregar fontes/imagens e dispara a janela do sistema
+    setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        
+        if (tituloPDF) {
+            setTimeout(() => { document.title = tituloOriginal; }, 1000);
+        }
+    }, 1200); 
+};
+
 
 /* ---------------------------------------------------------------------------------
    1. AUXILIARES E FORMATADORES INTERNOS
@@ -210,10 +250,8 @@ window.gerarPDFConsolidado = async function(resumo) {
         </body></html>
     `;
 
-    const win = window.open('', '_blank');
-    win.document.write(html); 
-    win.document.close();
-    setTimeout(() => { win.print(); }, 800);
+    // Chamada do Motor Iframe
+    window.imprimirConteudoIframe(html, nomeArquivo);
 };
 
 window.exportarFechamentoPDF = function(res) {
@@ -292,86 +330,123 @@ window.gerarTemplateClassico = function(produtos, loja, logoBase64, mensagem) {
             <h3 class="categoria-titulo">${icons[key] || '📦'} ${key.toUpperCase()}</h3>
             <div class="itens-grid">
                 ${categoriesObj[key].map(i => `
-                    <div class="item-info">
-                        <span class="item-nome">${i.nome.toUpperCase()}</span>
-                        <div class="linha-pontilhada"></div>
-                        <span class="item-preco">R$ ${window.fmSeguro(i.preco)}</span>
+                    <div style="display: flex; flex-direction: column; margin-bottom: 4px; page-break-inside: avoid;">
+                        <div class="item-info" style="margin-bottom: 1px;">
+                            <span class="item-nome">${i.nome.toUpperCase()}</span>
+                            <div class="linha-pontilhada"></div>
+                            <span class="item-preco">R$ ${window.fmSeguro(i.preco)}</span>
+                        </div>
+                        ${i.observacao ? `<div style="font-size: 9px; font-weight: 600; color: #64748b; font-style: italic; line-height: 1.1; text-transform: uppercase;">${i.observacao}</div>` : ''}
                     </div>
                 `).join('')}
             </div>
         </div>`).join('');
         
-    // CORREÇÃO AQUI: Trocado 'message' por 'mensagem'
     window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'classico');
 }
 
 window.gerarTemplateModerno = function(produtos, loja, logoBase64, mensagem) {
-    // CORREÇÃO AQUI: Garante que categorias vazias vão para 'Outros' e unifica letras maiúsculas/minúsculas
     const categorias = [...new Set(produtos.map(p => (p.categoria || 'outros').toLowerCase()))];
     
     let html = categorias.map(cat => `
         <div class="cat-section-moderno">
             <div class="cat-titulo-moderno">${cat.toUpperCase()}</div>
             ${produtos.filter(p => (p.categoria || 'outros').toLowerCase() === cat).map(p => `
-                <div class="item-moderno">
-                    <span class="item-nome-moderno">${p.nome.toUpperCase()}</span>
-                    <div class="item-dots-moderno"></div>
-                    <span class="item-preco-moderno">R$ ${window.fmSeguro(p.preco)}</span>
+                <div style="margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid;">
+                    <div class="item-moderno" style="margin-bottom: 2px;">
+                        <span class="item-nome-moderno">${p.nome.toUpperCase()}</span>
+                        <div class="item-dots-moderno"></div>
+                        <span class="item-preco-moderno">R$ ${window.fmSeguro(p.preco)}</span>
+                    </div>
+                    ${p.observacao ? `<div style="font-size: 10px; color: #64748b; font-style: italic; line-height: 1; text-transform: uppercase; margin-top: -2px;">${p.observacao}</div>` : ''}
                 </div>
             `).join('')}
         </div>`).join('');
         
-    // CORREÇÃO AQUI: Trocado 'message' por 'mensagem'
+    window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'moderno');
+}
+
+window.gerarTemplateModerno = function(produtos, loja, logoBase64, mensagem) {
+    const categorias = [...new Set(produtos.map(p => (p.categoria || 'outros').toLowerCase()))];
+    
+    let html = categorias.map(cat => `
+        <div class="cat-section-moderno">
+            <div class="cat-titulo-moderno">${cat.toUpperCase()}</div>
+            ${produtos.filter(p => (p.categoria || 'outros').toLowerCase() === cat).map(p => `
+                <div style="margin-bottom: 6px; page-break-inside: avoid; break-inside: avoid;">
+                    
+                    <div class="item-moderno" style="margin-bottom: 1px;">
+                        <span class="item-nome-moderno">${p.nome.toUpperCase()}</span>
+                        <div class="item-dots-moderno"></div>
+                        <span class="item-preco-moderno">R$ ${window.fmSeguro(p.preco)}</span>
+                    </div>
+                    
+                    ${p.observacao ? `<div style="font-size: 9px; color: #64748b; font-weight: 600; font-style: italic; line-height: 1.1; text-transform: uppercase; margin-top: -1px;">${p.observacao}</div>` : ''}
+                
+                </div>
+            `).join('')}
+        </div>`).join('');
+        
     window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'moderno');
 }
 
 window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, estilo) {
-    const win = window.open('', '_blank');
     const dataHora = new Date().toLocaleString('pt-BR');
+    const nomePdf = `Cardapio_${loja.replace(/\s+/g, '_')}`;
     
-    // 1. CSS Global + Regras de Impressão (O segredo para um PDF perfeito)
+    // CSS do Cabeçalho muito mais compacto
     const cssHeader = `
-        .header-pdf { position: relative; border-bottom: 4px solid #e63946; padding-bottom: 20px; margin-bottom: 30px; min-height: 100px; }
-        .header-info { padding-right: 110px; }
-        .header-info h1 { font-size: 30px; font-weight: 900; font-style: italic; color: #e63946; text-transform: uppercase; margin-bottom: 5px; }
-        .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-        .header-logo { position: absolute; right: 0; top: 0; }
-        .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header-pdf { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e63946; padding-bottom: 10px; margin-bottom: 15px; }
+        .header-info h1 { font-size: 22px; font-weight: 900; font-style: italic; color: #e63946; text-transform: uppercase; margin-bottom: 2px; line-height: 1; }
+        .header-info p { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+        .header-logo img { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #f1f5f9; }
         
-        /* Proteções para a hora de salvar em PDF / Imprimir */
         @media print {
-            @page { margin: 15mm; size: A4; }
+            /* Define margens mínimas de 8mm para a folha A4 e um leve zoom-out */
+            @page { margin: 8mm; size: A4 portrait; }
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0 !important; }
-            /* Evita que categorias ou itens sejam cortados no meio da página */
-            .categoria-section, .cat-section-moderno, .item-info, .item-moderno { page-break-inside: avoid; break-inside: avoid; }
-            /* Evita que o título fique no final da folha e os itens na outra */
-            .categoria-titulo, .cat-titulo-moderno { page-break-after: avoid; break-after: avoid; }
+            .categoria-section, .cat-section-moderno { page-break-inside: avoid; break-inside: avoid; }
+            /* Se ainda estiver grande, essa linha reduz tudo em 5% na impressão */
+            html { zoom: 0.95; } 
         }
     `;
 
-    // 2. CSS Clássico e Moderno
-    const cssClassico = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');body{font-family:'Montserrat',sans-serif;color:#1e293b;} ${cssHeader} .categoria-titulo{color:#e63946;border-bottom:2px solid #e63946;margin-bottom:15px;text-transform:uppercase;font-size:18px;margin-top:30px;}.itens-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px 40px;}.item-info{display:flex;align-items:baseline;font-weight:700;font-size:13px;}.linha-pontilhada{flex-grow:1;border-bottom:1px dotted #ccc;margin:0 8px;}`;
+    // Redução drástica de paddings, gaps e margens (Modelo Clássico)
+    const cssClassico = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+    body{font-family:'Montserrat',sans-serif;color:#1e293b;} 
+    ${cssHeader} 
+    .categoria-titulo{color:#e63946;border-bottom:2px solid #e63946;margin-bottom:8px;text-transform:uppercase;font-size:13px;margin-top:12px; font-weight: 900;}
+    .itens-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;}
+    .item-info{display:flex;align-items:baseline;font-weight:700;font-size:11px;}
+    .linha-pontilhada{flex-grow:1;border-bottom:1px dotted #ccc;margin:0 6px;}`;
     
-    const cssModerno = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');body{font-family:'Inter',sans-serif;color:#1e293b;} ${cssHeader} .cat-titulo-moderno{color:#e63946;font-weight:900;border-bottom:2px solid #f1f5f9;margin:30px 0 15px 0;text-transform:uppercase;font-size:18px;}.item-moderno{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:13px;font-weight:700;}.item-dots-moderno{flex:1;border-bottom:1px dotted #cbd5e1;margin:0 12px;}`;
+    // Força 2 colunas e reduz paddings (Modelo Moderno)
+    const cssModerno = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    body{font-family:'Inter',sans-serif;color:#1e293b;} 
+    ${cssHeader} 
+    .content { column-count: 2; column-gap: 25px; } /* Divide tudo em 2 colunas */
+    .cat-titulo-moderno{color:#e63946;font-weight:900;border-bottom:2px solid #f1f5f9;margin:0 0 8px 0; padding-top: 10px; text-transform:uppercase;font-size:13px; break-after: avoid; page-break-after: avoid;}
+    .cat-section-moderno { break-inside: avoid; page-break-inside: avoid; margin-bottom: 8px; }
+    .item-moderno{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;font-size:11px;font-weight:700;}
+    .item-dots-moderno{flex:1;border-bottom:1px dotted #cbd5e1;margin:0 8px;}`;
     
-    // 3. Estrutura HTML final
     const html = `<!DOCTYPE html>
     <html>
     <head>
         <title>Cardápio - ${loja}</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { background: #fff; padding: 40px; max-width: 1000px; margin: 0 auto; }
+            body { background: #fff; padding: 15px; width: 100%; margin: 0 auto; }
             ${estilo === 'classico' ? cssClassico : cssModerno}
-            .footer { margin-top: 50px; text-align: center; padding: 20px; border-top: 2px dashed #eee; font-weight: 900; color: #e63946; font-size: 14px; page-break-inside: avoid; }
+            .footer { margin-top: 15px; text-align: center; padding: 10px; border-top: 2px dashed #eee; font-weight: 900; color: #e63946; font-size: 11px; page-break-inside: avoid; }
         </style>
     </head>
     <body>
         <div class="header-pdf">
             <div class="header-info">
                 <h1>${loja}</h1>
-                <p>Cardápio</p>
-                <small style="color: #94a3b8;">Atualizado em: ${dataHora}</small>
+                <p>Cardápio de Produtos</p>
+                <small style="color: #94a3b8; font-size: 8px;">Atualizado em: ${dataHora}</small>
             </div>
             <div class="header-logo">
                 <img src="${logoBase64 || ''}" onerror="this.style.display='none'">
@@ -379,25 +454,15 @@ window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, est
         </div>
 
         <div class="content">${conteudo}</div>
-        <div class="footer">${mensagem}</div>
         
-        <script>
-            // 1000ms garante que as fontes do Google carreguem antes do print dialog abrir
-            setTimeout(() => {
-                window.print();
-                window.close();
-            }, 1000);
-        </script>
+        <div class="footer">${mensagem}</div>
     </body>
     </html>`;
     
-    win.document.write(html);
-    win.document.close();
+    // Chamada do Motor Iframe
+    window.imprimirConteudoIframe(html, nomePdf);
 }
 
-/* ---------------------------------------------------------------------------------
-   4. IMPRESSÃO TÉRMICA DE VENDAS E DESPESAS (58MM - UNIFICADA COM PREFERÊNCIA GLOBAL)
-   --------------------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------------------
    4. IMPRESSÃO TÉRMICA DE VENDAS E DESPESAS (58MM - UNIFICADA COM PREFERÊNCIA GLOBAL)
    --------------------------------------------------------------------------------- */
@@ -414,8 +479,6 @@ window.dispararImpressao = function(conteudoHtml, layout) {
     const ua = navigator.userAgent.toLowerCase();
     const isAndroid = /android/.test(ua);
 
-    // Se por algum motivo o HTML chegou aqui e estamos no modo térmico, enviamos para o RawBT
-    // NOTA: O ideal é não chegar HTML aqui, mas se chegar, o RawBT tenta renderizar como imagem
     if (window.isRawBTThermalMode() && isAndroid) {
         const htmlCompleto = `
             <!DOCTYPE html>
@@ -440,9 +503,8 @@ window.dispararImpressao = function(conteudoHtml, layout) {
     }
 
     // ROTA PADRÃO (SE ESTIVER EM MODO PDF / WINDOWS / IOS)
-    const w = window.open('', '_blank');
-    w.document.write(`<html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;width:58mm;}@media print{.no-print{display:none!important;}}.btn-voltar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:10px 20px;border-radius:20px;text-decoration:none;z-index:9999;}${getTicketCSS(layout)}</style></head><body>${conteudoHtml}<a href="javascript:window.close()" class="no-print btn-voltar">FECHAR</a><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
-    w.document.close();
+    const htmlIframe = `<html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;width:58mm;}@media print{.no-print{display:none!important;}}.btn-voltar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:10px 20px;border-radius:20px;text-decoration:none;z-index:9999;}${getTicketCSS(layout)}</style></head><body>${conteudoHtml}</body></html>`;
+    window.imprimirConteudoIframe(htmlIframe, 'Cupom_Impressao');
 }
 
 window.enviarParaImpressora = function(texto) {
@@ -453,22 +515,25 @@ window.enviarParaImpressora = function(texto) {
     if (isAndroid && window.isRawBTThermalMode()) { 
         window.location.href = "rawbt:base64," + base64Texto; 
     } else { 
-        const win = window.open('', '_blank'); 
-        win.document.write(`<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;padding:20px;">${texto}</pre><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500);}<\/script>`); 
-        win.document.close(); 
+        const html = `<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;padding:20px;">${texto}</pre>`; 
+        window.imprimirConteudoIframe(html, 'Ticket_Texto');
     }
 }
 
 // FORMATO 1: Imprimir cupons (Retirar no Balcão)
 window.imprimirCupom = function(venda) {
     // 1. SE FOR MODO RAWBT -> GERAR TEXTO PURO COM LAYOUT
-// SE FOR MODO RAWBT -> GERAR TEXTO PURO COM LAYOUT (VERSÃO AJUSTADA)
     if (window.isRawBTThermalMode()) {
         const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
         const operador = (localStorage.getItem('userName') || 'ADMIN').toUpperCase();
         const itensArray = Array.isArray(venda.itens) ? venda.itens : JSON.parse(venda.itens || '[]');
         
         let textoRaw = '\n';
+
+        const alinharCentro = (texto) => {
+            const str = String(texto).substring(0, 32);
+            return ' '.repeat(Math.max(0, Math.floor((32 - str.length) / 2))) + str;
+        };
 
         itensArray.forEach(item => {
             if(parseFloat(item.preco) > 0) {
@@ -689,7 +754,7 @@ window.imprimirTicketVenda = function(dadosVenda) {
             .footer { margin-top: 12px; font-size: 10px; }
         </style>
     </head>
-    <body onload="setTimeout(() => { window.print(); window.close(); }, 500);">
+    <body>
         <div class="text-center">
             <div class="store-name">${loja}</div>
             ${cnpj ? `<div class="bold" style="font-size:11px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
@@ -723,9 +788,8 @@ window.imprimirTicketVenda = function(dadosVenda) {
         return; 
     }
     
-    const win = window.open('', '_blank', 'width=350,height=600');
-    win.document.write(htmlCompleto); 
-    win.document.close();
+    // Chamada do Motor Iframe
+    window.imprimirConteudoIframe(htmlCompleto, `Ticket_${dadosVenda.id || 'Conta'}`);
 }
 
 
@@ -806,15 +870,11 @@ window.gerarTicketHTML = function(dados, loja) {
             
             <div class="text-center bold" style="margin-top:12px; font-size:10px;">OBRIGADO PELA PREFERÊNCIA</div>
         </div>
-        <script>
-            window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); };
-        </script>
     </body>
     </html>`;
 
-    const win = window.open('', '_blank', 'width=350,height=600');
-    win.document.write(html); 
-    win.document.close();
+    // Chamada do Motor Iframe
+    window.imprimirConteudoIframe(html, `Cupom_${loja}`);
 }
 
 // Dispara a impressão a partir do modal de confirmação
@@ -846,8 +906,10 @@ window.imprimirComprovanteDespesa = function(id) {
         <body><div style="text-align:center"><b>${localStorage.getItem('nomeLoja') || 'ESPETINHO'}</b><br>COMPROVANTE DE DESPESA<br>------------------</div>
         DESC: ${d.descricao}<br>CATEG: ${d.categoria}<br>STATUS: ${d.paga ? 'PAGO' : 'EM ABERTO'}<br>
         <div style="text-align:center">------------------<br><b style="font-size:14px;">TOTAL: R$ ${window.fmSeguro(d.valor)}</b></div>
-        <script>window.onload=()=>window.print();<\/script></body></html>`;
-        const win = window.open('', '', 'width=300'); win.document.write(html); win.document.close();
+        </body></html>`;
+        
+        // Chamada do Motor Iframe
+        window.imprimirConteudoIframe(html, `Despesa_${id}`);
     });
 };
 
@@ -1017,10 +1079,8 @@ window.imprimirPDFProdutos = async function() {
             </html>
         `;
 
-        const win = window.open('', '_blank');
-        win.document.write(html);
-        win.document.close();
-        setTimeout(() => { win.print(); win.close(); }, 800);
+        // Chamada do Motor Iframe
+        window.imprimirConteudoIframe(html, nomeArquivo);
 
     } catch (e) {
         console.error("Erro PDF Ranking:", e);
@@ -1159,10 +1219,8 @@ window.imprimirPDFComandas = async function() {
             </body></html>
         `;
 
-        const win = window.open('', '_blank');
-        win.document.write(html);
-        win.document.close();
-        setTimeout(() => { win.print(); win.close(); }, 800);
+        // Chamada do Motor Iframe
+        window.imprimirConteudoIframe(html, nomeArquivo);
 
     } catch (e) {
         console.error(e);
@@ -1256,16 +1314,12 @@ window.imprimirFluxoFinanceiro = async function() {
                 ${listaHTML}
             </div>
             <div class="footer-pdf">WebComanda - Sistema de Gestão Inteligente</div>
-            <script>
-                setTimeout(() => { window.print(); window.close(); }, 1000);
-            </script>
         </body>
         </html>
     `;
 
-    const janelaImpressao = window.open('', '_blank');
-    janelaImpressao.document.write(htmlPrint);
-    janelaImpressao.document.close();
+    // Chamada do Motor Iframe
+    window.imprimirConteudoIframe(htmlPrint, nomeArquivo);
 };
 
 function resumoCardsLimpos(html) {
@@ -1375,10 +1429,8 @@ window.imprimirPDFEstoque = async function() {
         </body>
         </html>`;
 
-        const win = window.open('', '_blank');
-        win.document.write(html);
-        win.document.close();
-        setTimeout(() => { win.print(); win.close(); }, 800);
+        // Chamada do Motor Iframe
+        window.imprimirConteudoIframe(html, nomeArquivo);
 
     } catch (err) {
         console.error("Erro ao gerar PDF:", err);
@@ -1481,40 +1533,17 @@ window.reimprimirComanda = async function(id) {
                 <div style="text-align: center; font-size: 12px; font-weight: bold; margin-top: 10px;">OBRIGADO PELA PREFERÊNCIA</div>
             </div>`;
 
-        if (typeof imprimirConteudoHTML === 'function') {
-            imprimirConteudoHTML(html);
-        } else {
-            console.error("Função imprimirConteudoHTML não encontrada.");
-        }
+        // Direciona para o novo motor central!
+        window.imprimirConteudoHTML(html);
+
     } catch (e) {
         console.error('Erro na reimpressão:', e);
         if (typeof showToast === 'function') showToast('ERRO AO GERAR IMPRESSÃO', 'erro');
     }
 };
 
+// Como o motor foi unificado com iframe anti-bloqueio, essa função
+// simplesmente repassa para o nosso motor central que criamos no topo do arquivo.
 function imprimirConteudoHTML(conteudo) {
-    const frame = document.createElement('iframe');
-    frame.style.display = 'none';
-    document.body.appendChild(frame);
-    
-    const doc = frame.contentWindow.document;
-    doc.open();
-    doc.write(`
-        <html>
-            <head>
-                <title>Reimpressão de Comanda</title>
-                <style>
-                    body { margin: 0; padding: 0; }
-                    @media print { @page { margin: 0; } }
-                </style>
-            </head>
-            <body>${conteudo}</body>
-        </html>`);
-    doc.close();
-
-    setTimeout(() => {
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
-        setTimeout(() => { document.body.removeChild(frame); }, 1000);
-    }, 500);
+    window.imprimirConteudoIframe(conteudo, 'Reimpressao_Comanda');
 }

@@ -996,23 +996,32 @@ window.confirmarImpressao = function() {
                 font-weight: bold;
                 margin-bottom: 12px;
             }
+            
+            /* ========================================= */
+            /* CORREÇÃO 1: CAIXA MESA LADO A LADO        */
+            /* ========================================= */
             .caixa-mesa {
                 border: 2.5px solid #000;
                 border-radius: 8px;
                 padding: 12px 10px;
                 margin-bottom: 12px;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                gap: 10px;
             }
             .caixa-mesa h2 {
                 font-size: 24px;
                 font-weight: 900;
-                margin: 0 0 15px 0;
+                margin: 0;
+                line-height: 1;
             }
             .linha-preenchimento {
                 border-bottom: 2px solid #000;
-                width: 65%;
-                margin: 0 auto;
+                width: 50%;
                 height: 5px;
             }
+            
             .secao-titulo {
                 font-size: 14px;
                 font-weight: bold;
@@ -1061,8 +1070,12 @@ window.confirmarImpressao = function() {
                 font-weight: bold;
                 letter-spacing: 0.5px;
             }
+            
+            /* ========================================= */
+            /* CORREÇÃO 2: SOBRA PARA NÃO SOBREPOR/CORTAR*/
+            /* ========================================= */
             .espaco-corte {
-                height: 8mm; /* Margem técnica para o papel avançar antes do corte físico */
+                height: 15mm; /* Margem técnica para o papel avançar antes do corte físico */
             }
         </style>
     </head>

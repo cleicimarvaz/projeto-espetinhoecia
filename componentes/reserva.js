@@ -26,34 +26,23 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // 1. CARREGA DADOS BÁSICOS DO EVENTO
 // ==========================================
-async function carregarDadosEvento() {
+// Exemplo de como deve ser a chamada dentro do seu componente
+async function carregarDadosEvento(eventoId) {
     try {
-        const { data: evento, error } = await _supabase
+        const { data, error } = await _supabase
             .from('eventos')
-            .select('*')
+            .select('quantidade_mesas, whatsapp_notificacao, patrocinadores')
             .eq('id', eventoId)
             .single();
 
-        if (error || !evento) throw new Error("Evento não encontrado.");
-
-        document.getElementById('ev-nome').innerText = evento.nome.toUpperCase();
+        if (error) throw error;
         
-        const dataFormatada = new Date(evento.data_evento).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-        document.getElementById('ev-data').innerText = `📅 ${dataFormatada}`;
+        console.log("Dados carregados:", data);
+        // Aqui você preenche os campos do modal com 'data.patrocinadores'
+        document.getElementById('lista-patrocinadores-input').value = data.patrocinadores || '';
         
-        valorMesa = evento.valor_mesa;
-        document.getElementById('ev-valor').innerText = valorMesa.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-
-        if (evento.mapa_url) {
-            document.getElementById('img-mapa-modal').src = evento.mapa_url;
-            document.getElementById('btn-ver-mapa').classList.remove('hidden');
-        }
-
-        buscarMesasOcupadas(evento.quantidade_mesas);
-
-    } catch (error) {
-        console.error(error);
-        document.getElementById('ev-nome').innerText = "Erro ao carregar evento.";
+    } catch (err) {
+        console.error("Erro ao carregar dados do evento:", err);
     }
 }
 

@@ -122,6 +122,13 @@ if (aba === 'lista') renderizarCatalogo();
 
 window.salvarProduto = async function() {
     const nome = document.getElementById('p-nome').value.toUpperCase().trim();
+    
+    // ====================================================
+    // 0. CAPTURA A NOVA OBSERVAÇÃO PARA O CARDÁPIO
+    // ====================================================
+    const inputObs = document.getElementById('p-observacao');
+    const observacao = inputObs ? inputObs.value.trim() : null;
+
     const cat = document.getElementById('p-categoria').value;
     
     const inputPreco = document.getElementById('p-preco').value;
@@ -130,12 +137,12 @@ window.salvarProduto = async function() {
     const controlaEstoque = document.getElementById('p-controla-estoque') ? document.getElementById('p-controla-estoque').checked : false;
     
     // ====================================================
-    // 1. CAPTURA O CAMPO DE INGREDIENTES E O NOVO TOGGLE
+    // 1. CAPTURA O CAMPO DE INGREDIENTES E O TOGGLE
     // ====================================================
     const inputIngredientes = document.getElementById('p-ingredientes');
     const ingredientes = inputIngredientes ? inputIngredientes.value.trim() : null;
     
-    // Captura o novo botão (Se não encontrar na tela, assume TRUE por padrão)
+    // Captura o botão de complementos (Se não encontrar na tela, assume TRUE por padrão)
     const pedirComplementos = document.getElementById('p-pedir-complementos') ? document.getElementById('p-pedir-complementos').checked : true;
     
     let prepara = false;
@@ -165,6 +172,7 @@ window.salvarProduto = async function() {
             precisa_preparo: prepara,
             controlar_estoque: controlaEstoque,
             ingredientes: ingredientes,
+            observacao: observacao, // <-- ENVIANDO PARA O BANCO AQUI
             // ====================================================
             // 2. ENVIA A OPÇÃO DE COMPLEMENTOS PARA O BANCO
             // ====================================================
@@ -211,6 +219,15 @@ window.prepararEdicao = async function(id) {
         if (error || !p) return;
 
         document.getElementById('p-nome').value = p.nome;
+        
+        // ====================================================
+        // PREENCHE O NOVO CAMPO DE OBSERVAÇÃO NA EDIÇÃO
+        // ====================================================
+        const inputObs = document.getElementById('p-observacao');
+        if (inputObs) {
+            inputObs.value = p.observacao || '';
+        }
+
         document.getElementById('p-categoria').value = p.categoria;
         document.getElementById('p-preco').value = typeof formatarMoeda === 'function' ? formatarMoeda(p.preco) : p.preco;
         
@@ -244,6 +261,12 @@ window.prepararEdicao = async function(id) {
 window.cancelarEdicao = function() {
     document.getElementById('p-nome').value = '';
     document.getElementById('p-preco').value = '';
+    
+    // ====================================================
+    // LIMPA O CAMPO DE OBSERVAÇÃO
+    // ====================================================
+    const inputObs = document.getElementById('p-observacao');
+    if(inputObs) inputObs.value = '';
     
     const inputIngredientes = document.getElementById('p-ingredientes');
     if(inputIngredientes) inputIngredientes.value = '';
