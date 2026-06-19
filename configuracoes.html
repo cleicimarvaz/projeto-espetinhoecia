@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -61,9 +63,9 @@
         </div>
     </header>
 
-    <main class="pt-28 px-6 pb-32">
+    <main class="pt-28 px-4 sm:px-6 pb-32 max-w-7xl mx-auto w-full">
 
-        <div id="admin-menu-principal" class="grid grid-cols-2 gap-4">
+        <div id="admin-menu-principal" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <button onclick="abrirSubSecao('produtos')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
                 <span class="text-4xl">📦</span>
                 <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Produtos</span>
@@ -78,11 +80,11 @@
             </button>
             <button onclick="abrirSubSecao('movimentacoes')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
                 <span class="text-4xl">🏧</span>
-                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Caixa & Movimentações</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Caixa & Mov.</span>
             </button>
             <button onclick="window.location.href='historico-caixas.html'" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
                 <span class="text-4xl">📜</span>
-                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Histórico Caixas</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Histórico</span>
             </button>
             <button onclick="abrirSubSecao('configuracoes')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
                 <span class="text-4xl">⚙️</span>
@@ -92,128 +94,255 @@
                 <span class="text-4xl">💸</span>
                 <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Vendas</span>
             </button>
-
-<button onclick="window.open('eventos.html', '_blank')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
-    <span class="text-4xl">🗓️</span>
-    <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Eventos</span>
-</button>
-
-            <button onclick="window.open('cozinha.html', '_blank')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+            <button onclick="window.open('eventos.html', '_blank')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <span class="text-4xl">🗓️</span>
+                <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Eventos</span>
+            </button>
+            <button onclick="window.open('cozinha.html', '_blank')" class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 transition-all col-span-2 md:col-span-1">
                 <span class="text-4xl">👨‍🍳</span>
                 <span class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Cozinha</span>
             </button>
-            <button onclick="logout()" class="bg-red-50 dark:bg-red-950/20 p-6 rounded-[2rem] shadow-sm border border-red-100 dark:border-red-900/50 flex flex-col items-center gap-2 active:scale-95 transition-all col-span-2">
+            <button onclick="logout()" class="bg-red-50 dark:bg-red-950/20 p-6 rounded-[2rem] shadow-sm border border-red-100 dark:border-red-900/50 flex flex-col items-center gap-2 active:scale-95 transition-all col-span-2 md:col-span-1 lg:col-span-2">
                 <span class="text-4xl">🚪</span>
                 <span class="text-[10px] font-black uppercase text-red-500 dark:text-red-400">Sair do Painel</span>
             </button>
         </div>
 
-
-<div id="secao-despesas" class="hidden space-y-4">
-    <div class="flex justify-between items-center mb-2">
-        <h2 class="text-lg font-black text-slate-700 dark:text-white italic tracking-tighter uppercase">CONTAS A PAGAR</h2>
-        <div class="flex items-center gap-2">
-            <button onclick="imprimirRelatorioAtual('despesas')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
-                <span class="text-sm">🖨️</span>
-                <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
-            </button>
-            <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
-        </div>
-    </div>
-
-    <div id="view-lista-despesas">
-        <button onclick="abrirFormDespesa()" class="w-full bg-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all mb-4 flex items-center justify-center gap-2 border border-emerald-400 dark:border-emerald-600">
-            <span class="text-lg leading-none">➕</span> NOVA CONTA / DESPESA
-        </button>
-        
-        <div class="flex gap-2 mb-4">
-            <button id="btn-filtro-despesa-pendente" onclick="filtrarDespesas('pendente')" class="flex-1 py-3 rounded-xl bg-orange-500 text-white text-[9px] font-black uppercase transition-all shadow-sm">PENDENTES</button>
-            <button id="btn-filtro-despesa-paga" onclick="filtrarDespesas('paga')" class="flex-1 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase transition-all hover:bg-slate-300 dark:hover:bg-slate-700">PAGAS</button>
-        </div>
-        
-        <div id="alerta-vencimento-hoje" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 p-4 rounded-2xl mb-4 flex items-center gap-3 animate-pulse">
-            <span class="text-2xl">⚠️</span>
-            <div>
-                <h4 class="text-[10px] font-black uppercase">Atenção Administrador!</h4>
-                <p class="text-[9px] font-bold uppercase mt-1">Existem contas com vencimento para HOJE ou ATRASADAS.</p>
-            </div>
-        </div>
-        
-        <div class="bg-white dark:bg-slate-900 p-4 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-6 transition-colors duration-300 min-h-[55vh] flex flex-col">
-            <div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full mb-4">
-                <button onclick="aplicarFiltroDespesas(0)" id="btn-desp-0" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 shadow-sm bg-white dark:bg-slate-700">HOJE</button>
-                <button onclick="aplicarFiltroDespesas(7)" id="btn-desp-7" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">7 DIAS</button>
-                <button onclick="aplicarFiltroDespesas(30)" id="btn-desp-30" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">30 DIAS</button>
-                <button onclick="toggleFiltroPeriodoDespesas()" id="btn-desp-periodo" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">PERÍODO ▼</button>
-            </div>
-
-            <div id="container-periodo-despesas" class="hidden mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div class="flex gap-2 items-center">
-                    <div class="flex-1">
-                        <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
-                        <input type="date" id="data-inicio-despesas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
-                    </div>
-                    <span class="text-slate-300 dark:text-slate-600 font-bold mt-4">-</span>
-                    <div class="flex-1">
-                        <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
-                        <input type="date" id="data-fim-despesas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
-                    </div>
-                    <button onclick="aplicarFiltroDespesas('custom')" class="bg-blue-600 text-white mt-4 h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
-                </div>
+        <div id="secao-produtos" class="hidden w-full max-w-4xl mx-auto space-y-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-black text-slate-700 dark:text-white italic tracking-tighter uppercase">PRODUTOS</h2>
+                <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase flex-shrink-0">Voltar</button>
             </div>
             
-            <h3 class="font-black text-[10px] text-slate-400 dark:text-slate-500 uppercase italic tracking-widest mb-4 px-2">Lançamentos</h3>
-            <div id="lista-despesas" class="space-y-3 pb-10 flex-1 overflow-y-auto custom-scrollbar pr-1"></div>
-        </div>
-    </div>
+            <div class="flex flex-wrap sm:flex-nowrap bg-white dark:bg-slate-900 p-1 rounded-3xl sm:rounded-full shadow-sm border border-slate-100 dark:border-slate-800 mb-4 gap-1">
+                <button id="btn-aba-lista" onclick="alternarAbasAdminProdutos('lista')" class="flex-1 min-w-[30%] py-3 rounded-full bg-[#e63946] text-white text-[9px] font-black uppercase transition-all font-sans italic tracking-widest shadow-sm">LISTA</button>
+                <button id="btn-aba-estoque" onclick="alternarAbasAdminProdutos('estoque')" class="flex-1 min-w-[30%] py-3 rounded-full bg-transparent text-slate-400 dark:text-slate-500 text-[9px] font-black uppercase transition-all font-sans italic tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800">ESTOQUE</button>
+                <button id="btn-aba-cadastro" onclick="alternarAbasAdminProdutos('cadastro')" class="flex-1 min-w-[30%] py-3 rounded-full bg-transparent text-slate-400 dark:text-slate-500 text-[9px] font-black uppercase transition-all font-sans italic tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800">NOVO</button>
+            </div>
+            
+            <div id="aba-lista" class="pb-20 space-y-4 w-full">
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
+                    <div>
+                        <label for="filtro-pesquisa-catalogo" class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Pesquisar Produto</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 text-xs">🔍</span>
+                            <input type="text" id="filtro-pesquisa-catalogo" oninput="renderizarCatalogo()" placeholder="EX: ESPETINHO DE CARNE..." class="w-full bg-slate-50 dark:bg-slate-800 pl-10 pr-4 py-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-red-100 dark:focus:border-red-900 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600">
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label for="ordem-catalogo" class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Organizar por</label>
+                            <select id="ordem-catalogo" onchange="renderizarCatalogo()" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase appearance-none cursor-pointer">
+                                <option value="nome-asc">🔤 Nome (A-Z)</option>
+                                <option value="nome-desc">🔤 Nome (Z-A)</option>
+                                <option value="preco-asc">💰 Menor Preço</option>
+                                <option value="preco-desc">💰 Maior Preço</option>
+                                <option value="categoria">📦 Categoria</option>
+                            </select>
+                        </div>
+                        <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 flex items-center h-[46px]">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="filtro-ocultar-inativos" class="sr-only peer" onchange="renderizarCatalogo()" checked>
+                                <div class="w-9 h-5 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#e63946]"></div>
+                                <span class="ml-2 text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase italic whitespace-nowrap">Ativos</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div id="lista-catalogo" class="space-y-2"></div>
+            </div>
 
-    <div id="view-form-despesa" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 pb-10">
-        <h3 id="titulo-form-despesa" class="font-black text-emerald-500 uppercase italic mb-4 text-sm">NOVA DESPESA</h3>
-        <input type="hidden" id="d-id">
-        <div>
-            <label for="d-descricao" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Descrição da Conta</label>
-            <input type="text" id="d-descricao" placeholder="EX: CONTA DE LUZ, FORNECEDOR CARNES..." class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label for="d-valor" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Valor (R$)</label>
-                <input type="tel" id="d-valor" inputmode="decimal" oninput="mascaraMoeda(event)" placeholder="0,00" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none text-center focus:border-emerald-200">
+            <div id="aba-estoque" class="hidden pb-20 space-y-4 w-full">
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-[2rem] border border-blue-100 dark:border-blue-800/50 flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="font-black text-blue-800 dark:text-blue-400 uppercase italic">Inventário</h3>
+                        <p class="text-[10px] text-blue-600 dark:text-blue-500 uppercase">Gerencie entradas e saídas</p>
+                    </div>
+                    <span class="text-3xl">📦</span>
+                </div>
+                <div id="lista-estoque" class="space-y-2"></div>
             </div>
-            <div>
-                <label for="d-vencimento" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Vencimento</label>
-                <input type="date" id="d-vencimento" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
+
+            <div id="aba-cadastro" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 w-full">
+                <div>
+                    <label for="p-nome" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Nome do Produto</label>
+                    <input type="text" id="p-nome" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
+                </div>
+
+                <div>
+                    <label for="p-observacao" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Observação (Exibe no Cardápio)</label>
+                    <input type="text" id="p-observacao" placeholder="Ex: Coca cola, Coca zero, Guaraná..." class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="p-categoria" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Categoria</label>
+                        <select id="p-categoria" onchange="atualizarToggleCozinha()" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
+                            <option value="espetos">🍢 Espetos</option>
+                            <option value="bebidas">🥤 Bebidas</option>
+                            <option value="cervejas">🍺 Cervejas</option>
+                            <option value="refeicao">🍽️ Refeição</option>
+                            <option value="acompanhamentos">🍚 Acompanhamento</option>
+                            <option value="combos">🍻 Combos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="p-preco" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Preço (R$)</label>
+                        <input type="tel" id="p-preco" inputmode="decimal" oninput="mascaraMoeda(event)" placeholder="0,00" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none text-center">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="p-ingredientes" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Ingredientes (Separados por vírgula)</label>
+                    <input type="text" id="p-ingredientes" placeholder="Ex: Arroz, Farofa, Vinagrete" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
+                    <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 ml-2 leading-none tracking-tighter">Ideal para Refeições. Exibe opções na venda.</p>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Enviar p/ Produção?</label>
+                        <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 leading-none tracking-tighter">Aparece na tela da churrasqueira</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="p-preparo" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Controlar Estoque?</label>
+                        <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 leading-none tracking-tighter">Exige inventário para este item</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="p-controla-estoque" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Pedir Complementos?</label>
+                        <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 leading-none tracking-tighter">Desmarque para vendas rápidas/ticket</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="p-pedir-complementos" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                    </label>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button onclick="cancelarEdicao()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all">Cancelar</button>
+                    <button id="btn-salvar-produto" onclick="salvarProduto()" class="flex-[2] flex items-center justify-center gap-2 bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all">SALVAR PRODUTO</button>
+                </div>
             </div>
         </div>
-        <div>
-            <label for="d-categoria" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Categoria</label>
-            <select id="d-categoria" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
-                <option value="FORNECEDORES">📦 Fornecedores (Carnes, Bebidas)</option>
-                <option value="OPERACIONAL">⚡ Operacional (Água, Luz, Internet)</option>
-                <option value="FUNCIONARIOS">👥 Funcionários (Salários, Diárias)</option>
-                <option value="IMPOSTOS">🏛️ Impostos e Taxas</option>
-                <option value="OUTROS">Outros</option>
-            </select>
-        </div>
-        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
-            <div>
-                <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Conta Paga?</label>
-                <p class="text-[8px] font-bold text-slate-400 uppercase mt-1 leading-none tracking-tighter">Marcar como liquidada / dar baixa</p>
+
+        <div id="secao-despesas" class="hidden space-y-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-black text-slate-700 dark:text-white italic tracking-tighter uppercase">CONTAS A PAGAR</h2>
+                <div class="flex items-center gap-2">
+                    <button onclick="imprimirRelatorioAtual('despesas')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <span class="text-sm">🖨️</span>
+                        <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
+                    </button>
+                    <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
+                </div>
             </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="d-paga" class="sr-only peer" onchange="toggleDataPagamento()">
-                <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-            </label>
+
+            <div id="view-lista-despesas">
+                <button onclick="abrirFormDespesa()" class="w-full bg-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all mb-4 flex items-center justify-center gap-2 border border-emerald-400 dark:border-emerald-600">
+                    <span class="text-lg leading-none">➕</span> NOVA CONTA / DESPESA
+                </button>
+                
+                <div class="flex gap-2 mb-4">
+                    <button id="btn-filtro-despesa-pendente" onclick="filtrarDespesas('pendente')" class="flex-1 py-3 rounded-xl bg-orange-500 text-white text-[9px] font-black uppercase transition-all shadow-sm">PENDENTES</button>
+                    <button id="btn-filtro-despesa-paga" onclick="filtrarDespesas('paga')" class="flex-1 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase transition-all hover:bg-slate-300 dark:hover:bg-slate-700">PAGAS</button>
+                </div>
+                
+                <div id="alerta-vencimento-hoje" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 p-4 rounded-2xl mb-4 flex items-center gap-3 animate-pulse">
+                    <span class="text-2xl">⚠️</span>
+                    <div>
+                        <h4 class="text-[10px] font-black uppercase">Atenção Administrador!</h4>
+                        <p class="text-[9px] font-bold uppercase mt-1">Existem contas com vencimento para HOJE ou ATRASADAS.</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-6 transition-colors duration-300 min-h-[55vh] flex flex-col">
+                    <div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full mb-4">
+                        <button onclick="aplicarFiltroDespesas(0)" id="btn-desp-0" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 shadow-sm bg-white dark:bg-slate-700">HOJE</button>
+                        <button onclick="aplicarFiltroDespesas(7)" id="btn-desp-7" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">7 DIAS</button>
+                        <button onclick="aplicarFiltroDespesas(30)" id="btn-desp-30" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">30 DIAS</button>
+                        <button onclick="toggleFiltroPeriodoDespesas()" id="btn-desp-periodo" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700">PERÍODO ▼</button>
+                    </div>
+
+                    <div id="container-periodo-despesas" class="hidden mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <div class="flex gap-2 items-center">
+                            <div class="flex-1">
+                                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
+                                <input type="date" id="data-inicio-despesas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                            </div>
+                            <span class="text-slate-300 dark:text-slate-600 font-bold mt-4">-</span>
+                            <div class="flex-1">
+                                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
+                                <input type="date" id="data-fim-despesas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                            </div>
+                            <button onclick="aplicarFiltroDespesas('custom')" class="bg-blue-600 text-white mt-4 h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+                        </div>
+                    </div>
+                    
+                    <h3 class="font-black text-[10px] text-slate-400 dark:text-slate-500 uppercase italic tracking-widest mb-4 px-2">Lançamentos</h3>
+                    <div id="lista-despesas" class="space-y-3 pb-10 flex-1 overflow-y-auto custom-scrollbar pr-1"></div>
+                </div>
+            </div>
+
+            <div id="view-form-despesa" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 pb-10">
+                <h3 id="titulo-form-despesa" class="font-black text-emerald-500 uppercase italic mb-4 text-sm">NOVA DESPESA</h3>
+                <input type="hidden" id="d-id">
+                <div>
+                    <label for="d-descricao" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Descrição da Conta</label>
+                    <input type="text" id="d-descricao" placeholder="EX: CONTA DE LUZ, FORNECEDOR CARNES..." class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="d-valor" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Valor (R$)</label>
+                        <input type="tel" id="d-valor" inputmode="decimal" oninput="mascaraMoeda(event)" placeholder="0,00" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none text-center focus:border-emerald-200">
+                    </div>
+                    <div>
+                        <label for="d-vencimento" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Vencimento</label>
+                        <input type="date" id="d-vencimento" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
+                    </div>
+                </div>
+                <div>
+                    <label for="d-categoria" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Categoria</label>
+                    <select id="d-categoria" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-emerald-200">
+                        <option value="FORNECEDORES">📦 Fornecedores (Carnes, Bebidas)</option>
+                        <option value="OPERACIONAL">⚡ Operacional (Água, Luz, Internet)</option>
+                        <option value="FUNCIONARIOS">👥 Funcionários (Salários, Diárias)</option>
+                        <option value="IMPOSTOS">🏛️ Impostos e Taxas</option>
+                        <option value="OUTROS">Outros</option>
+                    </select>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Conta Paga?</label>
+                        <p class="text-[8px] font-bold text-slate-400 uppercase mt-1 leading-none tracking-tighter">Marcar como liquidada / dar baixa</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="d-paga" class="sr-only peer" onchange="toggleDataPagamento()">
+                        <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+                <div id="container-data-pagamento" class="hidden">
+                    <label for="d-data-pagamento" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Data do Pagamento</label>
+                    <input type="date" id="d-data-pagamento" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="fecharFormDespesa()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all">Cancelar</button>
+                    <button id="btn-salvar-despesa" onclick="salvarDespesa()" class="flex-[2] bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all">SALVAR CONTA</button>
+                </div>
+            </div>
         </div>
-        <div id="container-data-pagamento" class="hidden">
-            <label for="d-data-pagamento" class="block text-[9px] font-black text-slate-400 uppercase italic mb-1 ml-2">Data do Pagamento</label>
-            <input type="date" id="d-data-pagamento" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
-        </div>
-        <div class="flex gap-3 pt-4">
-            <button onclick="fecharFormDespesa()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all">Cancelar</button>
-            <button id="btn-salvar-despesa" onclick="salvarDespesa()" class="flex-[2] bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all">SALVAR CONTA</button>
-        </div>
-    </div>
-</div>
 
         <div id="secao-movimentacoes" class="hidden space-y-4 pb-20">
             <div class="flex justify-between items-center mb-4">
@@ -251,125 +380,6 @@
                     <span class="text-[9px] font-black text-white uppercase tracking-widest text-center">Encerrar<br>Turno</span>
                 </button>
             </div>
-        </div>
-
-        <div id="secao-produtos" class="hidden space-y-4">
-            <div class="flex justify-between items-center mb-2">
-                <h2 class="text-lg font-black text-slate-700 dark:text-white italic tracking-tighter uppercase">PRODUTOS</h2>
-                <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
-            </div>
-            <div class="flex bg-white dark:bg-slate-900 p-1 rounded-full shadow-sm border border-slate-100 dark:border-slate-800 mb-4">
-                <button id="btn-aba-lista" onclick="alternarAbasAdminProdutos('lista')" class="flex-1 py-3 rounded-full bg-[#e63946] text-white text-[9px] font-black uppercase transition-all font-sans italic tracking-widest shadow-sm">LISTA</button>
-                <button id="btn-aba-estoque" onclick="alternarAbasAdminProdutos('estoque')" class="flex-1 py-3 rounded-full bg-transparent text-slate-400 dark:text-slate-500 text-[9px] font-black uppercase transition-all font-sans italic tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800">ESTOQUE</button>
-                <button id="btn-aba-cadastro" onclick="alternarAbasAdminProdutos('cadastro')" class="flex-1 py-3 rounded-full bg-transparent text-slate-400 dark:text-slate-500 text-[9px] font-black uppercase transition-all font-sans italic tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800">NOVO</button>
-            </div>
-            <div id="aba-lista" class="pb-20 space-y-4">
-                <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
-                    <div>
-                        <label for="filtro-pesquisa-catalogo" class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Pesquisar Produto</label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 text-xs">🔍</span>
-                            <input type="text" id="filtro-pesquisa-catalogo" oninput="renderizarCatalogo()" placeholder="EX: ESPETINHO DE CARNE..." class="w-full bg-slate-50 dark:bg-slate-800 pl-10 pr-4 py-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase focus:border-red-100 dark:focus:border-red-900 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600">
-                        </div>
-                    </div>
-                    <div class="flex gap-2 items-end">
-                        <div class="flex-1">
-                            <label for="ordem-catalogo" class="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Organizar por</label>
-                            <select id="ordem-catalogo" onchange="renderizarCatalogo()" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase appearance-none cursor-pointer">
-                                <option value="nome-asc">🔤 Nome (A-Z)</option>
-                                <option value="nome-desc">🔤 Nome (Z-A)</option>
-                                <option value="preco-asc">💰 Menor Preço</option>
-                                <option value="preco-desc">💰 Maior Preço</option>
-                                <option value="categoria">📦 Categoria</option>
-                            </select>
-                        </div>
-                        <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 flex items-center h-[46px]">
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="filtro-ocultar-inativos" class="sr-only peer" onchange="renderizarCatalogo()" checked>
-                                <div class="w-9 h-5 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#e63946]"></div>
-                                <span class="ml-2 text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase italic whitespace-nowrap">Ativos</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div id="lista-catalogo" class="space-y-2"></div>
-            </div>
-            <div id="aba-estoque" class="hidden pb-20 space-y-4">
-                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-[2rem] border border-blue-100 dark:border-blue-800/50 flex justify-between items-center mb-4">
-                    <div>
-                        <h3 class="font-black text-blue-800 dark:text-blue-400 uppercase italic">Inventário</h3>
-                        <p class="text-[10px] text-blue-600 dark:text-blue-500 uppercase">Gerencie entradas e saídas</p>
-                    </div>
-                    <span class="text-3xl">📦</span>
-                </div>
-                <div id="lista-estoque" class="space-y-2"></div>
-            </div>
-<div id="aba-cadastro" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-    <div>
-        <label for="p-nome" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Nome do Produto</label>
-        <input type="text" id="p-nome" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
-    </div>
-    <div class="grid grid-cols-2 gap-4">
-        <div>
-            <label for="p-categoria" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Categoria</label>
-            <select id="p-categoria" onchange="atualizarToggleCozinha()" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
-                <option value="espetos">🍢 Espetos</option>
-                <option value="bebidas">🥤 Bebidas</option>
-                <option value="cervejas">🍺 Cervejas</option>
-                <option value="refeicao">🍽️ Refeição</option>
-                <option value="acompanhamentos">🍚 Acompanhamento</option>
-                <option value="combos">🍻 Combos</option>
-            </select>
-        </div>
-        <div>
-            <label for="p-preco" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Preço (R$)</label>
-            <input type="tel" id="p-preco" inputmode="decimal" oninput="mascaraMoeda(event)" placeholder="0,00" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none text-center">
-        </div>
-    </div>
-
-    <div>
-        <label for="p-ingredientes" class="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic mb-1 ml-2">Ingredientes (Separados por vírgula)</label>
-        <input type="text" id="p-ingredientes" placeholder="Ex: Arroz, Farofa, Vinagrete" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border-2 border-slate-100 dark:border-slate-700 outline-none uppercase">
-        <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 ml-2 leading-none tracking-tighter">Ideal para Refeições. Exibe opções na venda.</p>
-    </div>
-
-    <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
-        <div>
-            <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Enviar p/ Produção?</label>
-            <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 leading-none tracking-tighter">Aparece na tela da churrasqueira</p>
-        </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="p-preparo" class="sr-only peer" checked>
-            <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-        </label>
-    </div>
-
-    <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
-        <div>
-            <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Controlar Estoque?</label>
-            <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 leading-none tracking-tighter">Exige inventário para este item</p>
-        </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="p-controla-estoque" class="sr-only peer">
-            <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-        </label>
-    </div>
-
-    <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 flex items-center justify-between mt-2">
-        <div>
-            <label class="block text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic leading-none">Pedir Complementos?</label>
-            <p class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1 leading-none tracking-tighter">Desmarque para vendas rápidas/ticket</p>
-        </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="p-pedir-complementos" class="sr-only peer" checked>
-            <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-        </label>
-    </div>
-
-    <div class="flex gap-3 pt-2">
-        <button onclick="cancelarEdicao()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all">Cancelar</button>
-<button id="btn-salvar-produto" onclick="salvarProduto()" class="flex-[2] flex items-center justify-center gap-2 bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 active:scale-95 transition-all">SALVAR PRODUTO</button>    </div>
-</div>
         </div>
 
         <div id="secao-relatorios" class="hidden space-y-4">
@@ -565,42 +575,42 @@
                 <div id="conteudo-rel-financeiro" class="space-y-3"></div>
             </div>
 
-<div id="view-produtos" class="hidden space-y-4 pb-20">
-    <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xs font-black text-blue-500 uppercase italic">Ranking de Produtos</h3>
-        <div class="flex items-center gap-2">
-            <button onclick="imprimirRelatorioAtual('produtos')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
-                <span class="text-sm">🖨️</span>
-                <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
-            </button>
-            <button onclick="voltarMenuRelatorios()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg font-bold text-slate-400 dark:text-slate-500 text-[10px] active:scale-95 hover:text-red-500">✕</button>
-        </div>
-    </div>
+            <div id="view-produtos" class="hidden space-y-4 pb-20">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-black text-blue-500 uppercase italic">Ranking de Produtos</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="imprimirRelatorioAtual('produtos')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
+                            <span class="text-sm">🖨️</span>
+                            <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
+                        </button>
+                        <button onclick="voltarMenuRelatorios()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg font-bold text-slate-400 dark:text-slate-500 text-[10px] active:scale-95 hover:text-red-500">✕</button>
+                    </div>
+                </div>
 
-    <div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-4">
-        <div class="flex gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl">
-            <button id="btn-prod-0" onclick="mudarFiltroProdutos(0)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
-            <button id="btn-prod-7" onclick="mudarFiltroProdutos(7)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">7 DIAS</button>
-            <button id="btn-prod-30" onclick="mudarFiltroProdutos(30)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">30 DIAS</button>
-            <button id="btn-prod-99" onclick="togglePeriodoProdutos()" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">PERÍODO ▼</button>
-        </div>
-        <div id="container-periodo-prod" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <div class="flex gap-2 items-end">
-                <div class="flex-1">
-                    <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
-                    <input type="date" id="data-inicio-rel-produtos" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 outline-none">
+                <div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-4">
+                    <div class="flex gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl">
+                        <button id="btn-prod-0" onclick="mudarFiltroProdutos(0)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
+                        <button id="btn-prod-7" onclick="mudarFiltroProdutos(7)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">7 DIAS</button>
+                        <button id="btn-prod-30" onclick="mudarFiltroProdutos(30)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">30 DIAS</button>
+                        <button id="btn-prod-99" onclick="togglePeriodoProdutos()" class="flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-400">PERÍODO ▼</button>
+                    </div>
+                    <div id="container-periodo-prod" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <div class="flex gap-2 items-end">
+                            <div class="flex-1">
+                                <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
+                                <input type="date" id="data-inicio-rel-produtos" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 outline-none">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
+                                <input type="date" id="data-fim-rel-produtos" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 outline-none">
+                            </div>
+                            <button onclick="mudarFiltroProdutos('custom')" class="bg-blue-600 text-white h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex-1">
-                    <label class="block text-[7px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
-                    <input type="date" id="data-fim-rel-produtos" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 outline-none">
-                </div>
-                <button onclick="mudarFiltroProdutos('custom')" class="bg-blue-600 text-white h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+
+                <div id="conteudo-rel-produtos" class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-1 min-h-[200px]"></div>
             </div>
-        </div>
-    </div>
-
-    <div id="conteudo-rel-produtos" class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-1 min-h-[200px]"></div>
-</div>
 
             <div id="view-comandas" class="hidden space-y-4">
                 <div class="flex justify-between items-center mb-4">
@@ -613,28 +623,28 @@
                         <button onclick="voltarMenuRelatorios()" class="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg font-bold text-slate-400 dark:text-slate-500 text-[10px] active:scale-95 hover:text-red-500">✕</button>
                     </div>
                 </div>
-<div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
-    <div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full">
-        <button id="btn-comandas-0" onclick="mudarFiltroComandas(0)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
-        <button id="btn-comandas-7" onclick="mudarFiltroComandas(7)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">7 DIAS</button>
-        <button id="btn-comandas-30" onclick="mudarFiltroComandas(30)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">30 DIAS</button>
-        <button id="btn-comandas-99" onclick="togglePeriodoComandas()" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">PERÍODO ▼</button>
-    </div>
-    <div id="container-periodo-comandas" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-        <div class="flex gap-2 items-center">
-            <div class="flex-1">
-                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
-                <input type="date" id="data-inicio-comandas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
-            </div>
-            <span class="text-slate-300 dark:text-slate-600 font-bold mt-4">-</span>
-            <div class="flex-1">
-                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
-                <input type="date" id="data-fim-comandas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
-            </div>
-            <button onclick="mudarFiltroComandas('custom')" class="bg-blue-600 text-white mt-4 h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
-        </div>
-    </div>
-</div>
+                <div class="bg-white dark:bg-slate-900 p-3 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+                    <div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full">
+                        <button id="btn-comandas-0" onclick="mudarFiltroComandas(0)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all shadow-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-white">HOJE</button>
+                        <button id="btn-comandas-7" onclick="mudarFiltroComandas(7)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">7 DIAS</button>
+                        <button id="btn-comandas-30" onclick="mudarFiltroComandas(30)" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">30 DIAS</button>
+                        <button id="btn-comandas-99" onclick="togglePeriodoComandas()" class="flex-1 py-3 text-[9px] font-black uppercase rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">PERÍODO ▼</button>
+                    </div>
+                    <div id="container-periodo-comandas" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <div class="flex gap-2 items-center">
+                            <div class="flex-1">
+                                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Início</label>
+                                <input type="date" id="data-inicio-comandas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                            </div>
+                            <span class="text-slate-300 dark:text-slate-600 font-bold mt-4">-</span>
+                            <div class="flex-1">
+                                <label class="block text-[8px] font-black text-slate-400 uppercase ml-2 mb-1">Fim</label>
+                                <input type="date" id="data-fim-comandas" class="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 outline-none">
+                            </div>
+                            <button onclick="mudarFiltroComandas('custom')" class="bg-blue-600 text-white mt-4 h-[42px] px-4 rounded-xl shadow-md active:scale-95 transition-all text-sm">🔍</button>
+                        </div>
+                    </div>
+                </div>
                 <div id="conteudo-rel-comandas" class="grid grid-cols-1 md:grid-cols-2 gap-3 pb-20 no-scrollbar overflow-y-auto max-h-[70vh]">
                     <div class="col-span-full flex items-center justify-center py-10 opacity-20">
                         <p class="text-[10px] font-black uppercase tracking-widest italic">Aguardando busca...</p>
@@ -674,40 +684,39 @@
                 <button onclick="voltarAoMenuAdmin()" class="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Voltar</button>
             </div>
 
-<div id="menu-config-cards" class="space-y-3">
-    <button onclick="abrirConfigEspecifica('ticket')" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
-        <div class="flex items-center gap-3"><div class="bg-yellow-100 dark:bg-yellow-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🎟️</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Configuração do Ticket</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
-    </button>
-    
-    <!-- NOVO BOTÃO: GERENCIAR COMPLEMENTOS -->
-    <button onclick="abrirModalAdminComplementos()" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
-        <div class="flex items-center gap-3">
-            <div class="bg-orange-100 dark:bg-orange-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🥫</div>
-            <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Gerenciar Complementos</span>
-        </div>
-        <span class="text-slate-300 dark:text-slate-600">→</span>
-    </button>
+            <div id="menu-config-cards" class="space-y-3">
+                <button onclick="abrirConfigEspecifica('ticket')" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-yellow-100 dark:bg-yellow-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🎟️</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Configuração do Ticket</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
+                
+                <button onclick="abrirModalAdminComplementos()" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-orange-100 dark:bg-orange-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🥫</div>
+                        <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Gerenciar Complementos</span>
+                    </div>
+                    <span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
 
-    <button onclick="abrirConfigEspecifica('usuarios'); carregarListaUsuarios();" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
-        <div class="flex items-center gap-3"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">👥</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Gerenciar Usuários</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
-    </button>
-    
-    <button onclick="abrirConfigEspecifica('auditoria'); carregarAuditoria();" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
-        <div class="flex items-center gap-3"><div class="bg-purple-100 dark:bg-purple-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🕵️</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Auditoria (Logs)</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
-    </button>
-    
-    <button onclick="abrirConfigEspecifica('backup')" class="w-full bg-blue-50 dark:bg-blue-950/20 p-5 rounded-2xl shadow-sm border border-blue-100 dark:border-blue-900/50 flex items-center justify-between active:scale-95 transition-all">
-        <div class="flex items-center gap-3"><div class="bg-blue-200 dark:bg-blue-900/40 w-10 h-10 rounded-full flex items-center justify-center text-lg">💾</div><span class="text-xs font-black text-blue-600 dark:text-blue-400 uppercase">Backup e Restauração</span></div><span class="text-blue-300 dark:text-blue-700">→</span>
-    </button>
-    
-    <button onclick="solicitarSenhaPerigo(() => abrirConfigEspecifica('perigo'))" class="w-full bg-red-50 dark:bg-red-950/20 p-5 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/50 flex items-center justify-between active:scale-95 transition-all">
-        <div class="flex items-center gap-3">
-            <div class="bg-red-200 dark:bg-red-900/40 w-10 h-10 rounded-full flex items-center justify-center text-lg">⚠️</div>
-            <span class="text-xs font-black text-red-600 dark:text-red-400 uppercase">Zona de Perigo</span>
-        </div>
-        <span class="text-red-300 dark:text-red-700">→</span>
-    </button>
-</div>
+                <button onclick="abrirConfigEspecifica('usuarios'); carregarListaUsuarios();" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">👥</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Gerenciar Usuários</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
+                
+                <button onclick="abrirConfigEspecifica('auditoria'); carregarAuditoria();" class="w-full bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-purple-100 dark:bg-purple-900/30 w-10 h-10 rounded-full flex items-center justify-center text-lg">🕵️</div><span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Auditoria (Logs)</span></div><span class="text-slate-300 dark:text-slate-600">→</span>
+                </button>
+                
+                <button onclick="abrirConfigEspecifica('backup')" class="w-full bg-blue-50 dark:bg-blue-950/20 p-5 rounded-2xl shadow-sm border border-blue-100 dark:border-blue-900/50 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3"><div class="bg-blue-200 dark:bg-blue-900/40 w-10 h-10 rounded-full flex items-center justify-center text-lg">💾</div><span class="text-xs font-black text-blue-600 dark:text-blue-400 uppercase">Backup e Restauração</span></div><span class="text-blue-300 dark:text-blue-700">→</span>
+                </button>
+                
+                <button onclick="solicitarSenhaPerigo(() => abrirConfigEspecifica('perigo'))" class="w-full bg-red-50 dark:bg-red-950/20 p-5 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/50 flex items-center justify-between active:scale-95 transition-all">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-red-200 dark:bg-red-900/40 w-10 h-10 rounded-full flex items-center justify-center text-lg">⚠️</div>
+                        <span class="text-xs font-black text-red-600 dark:text-red-400 uppercase">Zona de Perigo</span>
+                    </div>
+                    <span class="text-red-300 dark:text-red-700">→</span>
+                </button>
+            </div>
 
             <div id="view-cfg-ticket" class="hidden bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
                 <div class="flex justify-between items-center mb-6">
@@ -997,7 +1006,7 @@
         </div>
     </div>
 
-<div id="modal-encerrar-turno" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
+    <div id="modal-encerrar-turno" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
         <div class="bg-white dark:bg-slate-900 w-full max-w-[340px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-fade-in-up">
             <div class="bg-red-50 dark:bg-red-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner text-red-500">🛑</div>
             
@@ -1120,7 +1129,7 @@
         </div>
     </div>
 
-<div id="modal-preview-recibo" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+    <div id="modal-preview-recibo" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
         <div class="w-full max-w-sm flex flex-col items-center">
             <div class="bg-[#f8f9fa] w-full max-w-[320px] p-6 shadow-2xl font-mono text-black relative border-t-4 border-slate-300">
                 <div class="text-center font-black text-lg mb-1 tracking-tighter">Espetinho & Cia</div>
@@ -1241,113 +1250,99 @@
     </div>
 
     <div id="modal-alerta-sistema" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[999] items-center justify-center px-6 transition-opacity">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-[320px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-slide-up">
-        <div class="bg-blue-50 dark:bg-blue-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner text-blue-500">ℹ️</div>
-        <h3 id="titulo-modal-alerta" class="text-blue-500 dark:text-blue-400 font-black text-sm uppercase mb-2 italic tracking-widest leading-none">Atenção</h3>
-        <p id="msg-modal-alerta" class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-6 uppercase tracking-tighter">Mensagem do sistema aqui.</p>
-        
-        <button onclick="fecharAlertaSistema()" class="w-full bg-blue-500 text-white py-4 rounded-[1.5rem] text-[10px] font-black uppercase shadow-lg shadow-blue-200 dark:shadow-blue-900/30 active:scale-95 transition-all">
-            ENTENDI
-        </button>
-    </div>
-</div>
-
-<div id="modal-confirm-sistema" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[999] items-center justify-center px-6 transition-opacity">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-[320px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-slide-up">
-        <div class="bg-orange-50 dark:bg-orange-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner text-orange-500">⚠️</div>
-        <h3 id="titulo-modal-confirm" class="text-orange-500 dark:text-orange-400 font-black text-sm uppercase mb-2 italic tracking-widest leading-none">Confirmar Ação</h3>
-        <p id="msg-modal-confirm" class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-8 uppercase tracking-tighter">Deseja realmente fazer isso?</p>
-        
-        <div class="flex gap-3">
-            <button onclick="fecharConfirmSistema()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-[1.5rem] text-[9px] font-black uppercase active:scale-95 transition-all">NÃO</button>
-            <button id="btn-executar-confirm" class="flex-1 bg-orange-500 text-white py-4 rounded-[1.5rem] text-[9px] font-black uppercase shadow-lg shadow-orange-200 dark:shadow-orange-900/30 active:scale-95 transition-all">SIM</button>
+        <div class="bg-white dark:bg-slate-900 w-full max-w-[320px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-slide-up">
+            <div class="bg-blue-50 dark:bg-blue-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner text-blue-500">ℹ️</div>
+            <h3 id="titulo-modal-alerta" class="text-blue-500 dark:text-blue-400 font-black text-sm uppercase mb-2 italic tracking-widest leading-none">Atenção</h3>
+            <p id="msg-modal-alerta" class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-6 uppercase tracking-tighter">Mensagem do sistema aqui.</p>
+            
+            <button onclick="fecharAlertaSistema()" class="w-full bg-blue-500 text-white py-4 rounded-[1.5rem] text-[10px] font-black uppercase shadow-lg shadow-blue-200 dark:shadow-blue-900/30 active:scale-95 transition-all">
+                ENTENDI
+            </button>
         </div>
     </div>
-</div>
 
-<!-- ========================================================================= -->
-<!-- MODAL DE ADMINISTRAÇÃO DE COMPLEMENTOS -->
-<!-- ========================================================================= -->
-<div id="modal-admin-complementos" class="hidden fixed inset-0 bg-slate-900/90 z-[120] flex items-end sm:items-center justify-center backdrop-blur-sm p-4 transition-opacity">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl flex flex-col max-h-[85vh] animate-slide-up border border-slate-100 dark:border-slate-800">
-        
-        <!-- Cabeçalho -->
-        <div class="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <h3 class="text-[#e63946] font-black text-lg uppercase italic tracking-tighter">🥫 COMPLEMENTOS</h3>
-            <button onclick="fecharModalAdminComplementos()" class="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 font-bold active:scale-90 transition-transform">✕</button>
+    <div id="modal-confirm-sistema" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[999] items-center justify-center px-6 transition-opacity">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-[320px] rounded-[3rem] p-8 text-center shadow-2xl border-4 border-white dark:border-slate-800 animate-slide-up">
+            <div class="bg-orange-50 dark:bg-orange-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner text-orange-500">⚠️</div>
+            <h3 id="titulo-modal-confirm" class="text-orange-500 dark:text-orange-400 font-black text-sm uppercase mb-2 italic tracking-widest leading-none">Confirmar Ação</h3>
+            <p id="msg-modal-confirm" class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-8 uppercase tracking-tighter">Deseja realmente fazer isso?</p>
+            
+            <div class="flex gap-3">
+                <button onclick="fecharConfirmSistema()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-[1.5rem] text-[9px] font-black uppercase active:scale-95 transition-all">NÃO</button>
+                <button id="btn-executar-confirm" class="flex-1 bg-orange-500 text-white py-4 rounded-[1.5rem] text-[9px] font-black uppercase shadow-lg shadow-orange-200 dark:shadow-orange-900/30 active:scale-95 transition-all">SIM</button>
+            </div>
         </div>
-        
-        <div class="overflow-y-auto custom-scrollbar flex-1 pr-2">
-            <!-- Formulário para Adicionar -->
-            <form onsubmit="adicionarComplemento(event)" class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6 border border-slate-100 dark:border-slate-700">
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Novo Item</label>
-                <div class="flex flex-col gap-3">
-                    <input type="text" id="novo-comp-nome" placeholder="Nome (Ex: Maionese Caseira)" required class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500 text-slate-700 dark:text-slate-200">
-                    <div class="flex gap-2">
-                        <select id="novo-comp-tipo" class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 font-bold uppercase focus:outline-none focus:border-red-500">
-                            <option value="molho">Molho</option>
-                            <option value="farinha">Farinha</option>
-                        </select>
-<button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 rounded-xl font-black text-2xl active:scale-95 transition-all flex items-center justify-center shadow-sm">
-    +
-</button>                    </div>
-                </div>
-            </form>
+    </div>
 
-            <!-- Lista de Itens -->
-            <div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Itens no Cardápio</h4>
-                <div id="lista-admin-complementos" class="space-y-2">
-                    <p class="text-xs text-slate-400 italic">Carregando itens...</p>
+    <div id="modal-admin-complementos" class="hidden fixed inset-0 bg-slate-900/90 z-[120] flex items-end sm:items-center justify-center backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl flex flex-col max-h-[85vh] animate-slide-up border border-slate-100 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 class="text-[#e63946] font-black text-lg uppercase italic tracking-tighter">🥫 COMPLEMENTOS</h3>
+                <button onclick="fecharModalAdminComplementos()" class="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 font-bold active:scale-90 transition-transform">✕</button>
+            </div>
+            
+            <div class="overflow-y-auto custom-scrollbar flex-1 pr-2">
+                <form onsubmit="adicionarComplemento(event)" class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6 border border-slate-100 dark:border-slate-700">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Novo Item</label>
+                    <div class="flex flex-col gap-3">
+                        <input type="text" id="novo-comp-nome" placeholder="Nome (Ex: Maionese Caseira)" required class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500 text-slate-700 dark:text-slate-200">
+                        <div class="flex gap-2">
+                            <select id="novo-comp-tipo" class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 font-bold uppercase focus:outline-none focus:border-red-500">
+                                <option value="molho">Molho</option>
+                                <option value="farinha">Farinha</option>
+                            </select>
+                            <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 rounded-xl font-black text-2xl active:scale-95 transition-all flex items-center justify-center shadow-sm">
+                                +
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Itens no Cardápio</h4>
+                    <div id="lista-admin-complementos" class="space-y-2">
+                        <p class="text-xs text-slate-400 italic">Carregando itens...</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- ========================================================================= -->
-<!-- MODAIS AUXILIARES (EDITAR, EXCLUIR E ALERTA) -->
-<!-- ========================================================================= -->
-
-<!-- Modal: Editar Nome -->
-<div id="modal-editar-complemento" class="hidden fixed inset-0 bg-slate-900/90 z-[130] flex items-center justify-center backdrop-blur-sm p-4 transition-opacity">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up border border-slate-100 dark:border-slate-800">
-        <h3 class="text-slate-800 dark:text-slate-200 font-black uppercase mb-4 text-sm tracking-wider flex items-center gap-2">
-            <span>✏️</span> Editar Nome
-        </h3>
-        <input type="hidden" id="edit-comp-id">
-        <input type="text" id="edit-comp-nome" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 text-slate-700 dark:text-slate-200 mb-6 font-bold">
-        <div class="flex gap-3">
-            <button onclick="document.getElementById('modal-editar-complemento').classList.add('hidden')" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Cancelar</button>
-            <button onclick="salvarEdicaoComplemento()" class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Salvar</button>
+    <div id="modal-editar-complemento" class="hidden fixed inset-0 bg-slate-900/90 z-[130] flex items-center justify-center backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up border border-slate-100 dark:border-slate-800">
+            <h3 class="text-slate-800 dark:text-slate-200 font-black uppercase mb-4 text-sm tracking-wider flex items-center gap-2">
+                <span>✏️</span> Editar Nome
+            </h3>
+            <input type="hidden" id="edit-comp-id">
+            <input type="text" id="edit-comp-nome" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 text-slate-700 dark:text-slate-200 mb-6 font-bold">
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('modal-editar-complemento').classList.add('hidden')" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Cancelar</button>
+                <button onclick="salvarEdicaoComplemento()" class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Salvar</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal: Confirmar Exclusão -->
-<div id="modal-excluir-complemento" class="hidden fixed inset-0 bg-slate-900/90 z-[130] flex items-center justify-center backdrop-blur-sm p-4 transition-opacity">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up text-center border border-slate-100 dark:border-slate-800">
-        <div class="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-red-100 dark:border-red-900/50">🗑️</div>
-        <h3 class="text-slate-800 dark:text-slate-200 font-black uppercase mb-2">Excluir Item?</h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Deseja excluir <strong id="excluir-comp-nome-display" class="text-slate-700 dark:text-slate-300"></strong>? Essa ação não pode ser desfeita.</p>
-        <input type="hidden" id="excluir-comp-id">
-        <div class="flex gap-3">
-            <button onclick="document.getElementById('modal-excluir-complemento').classList.add('hidden')" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Cancelar</button>
-            <button onclick="confirmarExclusaoComplemento()" class="flex-1 bg-red-500 text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Excluir</button>
+    <div id="modal-excluir-complemento" class="hidden fixed inset-0 bg-slate-900/90 z-[130] flex items-center justify-center backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up text-center border border-slate-100 dark:border-slate-800">
+            <div class="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-red-100 dark:border-red-900/50">🗑️</div>
+            <h3 class="text-slate-800 dark:text-slate-200 font-black uppercase mb-2">Excluir Item?</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Deseja excluir <strong id="excluir-comp-nome-display" class="text-slate-700 dark:text-slate-300"></strong>? Essa ação não pode ser desfeita.</p>
+            <input type="hidden" id="excluir-comp-id">
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('modal-excluir-complemento').classList.add('hidden')" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Cancelar</button>
+                <button onclick="confirmarExclusaoComplemento()" class="flex-1 bg-red-500 text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Excluir</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal: Alerta de Erro -->
-<div id="modal-alerta-complemento" class="hidden fixed inset-0 bg-slate-900/90 z-[130] flex items-center justify-center backdrop-blur-sm p-4 transition-opacity">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up text-center border border-slate-100 dark:border-slate-800">
-        <div class="w-16 h-16 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-orange-100 dark:border-orange-900/50">⚠️</div>
-        <h3 class="text-slate-800 dark:text-slate-200 font-black uppercase mb-2">Atenção</h3>
-        <p id="texto-alerta-complemento" class="text-xs text-slate-500 dark:text-slate-400 mb-6">Ocorreu um erro.</p>
-        <button onclick="document.getElementById('modal-alerta-complemento').classList.add('hidden')" class="w-full bg-[#1e293b] text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Entendi</button>
+    <div id="modal-alerta-complemento" class="hidden fixed inset-0 bg-slate-900/90 z-[130] flex items-center justify-center backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-slide-up text-center border border-slate-100 dark:border-slate-800">
+            <div class="w-16 h-16 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-orange-100 dark:border-orange-900/50">⚠️</div>
+            <h3 class="text-slate-800 dark:text-slate-200 font-black uppercase mb-2">Atenção</h3>
+            <p id="texto-alerta-complemento" class="text-xs text-slate-500 dark:text-slate-400 mb-6">Ocorreu um erro.</p>
+            <button onclick="document.getElementById('modal-alerta-complemento').classList.add('hidden')" class="w-full bg-[#1e293b] text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Entendi</button>
+        </div>
     </div>
-</div>
-
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
