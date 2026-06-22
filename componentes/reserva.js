@@ -4,31 +4,34 @@
 
 let eventoId = null;
 let valorMesa = 0;
+let mapaUrl = null; 
 let mesasSelecionadas = [];
-let mesasConfirmadas = []; // Cor Vermelha (Já pago)
-let mesasPendentes = [];   // Cor Laranja (Aguardando aprovação)
+let mesasConfirmadas = [];
+let mesasPendentes = [];  
 
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     eventoId = urlParams.get('e');
 
     if (!eventoId) {
-        document.getElementById('ev-nome').innerText = "Evento não encontrado.";
+        const evNomeEl = document.getElementById('ev-nome');
+        if (evNomeEl) evNomeEl.innerText = "Evento não encontrado.";
         if (window.showToast) window.showToast("Acesso inválido: Evento não identificado.", "erro");
         return;
     }
 
     carregarDadosEvento();
 
-    document.getElementById('form-reserva-cliente').addEventListener('submit', salvarReservaFinal);
+    const formReserva = document.getElementById('form-reserva-cliente');
+    if (formReserva) {
+        formReserva.addEventListener('submit', salvarReservaFinal);
+    }
 });
 
 // ==========================================
 // 1. CARREGA DADOS BÁSICOS DO EVENTO
 // ==========================================
-// Exemplo de como deve ser a chamada dentro do seu componente
 window.carregarDadosEvento = async function() {
-    // 1. Extração segura do ID da URL
     const urlParams = new URLSearchParams(window.location.search);
     const idDaUrl = urlParams.get('e');
 
@@ -37,23 +40,43 @@ window.carregarDadosEvento = async function() {
         return;
     }
     
-    // Atualiza a variável global
     eventoId = idDaUrl;
 
     try {
-        // 2. Busca o evento no Supabase
+        // CORREÇÃO: Buscando a coluna com o nome exato do banco -> data_evento
         const { data, error } = await _supabase
             .from('eventos')
-            .select('quantidade_mesas, valor_mesa, whatsapp_notificacao')
+            .select('nome, data_evento, quantidade_mesas, valor_mesa, whatsapp_notificacao, mapa_url')
             .eq('id', eventoId)
             .single();
 
         if (error) throw error;
 
-        // 3. Atualiza variáveis globais
-        valorMesa = parseFloat(data.valor_mesa) || 0;
+        // Atualiza o Nome do Evento
+        document.getElementById('ev-nome').innerText = data.nome || "Novo Evento";
         
-        // 4. Inicia a grade de mesas
+        // Exibe a Data do Evento
+        const evDataEl = document.getElementById('ev-data');
+        if (data.data_evento && evDataEl) {
+            const dataObj = new Date(data.data_evento);
+            // Formata a data para o padrão DD/MM/AAAA
+            evDataEl.innerText = dataObj.toLocaleDateString('pt-BR');
+            evDataEl.style.display = 'block'; 
+        } else if (evDataEl) {
+            evDataEl.style.display = 'none'; 
+        }
+        
+        // Atualiza o Valor da Mesa
+        valorMesa = parseFloat(data.valor_mesa) || 0;
+        document.getElementById('ev-valor').innerText = valorMesa.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+        // Gerencia a Exibição do Botão do Mapa
+        mapaUrl = data.map_url || data.mapa_url || null; 
+        const containerMapa = document.getElementById('container-mapa-reserva');
+        if (mapaUrl && containerMapa) {
+            containerMapa.classList.remove('hidden');
+        }
+        
         buscarMesasOcupadas(data.quantidade_mesas);
 
     } catch (err) {
@@ -102,7 +125,6 @@ function gerarGradeMesas(totalMesas) {
     if (!grade) return;
     grade.innerHTML = "";
     
-    // Classes que definem o visual (padrão)
     const baseClasses = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95";
     const classeSelecionada = "bg-emerald-800 text-white border-emerald-900";
     const classeLivre = "bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
@@ -138,7 +160,6 @@ function gerarGradeMesas(totalMesas) {
 // 4. SELEÇÃO E CÁLCULO
 // ==========================================
 function alternarSelecaoMesa(numeroMesa, elementoBotao) {
-    // Classes idênticas às da função gerarGradeMesas
     const baseClasses = "p-3 font-black text-xs rounded-xl transition-all border text-center active:scale-95";
     const classeSelecionada = "bg-emerald-800 text-white border-emerald-900";
     const classeLivre = "bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer";
@@ -146,16 +167,13 @@ function alternarSelecaoMesa(numeroMesa, elementoBotao) {
     const index = mesasSelecionadas.indexOf(numeroMesa);
     
     if (index > -1) {
-        // DESMARCANDO: Volta para o estado Livre (Branco)
         mesasSelecionadas.splice(index, 1);
         elementoBotao.className = baseClasses + " " + classeLivre;
     } else {
-        // SELECIONANDO: Fica Verde Escuro (Sólido)
         mesasSelecionadas.push(numeroMesa);
         elementoBotao.className = baseClasses + " " + classeSelecionada;
     }
 
-    // Atualiza valor
     const total = mesasSelecionadas.length * valorMesa;
     const elTotal = document.getElementById('valor-total');
     if (elTotal) {
@@ -175,8 +193,10 @@ async function salvarReservaFinal(e) {
     }
 
     const btn = document.getElementById('btn-enviar');
-    btn.disabled = true;
-    btn.innerText = "ENVIANDO RESERVA...";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "ENVIANDO RESERVA...";
+    }
 
     try {
         const nome = document.getElementById('cli-nome').value.trim();
@@ -185,7 +205,7 @@ async function salvarReservaFinal(e) {
         
         let comprovanteUrl = null;
 
-        if (fileInput.files.length > 0) {
+        if (fileInput && fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const fileExt = file.name.split('.').pop();
             const fileName = `pix_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -212,20 +232,25 @@ async function salvarReservaFinal(e) {
 
         if (window.showToast) window.showToast("Reserva enviada com sucesso!", "sucesso");
         
-        // Dispara mensagem para o ADMINISTRADOR
         window.enviarConfirmacaoWhatsApp(nome, mesasSelecionadas.join(', '));
         
-        document.getElementById('form-reserva-cliente').reset();
+        const formCliente = document.getElementById('form-reserva-cliente');
+        if (formCliente) formCliente.reset();
+        
         mesasSelecionadas = [];
-        document.getElementById('valor-total').innerText = "0,00";
+        const elTotal = document.getElementById('valor-total');
+        if (elTotal) elTotal.innerText = "0,00";
+        
         carregarDadosEvento();
 
     } catch (error) {
         console.error("Erro ao salvar reserva:", error);
         if (window.showToast) window.showToast("Falha ao salvar. Verifique se a mesa já foi ocupada.", "erro");
     } finally {
-        btn.disabled = false;
-        btn.innerText = "FINALIZAR RESERVA";
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "FINALIZAR RESERVA";
+        }
     }
 }
 
@@ -246,10 +271,33 @@ window.aplicarMascaraTelefone = function(input) {
     input.value = valor.substring(0, 15);
 };
 
-window.abrirModalMapa = function() {
-    document.getElementById('modal-mapa-evento').classList.remove('hidden');
+window.abrirModalMapa = function(urlBase64) {
+    const urlDestino = urlBase64 || mapaUrl;
+    
+    if (!urlDestino) {
+        if (typeof showToast === 'function') showToast("Este evento não possui um mapa anexado.", "info");
+        return;
+    }
+    
+    const imgModal = document.getElementById('img-mapa-modal');
+    if (imgModal) imgModal.src = urlDestino;
+    
+    const modal = document.getElementById('modal-mapa-evento');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
 };
 
 window.fecharModalMapa = function() {
-    document.getElementById('modal-mapa-evento').classList.add('hidden');
+    const modal = document.getElementById('modal-mapa-evento');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    
+    setTimeout(() => {
+        const img = document.getElementById('img-mapa-modal');
+        if (img) img.src = '';
+    }, 300);
 };

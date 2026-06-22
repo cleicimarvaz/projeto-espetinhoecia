@@ -731,6 +731,10 @@ window.abrirGerenciamentoEvento = async function (id, nome) {
   window.eventoIdAtivo = id;
   window.nomeEventoAtivo = nome;
 
+  // --- CORREÇÃO: INJETA O ID NO CAMPO OCULTO DO MODAL ---
+  const inputId = document.getElementById("rm-evento-id");
+  if (inputId) inputId.value = id;
+
   document.getElementById("gerenciar-nome-evento").innerText =
     `GERENCIAR: ${nome}`;
 
@@ -743,9 +747,10 @@ window.abrirGerenciamentoEvento = async function (id, nome) {
   if (!error && evento) {
     document.getElementById("input-capacidade-mesas").value =
       evento.quantidade_mesas || 0;
-    // ... (código do whatsapp)
+    
+    const inputWhats = document.getElementById("input-editar-whatsapp");
+    if(inputWhats) inputWhats.value = evento.whatsapp_notificacao || '';
 
-    // --- CORREÇÃO AQUI ---
     const patInput = document.getElementById("lista-patrocinadores-input");
     if (patInput) {
       let valor = evento.patrocinadores || "";
@@ -2225,4 +2230,171 @@ window.removerPatrocinador = async function (index) {
 
   window.patrocinadoresEventoAtivo = lista;
   window.renderizarListaPatrocinadores();
+};
+
+
+// =========================================================================
+// COMPRESSOR DE IMAGEM PARA O MAPA DO EVENTO
+// =========================================================================
+window.comprimirImagemMapa = function(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // Trava o tamanho máximo para 1200px (excelente para mapas, leve para o banco)
+                const MAX_WIDTH = 1200;
+                const MAX_HEIGHT = 1200;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                } else {
+                    if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Qualidade de 70% em JPEG
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                resolve(dataUrl);
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+};
+
+window.salvarEvento = async function(event) {
+    if (event) event.preventDefault();
+
+    // Captura os dados do HTML (verifique se os IDs batem com seu formulário)
+    // Aqui assumi ev-id para edição, e ev-nome para o título. Ajuste se necessário!
+    const idInput = document.getElementById('ev-id');
+    const idEvento = idInput ? idInput.value : null; 
+    
+    const inputNome = document.getElementById('ev-nome');
+    const nome = inputNome ? inputNome.value.trim().toUpperCase() : 'NOVO EVENTO';
+
+    if (!nome) {
+        if (typeof showToast === 'function') showToast("Dê um nome ao evento!", "erro");
+        return;
+    }
+
+    // Trava o botão para não enviar duas vezes
+    const btnSalvar = document.getElementById('btn-salvar-evento');
+    if (btnSalvar) btnSalvar.disabled = true;
+
+    try {
+        // --- MÁGICA DA IMAGEM ---
+        const inputMapa = document.getElementById('ev-mapa');
+        let mapaBase64 = null;
+        
+        if (inputMapa && inputMapa.files.length > 0) {
+            if (typeof showToast === 'function') showToast("Processando imagem do mapa...", "info");
+            mapaBase64 = await window.comprimirImagemMapa(inputMapa.files[0]);
+        }
+
+        // Monta os dados para o Supabase
+        const dadosEvento = {
+            nome: nome,
+            // (Adicione aqui outros campos do seu evento: data, status, etc)
+            // ex: data: document.getElementById('ev-data').value
+        };
+
+        // Só atualiza a imagem no banco se o usuário tiver feito upload de uma nova
+        if (mapaBase64) {
+            dadosEvento.mapa_url = mapaBase64;
+        }
+
+        // Envia pro Banco
+        if (idEvento) {
+            // Se tem ID, é Edição (Update)
+            const { error } = await _supabase.from('eventos').update(dadosEvento).eq('id', idEvento);
+            if (error) throw error;
+        } else {
+            // Se não tem ID, é Novo Evento (Insert)
+            const { error } = await _supabase.from('eventos').insert([dadosEvento]);
+            if (error) throw error;
+        }
+
+        if (typeof showToast === 'function') showToast("Evento salvo com sucesso!", "sucesso");
+        
+        // Limpa o formulário e atualiza a tela
+        if (inputMapa) inputMapa.value = '';
+        if (typeof fecharModalFormEvento === 'function') fecharModalFormEvento();
+        if (typeof carregarEventos === 'function') carregarEventos(); // Recarrega a lista
+
+    } catch (e) {
+        console.error("Erro ao salvar evento:", e);
+        if (typeof showToast === 'function') showToast("Erro de conexão ao salvar.", "erro");
+    } finally {
+        // Libera o botão
+        if (btnSalvar) btnSalvar.disabled = false;
+    }
+};
+
+window.salvarNovoMapa = async function() {
+    const input = document.getElementById('input-atualizar-mapa');
+    const idEvento = document.getElementById('rm-evento-id').value; // Usamos o ID que já está oculto no modal
+
+    if (!idEvento) {
+        if (typeof showToast === 'function') showToast("Erro: ID do evento não encontrado.", "erro");
+        return;
+    }
+
+    if (!input.files || input.files.length === 0) {
+        if (typeof showToast === 'function') showToast("Por favor, selecione uma imagem do seu dispositivo.", "erro");
+        return;
+    }
+
+    const btn = document.getElementById('btn-salvar-mapa');
+    const textoOriginal = btn.innerText;
+    btn.innerText = "COMPRIMINDO...";
+    btn.disabled = true;
+
+    try {
+        // 1. Usa o compressor para diminuir o tamanho da foto
+        const mapaBase64 = await window.comprimirImagemMapa(input.files[0]);
+
+        btn.innerText = "SALVANDO NO BANCO...";
+
+        // 2. Salva a string Base64 direto na coluna mapa_url do evento específico
+        const { error } = await _supabase
+            .from('eventos')
+            .update({ mapa_url: mapaBase64 })
+            .eq('id', idEvento);
+
+        if (error) throw error;
+
+        if (typeof showToast === 'function') showToast("Mapa atualizado com sucesso!", "sucesso");
+        
+        // 3. Limpa o input após o sucesso
+        input.value = '';
+
+        // 4. Se a tela de eventos estiver aberta no fundo, recarrega os dados
+        if (typeof carregarEventos === 'function') {
+            carregarEventos();
+        }
+
+    } catch (error) {
+        console.error("Erro ao salvar novo mapa:", error);
+        if (typeof showToast === 'function') {
+            showToast("Erro ao processar imagem.", "erro");
+        }
+    } finally {
+        // Volta o botão ao normal
+        btn.innerText = textoOriginal;
+        btn.disabled = false;
+    }
 };
