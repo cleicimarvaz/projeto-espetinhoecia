@@ -311,14 +311,22 @@
                     </div>
                 </div>
 
+                <div class="mb-4 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Atualizar Mapa do Local</label>
+                    <div class="flex flex-col gap-2">
+                        <input type="file" id="input-atualizar-mapa" accept="image/*" class="w-full text-xs font-bold text-slate-600 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-blue-100 file:text-blue-700 dark:file:bg-blue-900 dark:file:text-blue-400 hover:file:bg-blue-200 dark:hover:file:bg-blue-800 transition-colors cursor-pointer">
+                        <button onclick="window.salvarNovoMapa()" id="btn-salvar-mapa" class="w-full bg-[#003366] text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-md">Salvar Nova Imagem</button>
+                    </div>
+                </div>
+
                 <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
-    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Gestão de Patrocinadores</label>
-<div class="grid grid-cols-2 gap-3">
-    <button onclick="window.abrirModalAdminPatrocinadores()" class="col-span-2 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all flex justify-center items-center gap-2">
-        🏆 GERENCIAR PATROCINADORES
-    </button>
-</div>
-</div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Gestão de Patrocinadores</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="window.abrirModalAdminPatrocinadores()" class="col-span-2 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all flex justify-center items-center gap-2">
+                            🏆 GERENCIAR PATROCINADORES
+                        </button>
+                    </div>
+                </div>
 
                 <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
                     <button onclick="window.alterarStatusEvento('finalizado')" class="btn-neutral w-full">Pausar / Esgotar Vendas</button>
