@@ -348,11 +348,13 @@ window.executarFechamentoDefinitivoBanco = async function() {
 };
 
 // 3. Função de Impressão via Iframe (Ninja Mode - Burlar bloqueador)
-// O parâmetro isParcial controla se a tela deve ser recarregada no final.
 window.imprimirFechamentoTermico = function(dados, isParcial = false) {
     const formatarData = (iso) => new Date(iso).toLocaleString('pt-BR');
-    const fm = (v) => `R$ ${parseFloat(v).toFixed(2).replace('.', ',')}`;
-    const totalVendas = dados.dinheiro + dados.cartao + dados.pix;
+    
+    // Função para manter o comprovante impresso com pontos nos milhares e vírgula nos centavos
+    const fm = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    const totalVendas = (dados.dinheiro || 0) + (dados.cartao || 0) + (dados.pix || 0);
 
     const htmlPrint = `
         <!DOCTYPE html>
@@ -363,7 +365,12 @@ window.imprimirFechamentoTermico = function(dados, isParcial = false) {
                 @page { margin: 0; size: 80mm auto; }
                 body { 
                     font-family: 'Courier New', Courier, monospace; 
-                    width: 80mm; margin: 0; padding: 5mm; font-size: 12px; color: black; background: white;
+                    width: 75mm; /* Leve recuo para evitar corte na margem da bobina */
+                    margin: 0 auto; 
+                    padding: 5mm; 
+                    font-size: 12px; 
+                    color: black; 
+                    background: white;
                 }
                 .text-center { text-align: center; }
                 .font-bold { font-weight: bold; }
@@ -386,19 +393,19 @@ window.imprimirFechamentoTermico = function(dados, isParcial = false) {
                 <p><strong>FECHAMENTO:</strong> <br>${formatarData(dados.fechamento)}</p>
             </div>
             <div class="text-center font-bold mt-2 border-b"><p>RESUMO DE VENDAS</p></div>
-            <div class="flex"><span>DINHEIRO</span> <span>${fm(dados.dinheiro)}</span></div>
-            <div class="flex"><span>CARTÃO</span> <span>${fm(dados.cartao)}</span></div>
-            <div class="flex border-b"><span>PIX</span> <span>${fm(dados.pix)}</span></div>
-            <div class="flex font-bold"><span>TOTAL VENDAS</span> <span>${fm(totalVendas)}</span></div>
+            <div class="flex"><span>DINHEIRO</span> <span>R$ ${fm(dados.dinheiro)}</span></div>
+            <div class="flex"><span>CARTÃO</span> <span>R$ ${fm(dados.cartao)}</span></div>
+            <div class="flex border-b"><span>PIX</span> <span>R$ ${fm(dados.pix)}</span></div>
+            <div class="flex font-bold"><span>TOTAL VENDAS</span> <span>R$ ${fm(totalVendas)}</span></div>
             
             <div class="text-center font-bold mt-2 border-b border-t"><p>GAVETA FÍSICA</p></div>
-            <div class="flex"><span>FUNDO INICIAL</span> <span>${fm(dados.inicial)}</span></div>
-            <div class="flex"><span>(+) SUPRIMENTOS</span> <span>${fm(dados.suprimentos)}</span></div>
-            <div class="flex"><span>(-) SANGRIAS</span> <span>${fm(dados.sangrias)}</span></div>
-            <div class="flex"><span>(+) DINHEIRO</span> <span>${fm(dados.dinheiro)}</span></div>
+            <div class="flex"><span>FUNDO INICIAL</span> <span>R$ ${fm(dados.inicial)}</span></div>
+            <div class="flex"><span>(+) SUPRIMENTOS</span> <span>R$ ${fm(dados.suprimentos)}</span></div>
+            <div class="flex"><span>(-) SANGRIAS</span> <span>R$ ${fm(dados.sangrias)}</span></div>
+            <div class="flex"><span>(+) DINHEIRO</span> <span>R$ ${fm(dados.dinheiro)}</span></div>
             
             <div class="flex font-bold border-t border-b mt-2">
-                <span>SALDO ESPERADO</span> <span>${fm(dados.saldoGaveta)}</span>
+                <span>SALDO ESPERADO</span> <span>R$ ${fm(dados.saldoGaveta)}</span>
             </div>
 
             <div class="mt-2 text-center" style="margin-top: 40px;"><p>_________________________________</p><p>Assinatura Operador</p></div>
@@ -409,9 +416,12 @@ window.imprimirFechamentoTermico = function(dados, isParcial = false) {
 
     const iframe = document.createElement('iframe');
     
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
+    // O SEGREDO ESTÁ AQUI: Dar dimensões reais ao Iframe e escondê-lo fora da tela!
+    iframe.style.position = 'fixed';
+    iframe.style.right = '-9999px';
+    iframe.style.bottom = '-9999px';
+    iframe.style.width = '300px'; 
+    iframe.style.height = '600px';
     iframe.style.border = 'none';
     
     document.body.appendChild(iframe);
@@ -421,18 +431,35 @@ window.imprimirFechamentoTermico = function(dados, isParcial = false) {
     doc.write(htmlPrint);
     doc.close();
 
-    setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print(); 
-
+    // Aguarda o HTML terminar de desenhar 100% dentro do iframe antes de chamar a impressora
+    iframe.onload = function() {
         setTimeout(() => {
-            document.body.removeChild(iframe);
-            // Só recarrega e trava o caixa se for fechamento definitivo (Z)
-            if (!isParcial) {
-                window.location.reload();
-            }
-        }, 1000); 
-    }, 500);
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print(); 
+
+            // Limpa o Iframe e Recarrega a tela de fundo (após 1 segundo)
+            setTimeout(() => {
+                if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                }
+                if (!isParcial) {
+                    window.location.reload();
+                }
+            }, 1000); 
+        }, 300); 
+    };
+
+    // Plano B: Se o 'onload' falhar em algum navegador mais antigo, força a impressão
+    setTimeout(() => {
+        if (document.body.contains(iframe)) {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(() => {
+                if (document.body.contains(iframe)) document.body.removeChild(iframe);
+                if (!isParcial) window.location.reload();
+            }, 1000);
+        }
+    }, 1500);
 };
 
 /* =================================================================================
@@ -445,6 +472,7 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
     const container  = document.getElementById('lista-caixas-fechados');
     if (!container) return;
 
+    // Tela de carregamento (Skeleton)
     container.innerHTML = `
         <div class="animate-pulse space-y-4">
             <div class="h-32 bg-slate-200 dark:bg-slate-800/50 rounded-[2rem] w-full"></div>
@@ -455,13 +483,12 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
         let query = _supabase
             .from('caixa')
             .select('*')
-            .eq('status', 'fechado')
-            .order('fechado_em', { ascending: false });
+            .order('aberto_em', { ascending: false }); 
 
         if (dataInicio && dataFim) {
             query = query
-                .gte('fechado_em', `${dataInicio}T00:00:00`)
-                .lte('fechado_em', `${dataFim}T23:59:59`);
+                .gte('aberto_em', `${dataInicio}T00:00:00`)
+                .lte('aberto_em', `${dataFim}T23:59:59`);
         }
 
         const { data: caixas, error } = await query;
@@ -476,61 +503,137 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
             return;
         }
 
-        const formatMoeda = typeof window.formatarMoeda === 'function' ? window.formatarMoeda : val => parseFloat(val).toFixed(2);
         const idsCaixas = caixas.map(c => c.id);
-        const { data: todasMovs } = await _supabase.from('movimentacoes_caixa').select('*').in('id_caixa', idsCaixas);
+
+        const [ { data: todasMovs }, { data: todasVendas } ] = await Promise.all([
+            _supabase.from('movimentacoes_caixa').select('*').in('id_caixa', idsCaixas),
+            _supabase.from('historico_vendas').select('*').in('id_caixa', idsCaixas).neq('status', 'estornada')
+        ]);
+
+        // Função mágica para formatar moeda com separador de milhar (Ex: 10.594,00)
+        const formatarBRL = (valor) => parseFloat(valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         container.innerHTML = caixas.map(cx => {
-            const abertura   = new Date(cx.aberto_em);
-            const fechamento = new Date(cx.fechado_em);
-            const movsCaixa = (todasMovs || []).filter(m => m.id_caixa === cx.id);
+            const isOpen = cx.status !== 'fechado';
+            const abertura = new Date(cx.aberto_em);
+            const fechamento = cx.fechado_em ? new Date(cx.fechado_em) : null;
             
+            const movsCaixa = (todasMovs || []).filter(m => m.id_caixa === cx.id);
+            const vendasCaixa = (todasVendas || []).filter(v => v.id_caixa === cx.id);
+            
+            let totDinheiro = 0, totPix = 0, totCartao = 0;
+            vendasCaixa.forEach(v => {
+                const val = parseFloat(v.total || 0);
+                const pg = (v.forma_pagamento || 'DINHEIRO').toUpperCase();
+                if (pg === 'DINHEIRO') totDinheiro += val;
+                else if (pg === 'PIX') totPix += val;
+                else totCartao += val; 
+            });
+
+            let sangrias = 0, suprimentos = 0;
+            movsCaixa.forEach(m => {
+                const val = parseFloat(m.valor || 0);
+                if (m.tipo === 'SANGRIA') sangrias += val; 
+                else if (m.tipo === 'SUPRIMENTO') suprimentos += val;
+            });
+
+            const inicial = parseFloat(cx.valor_inicial || 0);
+            
+            const saldoRealGaveta = (inicial + totDinheiro + suprimentos) - sangrias;
+            const totalFaturamento = totDinheiro + totPix + totCartao;
+
             let htmlMovs = movsCaixa.length === 0 
-                ? `<p class="text-[9px] font-bold text-slate-400 uppercase italic py-2">Nenhuma movimentação extra registrada.</p>`
+                ? `<p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase italic py-2 text-center">Nenhum suprimento ou sangria lançado.</p>`
                 : movsCaixa.map(m => `
-                    <div class="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800/50 last:border-0">
+                    <div class="flex justify-between items-center py-1.5 border-b border-slate-100 dark:border-slate-800/40 last:border-0">
                         <span class="text-[9px] font-black uppercase ${m.tipo === 'SANGRIA' ? 'text-red-500' : 'text-emerald-500'}">
-                            ${m.tipo === 'SANGRIA' ? '🔴 Saída' : '🟢 Entrada'} - ${m.motivo}
+                            ${m.tipo === 'SANGRIA' ? '🔴 Sangria' : '🟢 Suprimento'} - ${m.motivo}
                         </span>
-                        <span class="text-[9px] font-black text-slate-600 dark:text-slate-300">R$ ${formatMoeda(m.valor)}</span>
+                        <span class="text-[9px] font-black text-slate-600 dark:text-slate-300">R$ ${formatarBRL(m.valor)}</span>
                     </div>
                 `).join('');
 
+            const badgeStatus = isOpen 
+                ? `<span class="bg-emerald-500 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest animate-pulse shadow-sm shadow-emerald-500/20">🟢 CAIXA ABERTO</span>`
+                : `<span class="bg-slate-700 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">Turno #${cx.id}</span>`;
+
+            const stringAbertura = `Abertura: ${abertura.toLocaleDateString('pt-BR')} às ${abertura.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            const stringFechamento = isOpen 
+                ? `Fechamento: <span class="text-emerald-500 font-black uppercase tracking-wider">Aguardando Encerramento</span>`
+                : `Fechamento: ${fechamento.toLocaleDateString('pt-BR')} às ${fechamento.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
             return `
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-[2.2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-4 transition-all overflow-hidden relative">
-                <div class="flex justify-between items-start mb-3">
+            <div class="bg-white dark:bg-slate-900 p-5 rounded-[2.2rem] shadow-sm border border-slate-100 dark:border-slate-800 mb-4 transition-all relative">
+                <div class="flex justify-between items-start mb-4">
                     <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="bg-[#1e293b] text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">Turno #${cx.id}</span>
-                            <span class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">${abertura.toLocaleDateString('pt-BR')}</span>
+                        <div class="flex items-center gap-2 mb-2">
+                            ${badgeStatus}
+                            ${!isOpen ? `<span class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">#${cx.id}</span>` : ''}
                         </div>
-                        <h3 class="font-black text-slate-700 dark:text-slate-200 text-[11px] uppercase italic leading-tight">
-                            ${abertura.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ➜ ${fechamento.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </h3>
-                        <p class="text-[8px] font-black text-slate-400 mt-1 uppercase">Operador: ${cx.criado_por || 'Sistema'}</p>
+                        <div class="space-y-0.5">
+                            <p class="font-black text-slate-700 dark:text-slate-200 text-[10px] uppercase tracking-tight">${stringAbertura}</p>
+                            <p class="font-black text-slate-600 dark:text-slate-300 text-[10px] uppercase tracking-tight">${stringFechamento}</p>
+                        </div>
+                        <p class="text-[8px] font-black text-slate-400 dark:text-slate-500 mt-2 uppercase tracking-wide">Operador: ${cx.criado_por || 'Sistema'}</p>
                     </div>
+                    
                     <button onclick="window.regerarPDFRetroativo(${cx.id})" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
                         <span class="text-sm">🖨️</span>
-                        <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Relatório</span>
+                        <span class="text-[9px] font-black uppercase tracking-widest hidden sm:inline">${isOpen ? 'Parcial' : 'Relatório'}</span>
                     </button>
                 </div>
-                <div class="grid grid-cols-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl gap-2 mb-3 border border-slate-100 dark:border-slate-700">
+
+                <div class="grid grid-cols-3 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl gap-2 mb-3 border border-slate-100 dark:border-slate-700">
                     <div class="flex flex-col">
                         <span class="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Fundo Inicial</span>
-                        <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300">R$ ${formatMoeda(cx.valor_inicial)}</span>
+                        <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">R$ ${formatarBRL(inicial)}</span>
+                    </div>
+                    <div class="flex flex-col text-center">
+                        <span class="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Faturamento</span>
+                        <span class="text-[10px] font-bold text-blue-500">R$ ${formatarBRL(totalFaturamento)}</span>
                     </div>
                     <div class="flex flex-col text-right">
-                        <span class="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Dinheiro na Gaveta</span>
-                        <span class="text-[12px] font-black text-emerald-500">R$ ${formatMoeda(cx.valor_final_dinheiro)}</span>
+                        <span class="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Saldo em Gaveta</span>
+                        <span class="text-[12px] font-black text-emerald-500">R$ ${formatarBRL(saldoRealGaveta)}</span>
                     </div>
                 </div>
-                <button onclick="toggleMovimentosCard(${cx.id})" class="w-full flex justify-between items-center text-[9px] font-black text-slate-500 uppercase italic py-2 border-t border-slate-100 dark:border-slate-800 mt-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
-                    <span>Ver Entradas e Saídas Extras</span>
+
+                <button onclick="toggleMovimentosCard(${cx.id})" class="w-full flex justify-between items-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic py-2 border-t border-slate-100 dark:border-slate-800 mt-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                    <span>📊 Ver Resumo Completo do Turno</span>
                     <span id="icone-mov-${cx.id}" class="text-[10px]">▼</span>
                 </button>
-                <div id="movimentos-card-${cx.id}" class="hidden bg-slate-50 dark:bg-slate-800 p-3 rounded-xl mt-2 border border-slate-200 dark:border-slate-700 transition-all">
-                    <h4 class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-200 dark:border-slate-700 pb-1">Detalhes de Movimentação</h4>
-                    ${htmlMovs}
+                
+                <div id="movimentos-card-${cx.id}" class="hidden space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800/40 mt-1">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 p-2 rounded-xl text-center shadow-inner">
+                            <p class="text-[7px] font-black text-slate-400 uppercase">Dinheiro</p>
+                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200">R$ ${formatarBRL(totDinheiro)}</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 p-2 rounded-xl text-center shadow-inner">
+                            <p class="text-[7px] font-black text-slate-400 uppercase">PIX</p>
+                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200">R$ ${formatarBRL(totPix)}</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 p-2 rounded-xl text-center shadow-inner">
+                            <p class="text-[7px] font-black text-slate-400 uppercase">Cartões</p>
+                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200">R$ ${formatarBRL(totCartao)}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 p-2 rounded-xl text-center">
+                            <p class="text-[7px] font-black text-emerald-600 dark:text-emerald-400 uppercase">(+) Suprimentos</p>
+                            <p class="text-[10px] font-black text-emerald-600 dark:text-emerald-400">R$ ${formatarBRL(suprimentos)}</p>
+                        </div>
+                        <div class="bg-red-50/40 dark:bg-red-950/10 border border-red-100/50 dark:border-red-900/20 p-2 rounded-xl text-center">
+                            <p class="text-[7px] font-black text-red-500 uppercase">(-) Sangrias</p>
+                            <p class="text-[10px] font-black text-red-500">R$ ${formatarBRL(sangrias)}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <h4 class="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 border-b border-slate-200 dark:border-slate-700 pb-1">Extrato de Entradas e Saídas Extras</h4>
+                        ${htmlMovs}
+                    </div>
                 </div>
             </div>`;
         }).join('');

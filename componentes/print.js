@@ -158,6 +158,21 @@ window.gerarPDFConsolidado = async function(resumo) {
     
     const nomeArquivo = `${dia}${mes}${ano}_Fechamento_Turno`;
 
+    // Filtra as saídas/sangrias do array de movimentações brutas
+    const sangriasList = (resumo.movsRaw || []).filter(m => m.tipo === 'SANGRIA');
+    let htmlSaidas = '';
+    
+    if (sangriasList.length === 0) {
+        htmlSaidas = `<tr><td colspan="2" class="text-center" style="color: #94a3b8; font-style: italic;">Nenhuma saída ou sangria registrada neste turno.</td></tr>`;
+    } else {
+        htmlSaidas = sangriasList.map(m => `
+            <tr>
+                <td>${(m.motivo || 'SANGRIA / RETIRADA').toUpperCase()}</td>
+                <td class="text-right" style="color:#ef4444;">- R$ ${window.fmSeguro(m.valor)}</td>
+            </tr>
+        `).join('');
+    }
+
     const estilos = `
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -227,6 +242,19 @@ window.gerarPDFConsolidado = async function(resumo) {
                 `).join('')}
             </div>
 
+            <h3 class="secao-titulo">➔ Saídas e Sangrias (Detalhamento)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Motivo / Descrição</th>
+                        <th class="text-right">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${htmlSaidas}
+                </tbody>
+            </table>
+
             <h3 class="secao-titulo">➔ Saída de Estoque (Produtos)</h3>
             <table>
                 <thead><tr><th>Item / Produto</th><th class="text-center">Quantidade</th></tr></thead>
@@ -246,6 +274,7 @@ window.gerarPDFConsolidado = async function(resumo) {
                     `).join('')}
                 </tbody>
             </table>
+            
             <div class="footer-pdf">WebComanda - Sistema de Gestão Inteligente</div>
         </body></html>
     `;
