@@ -92,10 +92,18 @@ window.setCategoria = function(cat) {
 
 // Função que captura o texto digitado
 window.filtrarVitrine = function() {
+    // 1. Captura o termo de busca
     const input = document.getElementById('busca-produto-venda');
     window.termoBusca = input ? input.value.toLowerCase() : '';
+
+    // 2. Captura a ordem selecionada
+    const selectOrdem = document.getElementById('ordem-catalogo');
+    window.ordemVitrine = selectOrdem ? selectOrdem.value : 'nome-asc';
+
+    // 3. Renderiza com os novos filtros
     window.renderizarVenda();
 }
+
 window.renderizarVenda = function() {
     const cont = document.getElementById('lista-venda');
     if (!cont) return;
@@ -105,29 +113,34 @@ window.renderizarVenda = function() {
         return;
     }
 
-    // ====================================================
-    // APLICA OS FILTROS (Categoria + Busca por Texto)
-    // ====================================================
-    const produtosFiltrados = window.produtosCache.filter(p => {
+    let produtosFiltrados = window.produtosCache.filter(p => {
         const matchCategoria = window.categoriaAtual === 'todos' || p.categoria === window.categoriaAtual;
-        const matchBusca = p.nome.toLowerCase().includes(window.termoBusca);
+        const matchBusca = p.nome.toLowerCase().includes(window.termoBusca || '');
         return matchCategoria && matchBusca;
     });
 
-    // Se o filtro não encontrar nada, avisa na tela
+    const ordem = window.ordemVitrine || 'nome-asc';
+    produtosFiltrados.sort((a, b) => {
+        if (ordem === 'nome-asc') return a.nome.localeCompare(b.nome);
+        if (ordem === 'nome-desc') return b.nome.localeCompare(a.nome);
+        if (ordem === 'preco-asc') return parseFloat(a.preco) - parseFloat(b.preco);
+        if (ordem === 'preco-desc') return parseFloat(b.preco) - parseFloat(a.preco);
+        if (ordem === 'categoria') {
+            const catComp = (a.categoria || '').localeCompare(b.categoria || '');
+            return catComp !== 0 ? catComp : a.nome.localeCompare(b.nome);
+        }
+        return 0;
+    });
+
     if (produtosFiltrados.length === 0) {
-        cont.innerHTML = `
-            <div class="col-span-2 flex flex-col items-center justify-center py-10 opacity-50">
-                <span class="text-4xl mb-3">🔍</span>
-                <p class="text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest text-center">Nenhum produto encontrado</p>
-            </div>`;
+        cont.innerHTML = '<p class="col-span-2 text-center text-slate-400 py-10 uppercase text-[10px] font-bold">Nenhum produto encontrado</p>';
         return;
     }
-    // ====================================================
 
     const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚', 'combos': '🍻' };
-    
-    cont.innerHTML = produtosFiltrados.map(p => {
+
+    // FUNÇÃO AUXILIAR PARA GERAR O HTML DO BOTÃO (Para evitar repetir código)
+    const gerarCardProduto = (p) => {
         const itemNoCarrinho = window.carrinho.find(c => c.id === p.id);
         const qtd = itemNoCarrinho ? itemNoCarrinho.qtd : 0;
         return `
@@ -138,7 +151,28 @@ window.renderizarVenda = function() {
                 ${qtd > 0 ? `<span class="absolute -top-2 -right-2 bg-emerald-500 text-white text-[9px] w-6 h-6 rounded-full flex items-center justify-center font-black shadow-md">${qtd}</span>
                 <div onclick="event.stopPropagation(); removerDoCarrinho(${p.id})" class="absolute -bottom-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border-2 border-white dark:border-slate-900 shadow-md active:scale-90 transition-transform">-</div>` : ''}
             </button>`;
-    }).join('');
+    };
+
+    // RENDERIZAÇÃO CONDICIONAL
+    if (ordem === 'categoria') {
+        // Modo Agrupado
+        const grupos = produtosFiltrados.reduce((acc, p) => {
+            const cat = p.categoria || 'OUTROS';
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(p);
+            return acc;
+        }, {});
+
+        cont.innerHTML = Object.keys(grupos).map(cat => `
+            <div class="col-span-2 mt-4 mb-2">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">${icons[cat] || '📦'} ${cat}</h3>
+            </div>
+            ${grupos[cat].map(p => gerarCardProduto(p)).join('')}
+        `).join('');
+    } else {
+        // Modo Contínuo (Padrão)
+        cont.innerHTML = produtosFiltrados.map(p => gerarCardProduto(p)).join('');
+    }
     
     if (typeof atualizarFAB === 'function') atualizarFAB();
 }
