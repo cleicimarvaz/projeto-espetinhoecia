@@ -896,26 +896,26 @@
 
     </main>
 
-    <nav class="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 p-4 pb-6 rounded-t-[2.5rem] shadow-[0_-5px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-slate-100 dark:border-slate-800 z-[100] transition-colors duration-300">
-        <div class="flex justify-around items-center">
-            <a href="home.html" id="nav-home" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
-                <span class="text-xl">🏠</span>
-                <span class="text-[9px] font-black uppercase tracking-wide font-sans">Início</span>
-            </a>
-            <a href="#" onclick="window.iniciarVendaDireta(event)" id="nav-venda" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
-    <span class="text-xl">🛒</span>
-    <span class="text-[9px] font-black uppercase tracking-wide">Vendas</span>
-</a>
-            <a href="comandas.html" id="nav-comandas" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
-                <span class="text-xl">📋</span>
-                <span class="text-[9px] font-bold uppercase tracking-wide font-sans">Comandas</span>
-            </a>
-            <a href="configuracoes.html" id="nav-admin" class="flex flex-col items-center gap-1 transition-all text-[#e63946]">
-                <span class="text-xl">⚙️</span>
-                <span class="text-[9px] font-black uppercase tracking-wide font-sans">Painel</span>
-            </a>
-        </div>
-    </nav>
+<nav class="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 p-4 pb-6 rounded-t-[2.5rem] shadow-[0_-5px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-slate-100 dark:border-slate-800 z-[100] transition-colors duration-300">
+    <div class="flex justify-around items-center">
+        <a href="home.html" id="nav-home" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
+            <span class="text-xl">🏠</span>
+            <span class="text-[9px] font-black uppercase tracking-wide">Início</span>
+        </a>
+        <a href="#" onclick="if(typeof window.irParaVendaDireta === 'function') window.irParaVendaDireta(); else window.location.href='venda.html';" id="nav-venda" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
+            <span class="text-xl">🛒</span>
+            <span class="text-[9px] font-black uppercase tracking-wide">Vendas</span>
+        </a>
+        <a href="comandas.html" id="nav-comandas" class="flex flex-col items-center gap-1 transition-all text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400">
+            <span class="text-xl">📋</span>
+            <span class="text-[9px] font-black uppercase tracking-wide">Comandas</span>
+        </a>
+        <a href="configuracoes.html" id="nav-admin" class="flex flex-col items-center gap-1 transition-all text-[#e63946]">
+            <span class="text-xl">⚙️</span>
+            <span class="text-[9px] font-black uppercase tracking-wide">Painel</span>
+        </a>
+    </div>
+</nav>
 
     <div id="modal-movimentacao-estoque" class="hidden fixed inset-0 bg-slate-900/80 z-[110] justify-center items-center p-4 backdrop-blur-sm">
         <div class="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl relative border border-slate-100 dark:border-slate-800">
