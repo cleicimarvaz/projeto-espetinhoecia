@@ -598,9 +598,9 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
                     </div>
                 </div>
 
-                <button onclick="toggleMovimentosCard(${cx.id})" class="w-full flex justify-between items-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic py-2 border-t border-slate-100 dark:border-slate-800 mt-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
-                    <span>📊 Ver Resumo Completo do Turno</span>
-                    <span id="icone-mov-${cx.id}" class="text-[10px]">▼</span>
+<button onclick="window.toggleMovimentosCard('${cx.id}')" class="w-full flex justify-between items-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic py-4 px-2 border-t border-slate-100 dark:border-slate-800 mt-2 hover:text-slate-700 dark:hover:text-slate-300 transition-all active:scale-[0.99] bg-slate-50/50 dark:bg-slate-800/30 rounded-xl">
+                    <span class="pointer-events-none">📊 Ver Resumo Completo do Turno</span>
+                    <span id="icone-mov-${cx.id}" class="text-[10px] pointer-events-none transition-transform">▼</span>
                 </button>
                 
                 <div id="movimentos-card-${cx.id}" class="hidden space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800/40 mt-1">
