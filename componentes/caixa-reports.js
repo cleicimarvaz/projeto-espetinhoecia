@@ -14,7 +14,13 @@ window._construirResumo = function(nomeLoja, vendas, movs, valorInicial = 0) {
         totalVendido:   0,
         totalDescontos: 0,
         totalTaxas:     0,
-        metodos:        {},
+        metodos:        {
+            'DINHEIRO': 0,
+            'PIX': 0,
+            'CRÉDITO': 0,
+            'DÉBITO': 0,
+            'OUTROS': 0
+        },
         suprimentos:    0,
         sangrias:       0,
         dinheiroEmVendas: 0,
@@ -22,18 +28,41 @@ window._construirResumo = function(nomeLoja, vendas, movs, valorInicial = 0) {
         movsRaw:        movs,
         itensVendidos:  {},
         vendasPorVendedor: {},
-        valorInicial: valorInicial
+        valorInicial: parseFloat(valorInicial) || 0
     };
 
     vendas.forEach(v => {
+        // Ignora vendas canceladas para não inflar o faturamento!
+        if (v.status === 'cancelada' || v.status === 'cancelado') return;
+
         const totalVenda = parseFloat(v.total) || 0;
         resumo.totalVendido   += totalVenda;
         resumo.totalDescontos += parseFloat(v.desconto || 0);
         resumo.totalTaxas     += parseFloat(v.taxa_servico || 0);
 
-        const m = typeof padronizarPagamento === 'function' ? padronizarPagamento(v.forma_pagamento) : (v.forma_pagamento || 'DINHEIRO');
-        resumo.metodos[m] = (resumo.metodos[m] || 0) + totalVenda;
-        if (m === 'DINHEIRO') resumo.dinheiroEmVendas += totalVenda;
+        // ========================================================
+        // A MÁGICA AQUI: Separação rigorosa de Crédito e Débito
+        // ========================================================
+        let m = (v.forma_pagamento || 'DINHEIRO').toUpperCase();
+        
+        if (m.includes('CRÉDITO') || m.includes('CREDITO')) {
+            m = 'CRÉDITO';
+        } else if (m.includes('DÉBITO') || m.includes('DEBITO')) {
+            m = 'DÉBITO';
+        } else if (m.includes('PIX')) {
+            m = 'PIX';
+        } else if (m.includes('DINHEIRO')) {
+            m = 'DINHEIRO';
+        } else {
+            m = 'OUTROS';
+        }
+
+        // Soma no bucket correto
+        resumo.metodos[m] += totalVenda;
+        
+        if (m === 'DINHEIRO') {
+            resumo.dinheiroEmVendas += totalVenda;
+        }
 
         const vendedor = v.atendente || v.usuario || v.vendedor || 'SISTEMA';
         resumo.vendasPorVendedor[vendedor] = (resumo.vendasPorVendedor[vendedor] || 0) + totalVenda;
@@ -65,7 +94,7 @@ window._construirResumo = function(nomeLoja, vendas, movs, valorInicial = 0) {
         if (m.tipo === 'SANGRIA')    resumo.sangrias    += val;
     });
 
-    resumo.saldoGaveta = (resumo.dinheiroEmVendas + valorInicial + resumo.suprimentos) - resumo.sangrias;
+    resumo.saldoGaveta = (resumo.dinheiroEmVendas + resumo.valorInicial + resumo.suprimentos) - resumo.sangrias;
     return resumo;
 };
 
@@ -485,12 +514,16 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
         let query = _supabase
             .from('caixa')
             .select('*')
-            .order('aberto_em', { ascending: false }); 
+            .order('aberto_em', { ascending: false })
+            .limit(30); // Limita aos últimos 30 caixas para não travar o celular
 
         if (dataInicio && dataFim) {
-            query = query
+            query = _supabase
+                .from('caixa')
+                .select('*')
                 .gte('aberto_em', `${dataInicio}T00:00:00`)
-                .lte('aberto_em', `${dataFim}T23:59:59`);
+                .lte('aberto_em', `${dataFim}T23:59:59`)
+                .order('aberto_em', { ascending: false });
         }
 
         const { data: caixas, error } = await query;
@@ -505,48 +538,55 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
             return;
         }
 
-        const idsCaixas = caixas.map(c => c.id);
-
-        const [ { data: todasMovs }, { data: todasVendas } ] = await Promise.all([
-            _supabase.from('movimentacoes_caixa').select('*').in('id_caixa', idsCaixas),
-            _supabase.from('historico_vendas').select('*').in('id_caixa', idsCaixas).neq('status', 'estornada')
-        ]);
-
-        // Função mágica para formatar moeda com separador de milhar (Ex: 10.594,00)
         const formatarBRL = (valor) => parseFloat(valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        container.innerHTML = caixas.map(cx => {
+        // A MÁGICA PARA BATER 100% COM O PDF:
+        // Busca as vendas individualmente por caixa para driblar o limite de 1000 linhas do Supabase
+        const caixasProcessados = await Promise.all(caixas.map(async (cx) => {
+            
+            const [ { data: vendasCaixa }, { data: movsCaixa } ] = await Promise.all([
+                _supabase.from('historico_vendas').select('total, forma_pagamento, status').eq('id_caixa', cx.id),
+                _supabase.from('movimentacoes_caixa').select('valor, tipo, motivo').eq('id_caixa', cx.id)
+            ]);
+
             const isOpen = cx.status !== 'fechado';
             const abertura = new Date(cx.aberto_em);
             const fechamento = cx.fechado_em ? new Date(cx.fechado_em) : null;
             
-            const movsCaixa = (todasMovs || []).filter(m => m.id_caixa === cx.id);
-            const vendasCaixa = (todasVendas || []).filter(v => v.id_caixa === cx.id);
+            let totDinheiro = 0, totPix = 0, totCredito = 0, totDebito = 0;
             
-            let totDinheiro = 0, totPix = 0, totCartao = 0;
-            vendasCaixa.forEach(v => {
+            (vendasCaixa || []).forEach(v => {
+                // Inteligência idêntica a do PDF para ignorar cancelados
+                if (v.status === 'cancelada' || v.status === 'cancelado' || v.status === 'estornada') return;
+
                 const val = parseFloat(v.total || 0);
                 const pg = (v.forma_pagamento || 'DINHEIRO').toUpperCase();
-                if (pg === 'DINHEIRO') totDinheiro += val;
-                else if (pg === 'PIX') totPix += val;
-                else totCartao += val; 
+                
+                if (pg.includes('CRÉDITO') || pg.includes('CREDITO')) {
+                    totCredito += val;
+                } else if (pg.includes('DÉBITO') || pg.includes('DEBITO')) {
+                    totDebito += val;
+                } else if (pg.includes('PIX')) {
+                    totPix += val;
+                } else {
+                    totDinheiro += val;
+                }
             });
 
             let sangrias = 0, suprimentos = 0;
-            movsCaixa.forEach(m => {
+            (movsCaixa || []).forEach(m => {
                 const val = parseFloat(m.valor || 0);
                 if (m.tipo === 'SANGRIA') sangrias += val; 
                 else if (m.tipo === 'SUPRIMENTO') suprimentos += val;
             });
 
             const inicial = parseFloat(cx.valor_inicial || 0);
-            
             const saldoRealGaveta = (inicial + totDinheiro + suprimentos) - sangrias;
-            const totalFaturamento = totDinheiro + totPix + totCartao;
+            const totalFaturamento = totDinheiro + totPix + totCredito + totDebito;
 
-            let htmlMovs = movsCaixa.length === 0 
+            let htmlMovs = (movsCaixa || []).length === 0 
                 ? `<p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase italic py-2 text-center">Nenhum suprimento ou sangria lançado.</p>`
-                : movsCaixa.map(m => `
+                : (movsCaixa || []).map(m => `
                     <div class="flex justify-between items-center py-1.5 border-b border-slate-100 dark:border-slate-800/40 last:border-0">
                         <span class="text-[9px] font-black uppercase ${m.tipo === 'SANGRIA' ? 'text-red-500' : 'text-emerald-500'}">
                             ${m.tipo === 'SANGRIA' ? '🔴 Sangria' : '🟢 Suprimento'} - ${m.motivo}
@@ -600,13 +640,14 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
                     </div>
                 </div>
 
-<button onclick="window.toggleMovimentosCard('${cx.id}')" class="w-full flex justify-between items-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic py-4 px-2 border-t border-slate-100 dark:border-slate-800 mt-2 hover:text-slate-700 dark:hover:text-slate-300 transition-all active:scale-[0.99] bg-slate-50/50 dark:bg-slate-800/30 rounded-xl">
+                <button onclick="window.toggleMovimentosCard('${cx.id}')" class="w-full flex justify-between items-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase italic py-4 px-2 border-t border-slate-100 dark:border-slate-800 mt-2 hover:text-slate-700 dark:hover:text-slate-300 transition-all active:scale-[0.99] bg-slate-50/50 dark:bg-slate-800/30 rounded-xl">
                     <span class="pointer-events-none">📊 Ver Resumo Completo do Turno</span>
                     <span id="icone-mov-${cx.id}" class="text-[10px] pointer-events-none transition-transform">▼</span>
                 </button>
                 
                 <div id="movimentos-card-${cx.id}" class="hidden space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800/40 mt-1">
-                    <div class="grid grid-cols-3 gap-2">
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 p-2 rounded-xl text-center shadow-inner">
                             <p class="text-[7px] font-black text-slate-400 uppercase">Dinheiro</p>
                             <p class="text-[10px] font-black text-slate-700 dark:text-slate-200">R$ ${formatarBRL(totDinheiro)}</p>
@@ -616,8 +657,12 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
                             <p class="text-[10px] font-black text-slate-700 dark:text-slate-200">R$ ${formatarBRL(totPix)}</p>
                         </div>
                         <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 p-2 rounded-xl text-center shadow-inner">
-                            <p class="text-[7px] font-black text-slate-400 uppercase">Cartões</p>
-                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200">R$ ${formatarBRL(totCartao)}</p>
+                            <p class="text-[7px] font-black text-slate-400 uppercase">Crédito</p>
+                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200">R$ ${formatarBRL(totCredito)}</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 p-2 rounded-xl text-center shadow-inner">
+                            <p class="text-[7px] font-black text-slate-400 uppercase">Débito</p>
+                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200">R$ ${formatarBRL(totDebito)}</p>
                         </div>
                     </div>
 
@@ -638,7 +683,10 @@ window.carregarHistoricoCaixas = async function(dataInicio, dataFim) {
                     </div>
                 </div>
             </div>`;
-        }).join('');
+        }));
+
+        // Junta tudo e joga na tela!
+        container.innerHTML = caixasProcessados.join('');
 
     } catch (e) {
         console.error('[CAIXA-REPORTS] Erro ao carregar histórico:', e);
