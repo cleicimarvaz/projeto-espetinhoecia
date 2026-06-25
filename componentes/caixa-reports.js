@@ -416,7 +416,6 @@ window.imprimirFechamentoTermico = function(dados, isParcial = false) {
 
     const iframe = document.createElement('iframe');
     
-    // O SEGREDO ESTÁ AQUI: Dar dimensões reais ao Iframe e escondê-lo fora da tela!
     iframe.style.position = 'fixed';
     iframe.style.right = '-9999px';
     iframe.style.bottom = '-9999px';
@@ -431,35 +430,38 @@ window.imprimirFechamentoTermico = function(dados, isParcial = false) {
     doc.write(htmlPrint);
     doc.close();
 
+    // Cria uma função única para limpar a tela e evitar que rode duas vezes
+    let limpezaExecutada = false;
+    const finalizarEAtualizar = () => {
+        if (limpezaExecutada) return;
+        limpezaExecutada = true;
+        
+        if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+        }
+        if (!isParcial) {
+            window.location.reload();
+        }
+    };
+
     // Aguarda o HTML terminar de desenhar 100% dentro do iframe antes de chamar a impressora
     iframe.onload = function() {
         setTimeout(() => {
             iframe.contentWindow.focus();
+            
+            // 1. O SEGREDO: Escuta quando o diálogo de impressão fecha nativamente!
+            iframe.contentWindow.onafterprint = finalizarEAtualizar;
+            
+            // Chama a impressão
             iframe.contentWindow.print(); 
 
-            // Limpa o Iframe e Recarrega a tela de fundo (após 1 segundo)
-            setTimeout(() => {
-                if (document.body.contains(iframe)) {
-                    document.body.removeChild(iframe);
-                }
-                if (!isParcial) {
-                    window.location.reload();
-                }
-            }, 1000); 
-        }, 300); 
-    };
+            // 2. FALLBACK DE SEGURANÇA: Alguns celulares travam o onafterprint. 
+            // Damos 10 SEGUNDOS (10000ms) de respiro em vez de 1 segundo (1000ms)
+            // para garantir que o spooler de impressão terminou de puxar o HTML.
+            setTimeout(finalizarEAtualizar, 10000); 
 
-    // Plano B: Se o 'onload' falhar em algum navegador mais antigo, força a impressão
-    setTimeout(() => {
-        if (document.body.contains(iframe)) {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-            setTimeout(() => {
-                if (document.body.contains(iframe)) document.body.removeChild(iframe);
-                if (!isParcial) window.location.reload();
-            }, 1000);
-        }
-    }, 1500);
+        }, 500); 
+    };
 };
 
 /* =================================================================================

@@ -165,7 +165,7 @@ window.renderizarVenda = function() {
 
 /* --- 2. CARRINHO --- */
 window.adicionarAoCarrinho = function(id) {
-    const p = window.produtosCache.find(prod => prod.id === id);
+    const p = window.produtosCache.find(prod => prod.id == id);
     if (!p) return;
     
     if (p.categoria === 'refeicao' && p.pedir_complementos !== false) {
@@ -178,8 +178,10 @@ window.adicionarAoCarrinho = function(id) {
         return;
     }
 
-    // CORREÇÃO: Procura por itens idênticos sem observação para agrupar
-    const index = window.carrinho.findIndex(i => i.id === id && !i.observacao);
+    // 🔥 A MÁGICA DA CORREÇÃO AQUI:
+    // Compara se a observação no carrinho é IDÊNTICA à do banco de dados (mesmo que seja nula).
+    // Isso garante que bebidas e itens normais sempre se agrupe!
+    const index = window.carrinho.findIndex(i => i.id == id && i.observacao === p.observacao);
     
     if (index > -1) {
         window.carrinho[index].qtd++;
@@ -193,11 +195,14 @@ window.adicionarAoCarrinho = function(id) {
 }
 
 window.removerDoCarrinho = function(id) {
-    // CORREÇÃO: Tenta remover o item padrão primeiro. Se não achar, remove o último personalizado adicionado.
-    let index = window.carrinho.findIndex(i => i.id === id && !i.observacao);
+    const pOriginal = window.produtosCache.find(prod => prod.id == id);
+    
+    // Tenta achar o item padrão primeiro
+    let index = window.carrinho.findIndex(i => i.id == id && i.observacao === pOriginal?.observacao);
     
     if (index === -1) {
-        index = window.carrinho.findLastIndex(i => i.id === id);
+        // Se não achar o padrão, pega o último personalizado que o cliente adicionou
+        index = window.carrinho.findLastIndex(i => i.id == id);
     }
 
     if (index > -1) {
@@ -817,12 +822,19 @@ window.confirmarEspetoPersonalizado = function() {
 
     const obs = `[MOLHO] ${molhos.length > 0 ? molhos.join(', ') : 'Nenhum'}<br>↳ [FARINHA] ${farinha}`;
 
-    window.carrinho.push({
-        ...window.espetoAtual,
-        observacao: obs,
-        qtd: 1,
-        cozinha_status: 'novo'
-    });
+    // 🔥 BÔNUS: Agora se pedir dois espetos IDÊNTICOS, ele agrupa para a cozinha!
+    const itemExistente = window.carrinho.find(i => i.id === window.espetoAtual.id && i.observacao === obs);
+
+    if (itemExistente) {
+        itemExistente.qtd++;
+    } else {
+        window.carrinho.push({
+            ...window.espetoAtual,
+            observacao: obs,
+            qtd: 1,
+            cozinha_status: 'novo'
+        });
+    }
 
     if (typeof renderizarVenda === 'function') renderizarVenda();
     
