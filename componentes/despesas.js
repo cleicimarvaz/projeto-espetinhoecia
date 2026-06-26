@@ -436,44 +436,63 @@ window.verificarVencimentos = async function() {
    ================================================================================= */
 
 window.imprimirComprovanteDespesa = function(id) {
+    const cfg = obterConfiguracoesImpressora();
     _supabase.from('despesas').select('*').eq('id', id).single().then(({ data: d }) => {
         if (!d) return;
         const fm = typeof window.formatarMoeda === 'function' ? window.formatarMoeda : v => parseFloat(v).toFixed(2);
-        const win = window.open('', '', 'width=300,height=600');
         const dVen = d.vencimento.split('-').reverse().join('/');
         const dPag = d.data_pagamento ? d.data_pagamento.split('-').reverse().join('/') : '---';
         
         const html = `
-            <style>body{font-family:monospace; font-size:11px; padding:10px; line-height:1.4} .c{text-align:center;} .b{font-weight:bold;}</style>
-            <div class="c b">${localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA'}</div>
-            <div class="c">RECIBO DE DESPESA</div><hr style="border:0.5px dashed #000">
-            <div><span class="b">DESCRIÇÃO:</span> ${d.descricao}</div>
-            <div><span class="b">CATEGORIA:</span> ${d.categoria}</div>
-            <div><span class="b">VALOR:</span> R$ ${fm(d.valor)}</div>
-            <div><span class="b">VENCIMENTO:</span> ${dVen}</div>
-            <div><span class="b">PAGO EM:</span> ${dPag}</div>
-            <div style="margin-top:10px" class="c b">TOTAL: R$ ${fm(d.valor)}</div><hr style="border:0.5px dashed #000">
-            <div class="c" style="font-size:8px">Emitido por WebComanda v3.0</div>
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    @page { margin: 0; size: ${cfg.pageWidth} auto; }
+                    body { 
+                        font-family: 'Courier New', monospace; 
+                        width: ${cfg.bodyWidth}; 
+                        margin: 0 auto; 
+                        padding: 2mm 0; 
+                        font-size: ${cfg.fontSizeBase}; 
+                        line-height: 1.4; 
+                        color: #000;
+                    }
+                    .c { text-align: center; } 
+                    .b { font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="c b">${localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA'}</div>
+                <div class="c">RECIBO DE DESPESA</div>
+                <hr style="border:0.5px dashed #000">
+                <div><span class="b">DESCRIÇÃO:</span> ${d.descricao}</div>
+                <div><span class="b">CATEGORIA:</span> ${d.categoria}</div>
+                <div><span class="b">VALOR:</span> R$ ${fm(d.valor)}</div>
+                <div><span class="b">VENCIMENTO:</span> ${dVen}</div>
+                <div><span class="b">PAGO EM:</span> ${dPag}</div>
+                <div style="margin-top:10px" class="c b">TOTAL: R$ ${fm(d.valor)}</div>
+                <hr style="border:0.5px dashed #000">
+                <div class="c" style="font-size:8px">WebComanda v3.0</div>
+                <div style="height: ${cfg.espacoGuilhotina};">.</div>
+            </body>
+            </html>
         `;
-        win.document.write(`<html><head><title>Recibo</title></head><body>${html}</body></html>`);
-        win.document.close();
-        setTimeout(() => { win.print(); win.close(); }, 300);
+        
+        // Chamada do nosso motor central blindado
+        window.imprimirConteudoIframe(html, `Recibo_Despesa_${id}`);
     });
 };
 
 /**
- * Gera o Relatório Geral em PDF com Nome de Arquivo DDMMYYYY
+ * Gera o Relatório Geral em PDF
  */
 window.imprimirPDFDespesas = async function() {
     let dIni = document.getElementById('data-inicio-despesas')?.value;
     let dFim = document.getElementById('data-fim-despesas')?.value;
     const agora = new Date();
-    
-    // NOME DO ARQUIVO: DDMMYYYY_Relatorio_Despesas
-    const d = String(agora.getDate()).padStart(2, '0');
-    const m = String(agora.getMonth() + 1).padStart(2, '0');
-    const a = agora.getFullYear();
-    const nomeArquivoPDF = `${d}${m}${a}_Relatorio_Despesas`;
+    const nomeArquivoPDF = `${String(agora.getDate()).padStart(2, '0')}${String(agora.getMonth() + 1).padStart(2, '0')}${agora.getFullYear()}_Relatorio_Despesas`;
 
     if(typeof showToast === 'function') showToast("Gerando PDF...", "aviso");
 
@@ -487,33 +506,33 @@ window.imprimirPDFDespesas = async function() {
             
         if (error) throw error;
 
-        const win = window.open('', '_blank');
         let tPago = 0, tAberto = 0;
-        
         const trs = (listaDesp || []).map(item => {
             const v = parseFloat(item.valor);
             if(item.paga) tPago += v; else tAberto += v;
             return `<tr>
-                <td>${item.vencimento.split('-').reverse().join('/')}</td>
-                <td>${item.descricao}</td>
-                <td style="color:${item.paga ? '#10b981' : '#ef4444'}">${item.paga ? 'PAGO' : 'PENDENTE'}</td>
-                <td style="text-align:right">R$ ${v.toFixed(2)}</td>
+                <td style="padding:10px; border:1px solid #eee;">${item.vencimento.split('-').reverse().join('/')}</td>
+                <td style="padding:10px; border:1px solid #eee;">${item.descricao}</td>
+                <td style="padding:10px; border:1px solid #eee; color:${item.paga ? '#10b981' : '#ef4444'}">${item.paga ? 'PAGO' : 'PENDENTE'}</td>
+                <td style="padding:10px; border:1px solid #eee; text-align:right">R$ ${v.toFixed(2)}</td>
             </tr>`;
         }).join('');
 
-        const est = `
-            <style>
-                body{font-family:sans-serif;padding:30px;color:#333;} 
-                table{width:100%;border-collapse:collapse;margin-top:20px;} 
-                th,td{border:1px solid #eee;padding:10px;text-align:left;font-size:11px;} 
-                th{background:#f9f9f9;text-transform:uppercase;color:#666;} 
-                h2{color:#e63946;margin-bottom:5px;}
-                .resumo{margin-top:30px;padding:15px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;}
-            </style>
-        `;
-
         const htmlFinal = `
-            <html><head><title>${nomeArquivoPDF}</title>${est}</head>
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>${nomeArquivoPDF}</title>
+                <style>
+                    body{font-family:sans-serif;padding:30px;color:#333;} 
+                    table{width:100%;border-collapse:collapse;margin-top:20px;} 
+                    th,td{border:1px solid #eee;padding:10px;text-align:left;font-size:11px;} 
+                    th{background:#f9f9f9;text-transform:uppercase;color:#666;} 
+                    h2{color:#e63946;margin-bottom:5px;}
+                    .resumo{margin-top:30px;padding:15px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;}
+                </style>
+            </head>
             <body>
                 <h2>${localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA'}</h2>
                 <p style="font-size:12px;color:#666">Relatório de Despesas (Período: ${dIni} a ${dFim})</p>
@@ -525,8 +544,9 @@ window.imprimirPDFDespesas = async function() {
                 </div>
             </body></html>
         `;
-        win.document.write(htmlFinal);
-        win.document.close();
-        setTimeout(() => { win.print(); }, 600);
-    } catch (e) { console.error("Erro PDF:", e); }
+
+        window.imprimirConteudoIframe(htmlFinal, nomeArquivoPDF);
+    } catch (e) { 
+        console.error("Erro PDF:", e); 
+    }
 };

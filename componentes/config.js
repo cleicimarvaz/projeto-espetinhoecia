@@ -270,8 +270,10 @@ window.adicionarComplemento = async function(e) {
     e.preventDefault();
     const nomeInput = document.getElementById('novo-comp-nome');
     const tipoInput = document.getElementById('novo-comp-tipo');
+    const btn = e.target.querySelector('button[type="submit"]'); // Assumindo que tem um botão submit
     
     if (!nomeInput.value) return;
+    if (btn) btn.disabled = true; // Trava o botão
 
     try {
         const { error } = await _supabase.from('complementos').insert([
@@ -283,8 +285,10 @@ window.adicionarComplemento = async function(e) {
         if(typeof showToast === 'function') showToast("Adicionado com sucesso!");
         carregarAdminComplementos(); 
     } catch (e) {
-        console.error("Erro ao adicionar complemento:", e);
+        console.error("Erro ao adicionar:", e);
         mostrarAlertaComplemento("Erro ao adicionar item. Verifique sua conexão.");
+    } finally {
+        if (btn) btn.disabled = false; // Libera o botão
     }
 };
 
@@ -337,8 +341,10 @@ window.abrirModalEditar = function(id, nomeAtual) {
 window.salvarEdicaoComplemento = async function() {
     const id = document.getElementById('edit-comp-id').value;
     const novoNome = document.getElementById('edit-comp-nome').value.trim();
+    const btn = document.getElementById('btn-salvar-edicao'); // Dê este ID ao seu botão de salvar no modal
     
     if (!novoNome) return;
+    if (btn) btn.disabled = true;
 
     try {
         const { error } = await _supabase.from('complementos').update({ nome: novoNome }).eq('id', id);
@@ -349,6 +355,8 @@ window.salvarEdicaoComplemento = async function() {
         carregarAdminComplementos(); 
     } catch (e) {
         console.error("Erro ao editar:", e);
-        mostrarAlertaComplemento("Não foi possível salvar o novo nome. Verifique sua conexão.");
+        mostrarAlertaComplemento("Erro ao salvar nome.");
+    } finally {
+        if (btn) btn.disabled = false;
     }
 };

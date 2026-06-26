@@ -802,41 +802,76 @@ window.registrarLog = async function(arg1, arg2, arg3) {
     }
 };
 
-window.salvarPreferenciaImpressao = async function(novoModo) {
-    try {
-        // 1. Salva no celular/PC atual em todas as chaves locais utilizadas pelo ecossistema do app
-        localStorage.setItem('modoImpressao', novoModo);       // Lido pelo print.js nativo
-        localStorage.setItem('formatoImpressao', novoModo);    // Lido pelo motor de vendas e botões de teste
-        localStorage.setItem('cfg-modo-impressao', novoModo);  // Backup de consistência pelo ID do elemento
+/* =================================================================================
+   CONFIGURAÇÕES DE HARDWARE (LOCAL) - TAMANHO DA BOBINA
+   ================================================================================= */
 
-        // 2. Tenta salvar no Supabase para "seguir" o usuário
-        const userId = localStorage.getItem('userId');
+// 1. Inicializa a tela com as configurações salvas
+window.carregarConfiguracoesImpressao = function() {
+    // Carrega o Select de Conexão (Modo)
+    const selectModo = document.getElementById('cfg-modo-impressao');
+    if (selectModo) {
+        selectModo.value = localStorage.getItem('modoImpressao') || 'direto'; 
+    }
+
+    // Carrega os botões de Tamanho (assume 80mm como padrão para desktops)
+    const tamanhoSalvo = localStorage.getItem('tamanhoImpressora') || '80';
+    window.atualizarBotoesImpressora(tamanhoSalvo);
+};
+
+// 2. Salva o tamanho do papel SOMENTE no aparelho físico atual
+window.salvarTamanhoImpressora = function(tamanho) {
+    try {
+        localStorage.setItem('tamanhoImpressora', tamanho);
         
-        if (userId && typeof _supabase !== 'undefined') {
-            const { error } = await _supabase
-                .from('usuarios')
-                .update({ modo_impressao: novoModo })
-                .eq('id', userId);
-                
-            if (error) throw error;
-            
-            if (typeof showToast === 'function') {
-                showToast("PREFERÊNCIA SALVA NA NUVEM!", "sucesso");
-            }
-        } else {
-            // Se não houver rede ou userId, avisa o sucesso local de qualquer forma para não confundir o operador
-            if (typeof showToast === 'function') {
-                showToast("PREFERÊNCIA SALVA NO APARELHO!", "sucesso");
-            }
+        // Atualiza a interface imediatamente
+        window.atualizarBotoesImpressora(tamanho);
+        
+        if(typeof showToast === 'function') {
+            showToast(`BOBINA DE ${tamanho}MM SALVA NESTE APARELHO!`, 'sucesso');
         }
     } catch (e) {
-        console.error("Erro crítico ao salvar preferência no banco:", e);
-        // Fallback de produção: Se a nuvem falhar por instabilidade de rede, avisa o operador que o local funcionou
-        if (typeof showToast === 'function') {
-            showToast("SALVO LOCALMENTE (FALHA NA NUVEM)", "aviso");
+        console.error("Erro crítico ao salvar tamanho da impressora no storage local:", e);
+        if(typeof showToast === 'function') {
+            showToast("ERRO AO SALVAR TAMANHO (MEMÓRIA CHEIA/BLOQUEADA)", "erro");
         }
     }
 };
+
+// 3. Gerencia o visual dos botões (Pinta o selecionado)
+window.atualizarBotoesImpressora = function(tamanhoSelecionado) {
+    const btn58 = document.getElementById('btn-imp-58');
+    const btn80 = document.getElementById('btn-imp-80');
+    
+    // Classes de Design (Ativo = Amarelo WebComanda | Inativo = Cinza)
+    const classesAtivas = ['border-yellow-400', 'bg-yellow-50', 'dark:bg-yellow-900/20', 'text-yellow-600', 'dark:text-yellow-500'];
+    const classesInativas = ['border-slate-200', 'dark:border-slate-700', 'bg-white', 'dark:bg-slate-800', 'text-slate-400', 'dark:text-slate-500'];
+
+    if (btn58 && btn80) {
+        // Remove os estados ativos de ambos
+        btn58.classList.remove(...classesAtivas); 
+        btn58.classList.add(...classesInativas);
+        btn80.classList.remove(...classesAtivas); 
+        btn80.classList.add(...classesInativas);
+        
+        // Aplica o estado ativo apenas no escolhido
+        if (tamanhoSelecionado === '58') {
+            btn58.classList.remove(...classesInativas);
+            btn58.classList.add(...classesAtivas);
+        } else {
+            btn80.classList.remove(...classesInativas);
+            btn80.classList.add(...classesAtivas);
+        }
+    }
+};
+
+// 4. Gatilho de inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    // Valida se estamos na página correta antes de disparar a função
+    if (window.location.pathname.includes('configuracoes.html') || window.location.pathname.includes('admin.html')) {
+        window.carregarConfiguracoesImpressao();
+    }
+});
 
 // Exemplo: Dentro da função que abre a tela de configurações
 const selectImpressao = document.getElementById('select-modo-impressao');

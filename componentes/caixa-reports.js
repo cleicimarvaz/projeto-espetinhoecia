@@ -168,14 +168,12 @@ window.executarConfirmacao = function() {
     ENCERRAMENTO DE CAIXA: TURNO (PARCIAL) E FINAL (COM SENHA)
    ============================================================= */
 
-// --- 1. TURNO PARCIAL (Apenas imprime, não fecha no banco) ---
 // --- 1. IMPRIMIR PARCIAL (LEITURA X) ---
-// Renomeado para não conflitar com o botão de encerrar turno do painel
 window.imprimirRelatorioParcialX = function() {
     window.abrirModalConfirmacao(
         "RESUMO PARCIAL",
         "Deseja imprimir o resumo parcial do turno atual? O caixa continuará aberto e pronto para novas vendas.",
-        () => window.executarEncerramentoParcial() // Esta função já faz a impressão e está ok no seu código
+        () => window.executarEncerramentoParcial() 
     );
 };
 
@@ -197,34 +195,58 @@ window.executarEncerramentoParcial = async function() {
             _supabase.from('movimentacoes_caixa').select('*').eq('id_caixa', idCx)
         ]);
 
-        let totD = 0, totC = 0, totP = 0, sang = 0, supr = 0;
+        let totDinheiro = 0, totPix = 0, totCredito = 0, totDebito = 0;
         
         (resV.data || []).forEach(v => {
+            // Ignora cancelamentos assim como no dashboard
+            if (v.status === 'cancelada' || v.status === 'cancelado') return;
+
             const val = parseFloat(v.total || 0);
             const pg = (v.forma_pagamento || 'DINHEIRO').toUpperCase();
-            if (pg === 'DINHEIRO') totD += val;
-            else if (pg === 'PIX') totP += val;
-            else totC += val;
+            
+            // Separação correta igual ao arquivo principal
+            if (pg.includes('CRÉDITO') || pg.includes('CREDITO')) {
+                totCredito += val;
+            } else if (pg.includes('DÉBITO') || pg.includes('DEBITO')) {
+                totDebito += val;
+            } else if (pg.includes('PIX')) {
+                totPix += val;
+            } else {
+                totDinheiro += val; 
+            }
         });
         
+        let sang = 0, supr = 0;
         (resM.data || []).forEach(m => {
             const val = parseFloat(m.valor || 0);
             if (m.tipo === 'SANGRIA') sang += val; else supr += val;
         });
 
         const inicial = parseFloat(cx.valor_inicial || 0);
-        const saldoGaveta = (inicial + totD + supr) - sang;
+        const saldoGaveta = (inicial + totDinheiro + supr) - sang;
 
-        // Imprime passando flag 'true' para NÃO recarregar a página
-        window.imprimirFechamentoTermico({
-            id: idCx, 
-            tipo: "RESUMO PARCIAL (X)",
-            operador: cx.criado_por || 'Admin',
-            abertura: cx.aberto_em,
-            fechamento: new Date().toISOString(),
-            inicial: inicial, dinheiro: totD, cartao: totC, pix: totP,
-            sangrias: sang, suprimentos: supr, saldoGaveta: saldoGaveta
-        }, true);
+        // Dispara a impressão para a função centralizada do print.js
+        if (typeof window.imprimirFechamentoTermico === 'function') {
+            window.imprimirFechamentoTermico({
+                id: idCx, 
+                tipo: "RESUMO PARCIAL (X)",
+                operador: cx.criado_por || 'Admin',
+                abertura: cx.aberto_em,
+                fechamento: new Date().toISOString(),
+                inicial: inicial, 
+                dinheiro: totDinheiro, 
+                cartao: totCredito + totDebito, // Junta para exibição se o layout de tickets esperar 'cartao'
+                credito: totCredito, 
+                debito: totDebito,
+                pix: totPix,
+                sangrias: sang, 
+                suprimentos: supr, 
+                saldoGaveta: saldoGaveta
+            }, true);
+        } else {
+            console.error('Motor central de impressão não encontrado.');
+            if(typeof showToast === 'function') showToast("Falha na comunicação com a impressora.", "erro");
+        }
 
         if(typeof showToast === 'function') showToast("Resumo de turno enviado para impressora!", "sucesso");
 
@@ -265,7 +287,6 @@ window.validarFechamentoGeral = async function() {
     try {
         if(typeof showToast === 'function') showToast("Validando credenciais...", "info");
 
-        // Valida no Banco de Dados (Tabela 'usuarios', buscando pelo ID e role/nivel)
         const { data: admin, error } = await _supabase
             .from('usuarios') 
             .select('id, role, nivel')
@@ -283,7 +304,6 @@ window.validarFechamentoGeral = async function() {
             return;
         }
 
-        // Verifica se o usuário encontrado é administrador (checando 'role' ou 'nivel')
         const isAdm = (admin.role && admin.role.toUpperCase() === 'ADMIN') || 
                       (admin.nivel && admin.nivel.toUpperCase() === 'ADMIN');
 
@@ -292,7 +312,6 @@ window.validarFechamentoGeral = async function() {
             return;
         }
 
-        // Senha correta e é ADMIN: fecha o modal e executa o encerramento no banco
         window.fecharModalSenha();
         await window.executarFechamentoDefinitivoBanco();
 
@@ -320,14 +339,18 @@ window.executarFechamentoDefinitivoBanco = async function() {
             _supabase.from('movimentacoes_caixa').select('*').eq('id_caixa', idCx)
         ]);
 
-        let totD = 0, totC = 0, totP = 0, sang = 0, supr = 0;
+        let totD = 0, totPix = 0, totC = 0, totDeb = 0, sang = 0, supr = 0;
         
         (resV.data || []).forEach(v => {
+            if (v.status === 'cancelada' || v.status === 'cancelado') return;
+
             const vlr = parseFloat(v.total || 0);
             const pg = (v.forma_pagamento || '').toUpperCase();
-            if (pg === 'DINHEIRO') totD += vlr;
-            else if (pg === 'PIX') totP += vlr;
-            else totC += vlr;
+            
+            if (pg.includes('CRÉDITO') || pg.includes('CREDITO')) totC += vlr;
+            else if (pg.includes('DÉBITO') || pg.includes('DEBITO')) totDeb += vlr;
+            else if (pg.includes('PIX')) totPix += vlr;
+            else totD += vlr;
         });
         
         (resM.data || []).forEach(m => {
@@ -346,29 +369,40 @@ window.executarFechamentoDefinitivoBanco = async function() {
                 status: 'fechado',
                 fechado_em: dataFechamento,
                 valor_final_dinheiro: totD,
-                valor_final_cartao: totC,
-                valor_final_pix: totP
+                valor_final_cartao: totC + totDeb, // Salva consolidado para não quebrar tabelas antigas
+                valor_final_pix: totPix
             })
             .eq('id', idCx);
 
         if (errUpd) throw errUpd;
 
-        // --- 2. LIMPEZA TOTAL DA MEMÓRIA DO TURNO (O Pulo do Gato) ---
+        // --- 2. LIMPEZA TOTAL DA MEMÓRIA DO TURNO ---
         localStorage.removeItem('idCaixaAtual');
         localStorage.removeItem('dataAberturaCaixa');
-        localStorage.removeItem('horaAberturaCaixa'); // Para o relógio parar!
+        localStorage.removeItem('horaAberturaCaixa'); 
 
-        // 3. Imprime cupom definitivo e força o Reload
-        window.imprimirFechamentoTermico({
-            id: idCx,
-            tipo: "FECHAMENTO DEFINITIVO (Z)",
-            operador: cx.criado_por || 'Sistema',
-            abertura: cx.aberto_em,
-            fechamento: dataFechamento,
-            inicial: inicial,
-            dinheiro: totD, cartao: totC, pix: totP,
-            sangrias: sang, suprimentos: supr, saldoGaveta: saldoGaveta
-        }, false); 
+        // 3. Imprime cupom definitivo via motor central (print.js) e força Reload
+        if (typeof window.imprimirFechamentoTermico === 'function') {
+            window.imprimirFechamentoTermico({
+                id: idCx,
+                tipo: "FECHAMENTO DEFINITIVO (Z)",
+                operador: cx.criado_por || 'Sistema',
+                abertura: cx.aberto_em,
+                fechamento: dataFechamento,
+                inicial: inicial,
+                dinheiro: totD, 
+                cartao: totC + totDeb, 
+                credito: totC,
+                debito: totDeb,
+                pix: totPix,
+                sangrias: sang, 
+                suprimentos: supr, 
+                saldoGaveta: saldoGaveta
+            }, false); 
+        } else {
+            console.warn("A função central imprimirFechamentoTermico não foi encontrada. Recarregando...");
+            window.location.reload();
+        }
 
     } catch (e) {
         console.error(e);
@@ -376,122 +410,9 @@ window.executarFechamentoDefinitivoBanco = async function() {
     }
 };
 
-// 3. Função de Impressão via Iframe (Ninja Mode - Burlar bloqueador)
-window.imprimirFechamentoTermico = function(dados, isParcial = false) {
-    const formatarData = (iso) => new Date(iso).toLocaleString('pt-BR');
-    
-    // Função para manter o comprovante impresso com pontos nos milhares e vírgula nos centavos
-    const fm = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    
-    const totalVendas = (dados.dinheiro || 0) + (dados.cartao || 0) + (dados.pix || 0);
-
-    const htmlPrint = `
-        <!DOCTYPE html>
-        <html lang="pt-br">
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                @page { margin: 0; size: 80mm auto; }
-                body { 
-                    font-family: 'Courier New', Courier, monospace; 
-                    width: 75mm; /* Leve recuo para evitar corte na margem da bobina */
-                    margin: 0 auto; 
-                    padding: 5mm; 
-                    font-size: 12px; 
-                    color: black; 
-                    background: white;
-                }
-                .text-center { text-align: center; }
-                .font-bold { font-weight: bold; }
-                .border-b { border-bottom: 1px dashed black; margin-bottom: 5px; padding-bottom: 5px; }
-                .border-t { border-top: 1px dashed black; margin-top: 5px; padding-top: 5px; }
-                .flex { display: flex; justify-content: space-between; }
-                .mt-2 { margin-top: 10px; }
-                .title { font-size: 14px; font-weight: bold; margin: 0; }
-            </style>
-        </head>
-        <body>
-            <div class="text-center border-b">
-                <p class="title">ESPETINHO & CIA</p>
-                <p>${dados.tipo || 'FECHAMENTO DE TURNO'}</p>
-            </div>
-            <div class="border-b">
-                <p><strong>CAIXA Nº:</strong> ${dados.id}</p>
-                <p><strong>OPERADOR:</strong> ${dados.operador.toUpperCase()}</p>
-                <p><strong>ABERTURA:</strong> <br>${formatarData(dados.abertura)}</p>
-                <p><strong>FECHAMENTO:</strong> <br>${formatarData(dados.fechamento)}</p>
-            </div>
-            <div class="text-center font-bold mt-2 border-b"><p>RESUMO DE VENDAS</p></div>
-            <div class="flex"><span>DINHEIRO</span> <span>R$ ${fm(dados.dinheiro)}</span></div>
-            <div class="flex"><span>CARTÃO</span> <span>R$ ${fm(dados.cartao)}</span></div>
-            <div class="flex border-b"><span>PIX</span> <span>R$ ${fm(dados.pix)}</span></div>
-            <div class="flex font-bold"><span>TOTAL VENDAS</span> <span>R$ ${fm(totalVendas)}</span></div>
-            
-            <div class="text-center font-bold mt-2 border-b border-t"><p>GAVETA FÍSICA</p></div>
-            <div class="flex"><span>FUNDO INICIAL</span> <span>R$ ${fm(dados.inicial)}</span></div>
-            <div class="flex"><span>(+) SUPRIMENTOS</span> <span>R$ ${fm(dados.suprimentos)}</span></div>
-            <div class="flex"><span>(-) SANGRIAS</span> <span>R$ ${fm(dados.sangrias)}</span></div>
-            <div class="flex"><span>(+) DINHEIRO</span> <span>R$ ${fm(dados.dinheiro)}</span></div>
-            
-            <div class="flex font-bold border-t border-b mt-2">
-                <span>SALDO ESPERADO</span> <span>R$ ${fm(dados.saldoGaveta)}</span>
-            </div>
-
-            <div class="mt-2 text-center" style="margin-top: 40px;"><p>_________________________________</p><p>Assinatura Operador</p></div>
-            <div class="mt-2 text-center" style="margin-top: 30px; margin-bottom: 20px;"><p>_________________________________</p><p>Assinatura Gerência</p></div>
-        </body>
-        </html>
-    `;
-
-    const iframe = document.createElement('iframe');
-    
-    iframe.style.position = 'fixed';
-    iframe.style.right = '-9999px';
-    iframe.style.bottom = '-9999px';
-    iframe.style.width = '300px'; 
-    iframe.style.height = '600px';
-    iframe.style.border = 'none';
-    
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(htmlPrint);
-    doc.close();
-
-    // Cria uma função única para limpar a tela e evitar que rode duas vezes
-    let limpezaExecutada = false;
-    const finalizarEAtualizar = () => {
-        if (limpezaExecutada) return;
-        limpezaExecutada = true;
-        
-        if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-        }
-        if (!isParcial) {
-            window.location.reload();
-        }
-    };
-
-    // Aguarda o HTML terminar de desenhar 100% dentro do iframe antes de chamar a impressora
-    iframe.onload = function() {
-        setTimeout(() => {
-            iframe.contentWindow.focus();
-            
-            // 1. O SEGREDO: Escuta quando o diálogo de impressão fecha nativamente!
-            iframe.contentWindow.onafterprint = finalizarEAtualizar;
-            
-            // Chama a impressão
-            iframe.contentWindow.print(); 
-
-            // 2. FALLBACK DE SEGURANÇA: Alguns celulares travam o onafterprint. 
-            // Damos 10 SEGUNDOS (10000ms) de respiro em vez de 1 segundo (1000ms)
-            // para garantir que o spooler de impressão terminou de puxar o HTML.
-            setTimeout(finalizarEAtualizar, 10000); 
-
-        }, 500); 
-    };
-};
+/* --- A FUNÇÃO DE IMPRESSÃO VIA IFRAME FOI DELETADA DAQUI --- */
+/* O sistema passa a utilizar automaticamente a 'window.imprimirFechamentoTermico'
+   que construímos no arquivo print.js, e que lê a variável 'cfg' do hardware. */
 
 /* =================================================================================
    FUNÇÕES DE HISTÓRICO DE CAIXAS FECHADOS

@@ -1,96 +1,152 @@
 /* =================================================================================
-   MÓDULO: MOTOR DE IMPRESSÃO UNIVERSAL (Com Iframe Anti-Bloqueio)
+   MÓDULO: MOTOR DE IMPRESSÃO UNIVERSAL ADAPTÁVEL (58MM / 80MM)
    ================================================================================= */
 
 /* ---------------------------------------------------------------------------------
-   0. MOTOR CENTRAL DE RENDERIZAÇÃO (IFRAME OCULTO)
+   0. CONFIGURAÇÃO E CONFIGURADOR CENTRAL DE HARDWARE LOCAL
    --------------------------------------------------------------------------------- */
-window.imprimirConteudoIframe = function(htmlContent, tituloPDF = null) {
-    let tituloOriginal = document.title;
-    
-    // Altera o título para o PDF herdar o nome correto ao salvar
-    if (tituloPDF) document.title = tituloPDF;
+function obterConfiguracoesImpressora() {
+  const tamanho = localStorage.getItem("tamanhoImpressora") || "80";
 
-    let iframeAntigo = document.getElementById('iframe-impressao-universal');
-    if (iframeAntigo) iframeAntigo.remove();
-
-    let iframe = document.createElement('iframe');
-    iframe.id = 'iframe-impressao-universal';
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    // Remove tags script contendo window.print() para evitar duplicação
-    const htmlLimpo = htmlContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(htmlLimpo);
-    doc.close();
-
-    // Aguarda carregar fontes/imagens e dispara a janela do sistema
-    setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        
-        if (tituloPDF) {
-            setTimeout(() => { document.title = tituloOriginal; }, 1000);
-        }
-    }, 1200); 
-};
-
-
-/* ---------------------------------------------------------------------------------
-   1. AUXILIARES E FORMATADORES INTERNOS
-   --------------------------------------------------------------------------------- */
-
-window.fmSeguro = val => parseFloat(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-async function obterLogoBase64(url) {
-    try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-        });
-    } catch (e) {
-        console.warn("Logo não encontrada para o PDF:", url);
-        return null;
-    }
+  if (tamanho === "58") {
+    return {
+      tamanho: "58",
+      pageWidth: "58mm",
+      bodyWidth: "52mm", // Margem de respiro para não comer bordas
+      fontSizeBase: "11px",
+      fontSizeTitulo: "14px",
+      maxChars: 32, // Limite de colunas para modo Texto Puro (58mm)
+      espacoGuilhotina: "6mm", // Recuo leve para corte manual ou guilhotina curta
+    };
+  } else {
+    return {
+      tamanho: "80",
+      pageWidth: "80mm",
+      bodyWidth: "74mm", // Área útil ideal de impressão em bobinas de 80mm
+      fontSizeBase: "13px", // Fonte maior e mais legível
+      fontSizeTitulo: "17px",
+      maxChars: 48, // Limite expandido de colunas para modo Texto Puro (80mm)
+      espacoGuilhotina: "15mm", // Avanço ideal para a lâmina cortar no vazio
+    };
+  }
 }
 
-function getTicketCSS(layout) {
-    let css = `
-        @media print { @page { margin: 0; size: 58mm auto; } body { margin: 0; padding: 0; } }
-        html, body { width: 58mm; margin: 0; padding: 0; background-color: #fff; font-family: sans-serif; color: #000; }
+/* ---------------------------------------------------------------------------------
+   1. MOTOR CENTRAL DE RENDERIZAÇÃO (IFRAME OCULTO)
+   --------------------------------------------------------------------------------- */
+window.imprimirConteudoIframe = function (htmlContent, tituloPDF = null) {
+  let tituloOriginal = document.title;
+
+  if (tituloPDF) document.title = tituloPDF;
+
+  let iframeAntigo = document.getElementById("iframe-impressao-universal");
+  if (iframeAntigo) iframeAntigo.remove();
+
+  let iframe = document.createElement("iframe");
+  iframe.id = "iframe-impressao-universal";
+  iframe.style.position = "absolute";
+  iframe.style.width = "0px";
+  iframe.style.height = "0px";
+  iframe.style.border = "none";
+  document.body.appendChild(iframe);
+
+  const htmlLimpo = htmlContent.replace(
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    "",
+  );
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(htmlLimpo);
+  doc.close();
+
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+
+    if (tituloPDF) {
+      setTimeout(() => {
+        document.title = tituloOriginal;
+      }, 1000);
+    }
+  }, 1200);
+};
+
+/* ---------------------------------------------------------------------------------
+   2. AUXILIARES E FORMATADORES INTERNOS
+   --------------------------------------------------------------------------------- */
+window.fmSeguro = (val) =>
+  parseFloat(val || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+async function obterLogoBase64(url) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn("Logo não encontrada para o PDF:", url);
+    return null;
+  }
+}
+
+function getTicketCSS(layout, cfg) {
+  let css = `
+        @media print { 
+            @page { margin: 0; size: ${cfg.pageWidth} auto; } 
+            body { margin: 0; padding: 0; } 
+        }
+        html, body { 
+            width: ${cfg.pageWidth}; 
+            margin: 0 auto; 
+            padding: 0; 
+            background-color: #fff; 
+            font-family: sans-serif; 
+            color: #000 !important; 
+        }
         * { box-sizing: border-box; }
-        .ticket-wrapper { width: 100%; display: block; position: relative; padding-bottom: 5mm; margin-bottom: 5mm; border-bottom: 1px dashed #000; page-break-inside: avoid; }
-        .ticket-wrapper:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .text-center { text-align: center; } .bold { font-weight: 900; } .uppercase { text-transform: uppercase; }
-        .item-name { display: block; line-height: 1.1; margin-bottom: 4px; font-weight: 900; }
-        .item-price { display: block; margin-bottom: 4px; }
-        .instruction-text { display: block; font-weight: 900; margin-top: 5px; } 
-        .footer { font-size: 10px; margin-top: 5px; opacity: 0.8; line-height: 1.2; }
+        
+        .ticket-wrapper { 
+            width: ${cfg.bodyWidth}; 
+            margin: 0 auto; 
+            position: relative; 
+            padding-bottom: ${cfg.espacoGuilhotina}; 
+            border-bottom: 2px dashed #000; 
+            page-break-after: always; /* Mantém o corte por ticket */
+            break-after: page;
+            text-align: center;
+        }
+        .ticket-wrapper:last-child { border-bottom: none; page-break-after: avoid; }
+        
+        .text-center { text-align: center; } 
+        .bold { font-weight: 900; } 
+        .uppercase { text-transform: uppercase; }
+        .item-name { display: block; line-height: 1.1; margin-bottom: 4px; font-weight: 900; color: #000 !important; }
+        .item-price { display: block; margin-bottom: 4px; color: #000 !important; }
+        .instruction-text { display: block; font-weight: 900; margin-top: 5px; color: #000 !important; } 
+        .footer { font-size: 10px; margin-top: 5px; color: #000 !important; line-height: 1.2; }
     `;
-    
-    if (layout === 'padrao') {
-        css += `
+
+  if (layout === "padrao") {
+    css += `
             .ticket-wrapper { padding: 10px 0; text-align: center; } 
             .header { margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 5px; } 
-            .store-name { font-size: 13px; font-weight: 900; text-transform: uppercase; } 
+            .store-name { font-size: ${cfg.tamanho === "58" ? "13px" : "16px"}; font-weight: 900; text-transform: uppercase; } 
             .meta { font-size: 9px; margin-top: 2px; } 
             .box-padrao { border: 3px solid #000; border-radius: 10px; padding: 10px 2px; margin: 5px 0; width: 100%; display: block; } 
-            .item-name { font-size: 14px; font-weight: 900; text-transform: uppercase; } 
+            .item-name { font-size: ${cfg.tamanho === "58" ? "14px" : "18px"}; font-weight: 900; text-transform: uppercase; } 
             .item-price { font-size: 12px; } 
             .instruction-text { font-size: 11px; margin-top: 8px; text-transform: uppercase; display: inline-block; border-bottom: 2px solid #000; }
         `;
-    } else if (layout === 'eco') {
-        css += `
-            body { font-size: 10px; font-family: Arial, sans-serif; } 
+  } else if (layout === "eco") {
+    css += `
+            body { font-size: ${cfg.fontSizeBase}; font-family: Arial, sans-serif; } 
             .ticket-wrapper { padding: 5px 0; margin-bottom: 5px; text-align: left; } 
             .header { border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; } 
             .store-name { font-size: 10px; font-weight: bold; } 
@@ -101,20 +157,53 @@ function getTicketCSS(layout) {
             .instruction-text { display: none; } 
             .footer { display: block; border-top: 1px dotted #ccc; padding-top: 2px; text-align: right; font-size: 8px;}
         `;
-    } else if (layout === 'gigante') {
-        css += `
-            .ticket-wrapper { padding: 5px 0; border-bottom: 5px solid #000; text-align: center; } 
-            .header { border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 5px; } 
-            .store-name { font-size: 10px; text-transform: uppercase; font-weight: bold; } 
-            .meta { font-size: 10px; display: block; font-weight: bold; margin-top: 2px; } 
-            .unified-box { border: 4px solid #000; padding: 5px; margin: 5px 0; } 
-            .item-name { font-size: 20px; font-weight: 900; line-height: 1; margin-bottom: 5px; word-break: break-word; text-transform: uppercase; } 
-            .item-price { font-size: 16px; font-weight: bold; display: block; margin-bottom: 5px; } 
-            .instruction-text { font-size: 12px; background: #000; color: #fff; display: inline-block; padding: 3px 8px; -webkit-print-color-adjust: exact; text-transform: uppercase; font-weight: 900; } 
-            .footer { display: block; font-weight: bold; font-size: 10px; margin-top: 5px; border-top: 1px solid #000; padding-top: 2px;}
+  } else if (layout === "gigante") {
+    css += `
+            /* Layout Gigante Corrigido */
+            .ticket-wrapper { 
+                padding: 5px 0; 
+                border-bottom: 2px dashed #000; /* Linha inferior tracejada */
+                text-align: center; 
+                width: ${cfg.bodyWidth}; 
+                margin: 0 auto !important; 
+            } 
+            .header { border-bottom: 3px solid #000; padding-bottom: 5px; margin-bottom: 5px; } 
+            .store-name { font-size: 10px; text-transform: uppercase; font-weight: 900; color: #000 !important; } 
+            .meta { font-size: 10px; display: block; font-weight: 900; margin-top: 2px; color: #000 !important; } 
+            .unified-box { border: 5px solid #000; padding: 5px; margin: 5px auto; width: 95%; } 
+            .item-name { 
+                font-size: ${cfg.tamanho === "58" ? "20px" : "28px"}; 
+                font-weight: 900; 
+                line-height: 1; 
+                margin-bottom: 5px; 
+                word-break: break-word; 
+                text-transform: uppercase; 
+                color: #000 !important; 
+            } 
+            .item-price { font-size: 18px; font-weight: 900; display: block; margin-bottom: 5px; color: #000 !important; } 
+            .instruction-text { 
+                font-size: 14px; 
+                background: #000 !important; 
+                color: #fff !important; 
+                display: inline-block; 
+                padding: 6px 12px; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+                text-transform: uppercase; 
+                font-weight: 900; 
+            } 
+            .footer { 
+                display: block; 
+                font-weight: 900; 
+                font-size: 12px; 
+                margin-top: 5px; 
+                border-top: 1px dashed #000; /* Linha superior do rodapé tracejada */
+                padding-top: 5px; 
+                color: #000 !important;
+            }
         `;
-    } else if (layout === 'escuro') {
-        css += `
+  } else if (layout === "escuro") {
+    css += `
             .ticket-wrapper { border: 4px solid #000; padding: 10px 2px; text-align: center; background: #fff; } 
             .header { background: #000; color: #fff; padding: 5px; margin-bottom: 10px; -webkit-print-color-adjust: exact; } 
             .store-name { font-size: 12px; font-weight: 900; } 
@@ -124,8 +213,42 @@ function getTicketCSS(layout) {
             .item-price { font-size: 13px; font-weight: bold; margin-top: 5px;} 
             .instruction-text { font-size: 11px; border-top: 2px solid #000; padding-top: 5px; margin-top: 10px; text-transform: uppercase; font-weight: 900;}
         `;
-    } else {
-        css += `
+  } else if (layout === "minimalista") {
+    css += `
+            /* Design Limpo e Editorial */
+            .ticket-wrapper { border-bottom: 1px solid #ccc; padding: 10px 0; text-align: left; } 
+            .header { border-bottom: none; margin-bottom: 8px; } 
+            .store-name { font-size: ${cfg.tamanho === "58" ? "12px" : "15px"}; font-weight: 900; letter-spacing: 1px; } 
+            .meta { font-size: 10px; color: #555; } 
+            .unified-box { border: none; padding: 4px 0; margin: 4px 0; border-bottom: 1px dotted #aaa; } 
+            .item-name { font-size: ${cfg.tamanho === "58" ? "14px" : "17px"}; font-weight: bold; letter-spacing: -0.5px; display: block; } 
+            .item-price { font-size: 11px; font-weight: normal; margin-top: 2px; } 
+            .instruction-text { border: 1px solid #000; border-radius: 4px; padding: 4px; font-size: 10px; text-align: center; margin-top: 8px; display: block; }
+        `;
+  } else if (layout === "producao") {
+    css += `
+            /* Alto Contraste para a Cozinha enxergar de longe */
+            .ticket-wrapper { padding: 5px 0; border-bottom: 3px dashed #000; text-align: center; } 
+            .header { margin-bottom: 5px; } 
+            .store-name { font-size: 11px; font-weight: bold; } 
+            .unified-box { border: 2px solid #000; padding: 0; margin: 8px 0; background: #fff; } 
+            .item-name { background: #000; color: #fff; padding: 6px 2px; font-size: ${cfg.tamanho === "58" ? "16px" : "20px"}; font-weight: 900; text-transform: uppercase; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+            .item-price { font-size: 12px; font-weight: bold; padding: 4px; } 
+            .instruction-text { font-size: 13px; font-weight: 900; text-transform: uppercase; margin-top: 5px; }
+        `;
+  } else if (layout === "fiscal") {
+    css += `
+            /* Estilo Clássico de Supermercado */
+            .ticket-wrapper { padding: 5px 0; border-bottom: 1px dotted #000; text-align: left; font-family: monospace; } 
+            .header { border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; text-align: center; } 
+            .store-name { font-size: ${cfg.tamanho === "58" ? "12px" : "14px"}; font-weight: normal; text-transform: uppercase; } 
+            .unified-box { border: none; padding: 2px 0; margin: 0; display: flex; flex-direction: column; } 
+            .item-name { font-size: ${cfg.tamanho === "58" ? "11px" : "13px"}; font-weight: bold; text-transform: uppercase; } 
+            .item-price { font-size: 11px; text-align: right; margin-bottom: 4px; } 
+            .instruction-text { font-size: 11px; border-top: 1px dashed #000; padding-top: 4px; text-align: center; margin-top: 4px; }
+        `;
+  } else {
+    css += `
             .ticket-wrapper { border-left: 5px solid #e63946; border-right: 5px solid #e63946; padding: 10px 2px; text-align: center; } 
             .header { margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px; } 
             .store-name { font-size: 11px; font-weight: 900; } 
@@ -136,44 +259,47 @@ function getTicketCSS(layout) {
             .instruction-text { font-size: 10px; text-decoration: none; text-transform: uppercase; } 
             .separator { border-bottom: 1px solid #ccc; margin: 5px 15px; }
         `;
-    }
-    return css;
+  }
+  return css;
 }
 
 /* ---------------------------------------------------------------------------------
-   2. RELATÓRIO DE FECHAMENTO (PDF DASHBOARD)
+   3. RELATÓRIO DE FECHAMENTO (A4 DASHBOARD PDF)
    --------------------------------------------------------------------------------- */
+window.gerarPDFConsolidado = async function (resumo) {
+  if (!resumo) return;
+  if (typeof showToast === "function") showToast("GERANDO PDF...", "aviso");
 
-window.gerarPDFConsolidado = async function(resumo) {
-    if (!resumo) return;
-    if (typeof showToast === 'function') showToast('GERANDO PDF...', 'aviso');
+  const dataHora = new Date().toLocaleString("pt-BR");
+  const logoBase64 = await obterLogoBase64("img/logo.jpg");
 
-    const dataHora = new Date().toLocaleString('pt-BR');
-    const logoBase64 = await obterLogoBase64('img/logo.jpg');
+  const hoje = new Date();
+  const dia = String(hoje.getDate()).padStart(2, "0");
+  const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+  const ano = hoje.getFullYear();
 
-    const hoje = new Date();
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const ano = hoje.getFullYear();
-    
-    const nomeArquivo = `${dia}${mes}${ano}_Fechamento_Turno`;
+  const nomeArquivo = `${dia}${mes}${ano}_Fechamento_Turno`;
+  const sangriasList = (resumo.movsRaw || []).filter(
+    (m) => m.tipo === "SANGRIA",
+  );
+  let htmlSaidas = "";
 
-    // Filtra as saídas/sangrias do array de movimentações brutas
-    const sangriasList = (resumo.movsRaw || []).filter(m => m.tipo === 'SANGRIA');
-    let htmlSaidas = '';
-    
-    if (sangriasList.length === 0) {
-        htmlSaidas = `<tr><td colspan="2" class="text-center" style="color: #94a3b8; font-style: italic;">Nenhuma saída ou sangria registrada neste turno.</td></tr>`;
-    } else {
-        htmlSaidas = sangriasList.map(m => `
+  if (sangriasList.length === 0) {
+    htmlSaidas = `<tr><td colspan="2" class="text-center" style="color: #94a3b8; font-style: italic;">Nenhuma saída ou sangria registrada neste turno.</td></tr>`;
+  } else {
+    htmlSaidas = sangriasList
+      .map(
+        (m) => `
             <tr>
-                <td>${(m.motivo || 'SANGRIA / RETIRADA').toUpperCase()}</td>
+                <td>${(m.motivo || "SANGRIA / RETIRADA").toUpperCase()}</td>
                 <td class="text-right" style="color:#ef4444;">- R$ ${window.fmSeguro(m.valor)}</td>
             </tr>
-        `).join('');
-    }
+        `,
+      )
+      .join("");
+  }
 
-    const estilos = `
+  const estilos = `
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: 'Helvetica', Arial, sans-serif; padding: 40px; color: #1e293b; background: #fff; line-height: 1.4; }
@@ -183,19 +309,15 @@ window.gerarPDFConsolidado = async function(resumo) {
             .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
             .header-logo { position: absolute; right: 0; top: 0; }
             .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-            
             .grid-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
             .grid-pgtos { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; margin-bottom: 30px; }
-            
             .card { background: #ffffff; border: 1px solid #e2e8f0; padding: 18px 12px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
             .card label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 900; display: block; margin-bottom: 6px; }
             .card b { font-size: 16px; color: #1e293b; font-weight: 900; }
-            
             .box-destaque { background: #f8fafc; border: 2px solid #f1f5f9; padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 30px; }
             .box-destaque label { font-size: 11px; color: #475569; text-transform: uppercase; font-weight: 900; display: block; margin-bottom: 5px; }
             .box-destaque span { font-size: 36px; font-weight: 900; color: #0f172a; display: block; margin-bottom: 5px; }
             .box-destaque small { font-size: 10px; color: #64748b; font-weight: bold; }
-            
             .secao-titulo { font-size: 14px; color: #e63946; font-weight: bold; text-transform: uppercase; border-left: 5px solid #e63946; padding-left: 10px; margin: 30px 0 15px 0; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }
             th { background: #f1f5f9; padding: 12px; text-align: left; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
@@ -206,7 +328,7 @@ window.gerarPDFConsolidado = async function(resumo) {
         </style>
     `;
 
-    const html = `
+  const html = `
         <html>
         <head>
             <title>${nomeArquivo}</title>
@@ -219,7 +341,7 @@ window.gerarPDFConsolidado = async function(resumo) {
                     <p>Relatório de Fechamento de Turno</p>
                     <small style="color: #94a3b8;">Emitido em: ${dataHora}</small>
                 </div>
-                <div class="header-logo"><img src="${logoBase64 || ''}" onerror="this.style.display='none'"></div>
+                <div class="header-logo"><img src="${logoBase64 || ""}" onerror="this.style.display='none'"></div>
             </div>
 
             <div class="grid-kpis">
@@ -237,9 +359,14 @@ window.gerarPDFConsolidado = async function(resumo) {
 
             <h3 class="secao-titulo">➔ Meios de Recebimento</h3>
             <div class="grid-pgtos">
-                ${Object.entries(resumo.metodos).sort((a,b)=>b[1]-a[1]).map(([m, t]) => `
+                ${Object.entries(resumo.metodos)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(
+                    ([m, t]) => `
                     <div class="card"><label>${m}</label><b style="color:#0284c7">R$ ${window.fmSeguro(t)}</b></div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
             </div>
 
             <h3 class="secao-titulo">➔ Saídas e Sangrias (Detalhamento)</h3>
@@ -257,11 +384,16 @@ window.gerarPDFConsolidado = async function(resumo) {
 
             <h3 class="secao-titulo">➔ Saída de Estoque (Produtos)</h3>
             <table>
-                <thead><tr><th>Item / Produto</th><th class="text-center">Quantidade</th></tr></thead>
+                <thead><tr><th>Item / Produto</th><th class="text-right">Quantidade</th></tr></thead>
                 <tbody>
-                    ${Object.entries(resumo.itensVendidos).sort((a,b)=>b[1]-a[1]).map(([n, q]) => `
+                    ${Object.entries(resumo.itensVendidos)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(
+                        ([n, q]) => `
                         <tr><td>${n}</td><td class="text-center" style="color:#e63946; font-size: 13px;">${q}x</td></tr>
-                    `).join('')}
+                    `,
+                      )
+                      .join("")}
                 </tbody>
             </table>
 
@@ -269,9 +401,14 @@ window.gerarPDFConsolidado = async function(resumo) {
             <table>
                 <thead><tr><th>Colaborador</th><th class="text-right">Total Produzido</th></tr></thead>
                 <tbody>
-                    ${Object.entries(resumo.vendasPorVendedor).sort((a,b)=>b[1]-a[1]).map(([v, t]) => `
+                    ${Object.entries(resumo.vendasPorVendedor)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(
+                        ([v, t]) => `
                         <tr><td>${v.toUpperCase()}</td><td class="text-right">R$ ${window.fmSeguro(t)}</td></tr>
-                    `).join('')}
+                    `,
+                      )
+                      .join("")}
                 </tbody>
             </table>
             
@@ -279,194 +416,201 @@ window.gerarPDFConsolidado = async function(resumo) {
         </body></html>
     `;
 
-    // Chamada do Motor Iframe
-    window.imprimirConteudoIframe(html, nomeArquivo);
+  window.imprimirConteudoIframe(html, nomeArquivo);
 };
 
-window.exportarFechamentoPDF = function(res) {
-    window.gerarPDFConsolidado(res);
-}
+window.exportarFechamentoPDF = function (res) {
+  window.gerarPDFConsolidado(res);
+};
 
 /* ---------------------------------------------------------------------------------
-   3. GERAÇÃO DE CARDÁPIO (CABEÇALHO PADRONIZADO)
+   4. GERAÇÃO DE CARDÁPIO (A4 PORTRAIT)
    --------------------------------------------------------------------------------- */
+window.gerarCardapioPDF = function () {
+  const modal = document.getElementById("modal-gerar-cardapio");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    document.getElementById("input-msg-cardapio")?.focus();
+  }
+};
 
-window.gerarCardapioPDF = function() {
-    const modal = document.getElementById('modal-gerar-cardapio');
-    if(modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); document.getElementById('input-msg-cardapio')?.focus(); }
-}
+window.fecharModalCardapio = function () {
+  const modal = document.getElementById("modal-gerar-cardapio");
+  if (modal) modal.classList.add("hidden");
+};
 
-window.fecharModalCardapio = function() { 
-    const modal = document.getElementById('modal-gerar-cardapio'); 
-    if(modal) modal.classList.add('hidden'); 
-}
+window.processarImpressaoCardapio = async function () {
+  const radio = document.querySelector('input[name="modelo-cardapio"]:checked');
+  const modelo = radio ? radio.value : "classico";
+  const mensagem =
+    document.getElementById("input-msg-cardapio")?.value.toUpperCase() ||
+    "AGRADECEMOS A PREFERÊNCIA!";
 
-window.processarImpressaoCardapio = async function() {
-    const radio = document.querySelector('input[name="modelo-cardapio"]:checked');
-    const modelo = radio ? radio.value : 'classico';
-    const mensagem = document.getElementById('input-msg-cardapio')?.value.toUpperCase() || "AGRADECEMOS A PREFERÊNCIA!";
-    
-    window.fecharModalCardapio();
-    
-    if (typeof isDatabaseReady === 'function' && !isDatabaseReady()) return;
-    if (typeof showToast === 'function') showToast("GERANDO CARDÁPIO...");
-    
-    const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
-    const logoBase64 = await obterLogoBase64('img/logo.jpg');
-    
-    try {
-        const { data: produtos } = await _supabase.from('produtos').select('*').eq('status', true).order('nome');
-        
-        if (!produtos || produtos.length === 0) {
-            if (typeof alertaSistema === 'function') {
-                alertaSistema("Não há produtos ativos para exibir no cardápio.", "Cardápio Vazio");
-            } else {
-                alert("Sem produtos ativos para o cardápio.");
-            }
-            return;
-        }
-        
-        if (modelo === 'classico') {
-            window.gerarTemplateClassico(produtos, loja, logoBase64, mensagem);
-        } else {
-            window.gerarTemplateModerno(produtos, loja, logoBase64, mensagem);
-        }
-    } catch(e) {
-        console.error("Erro ao gerar cardápio", e);
-        if (typeof showToast === 'function') {
-            showToast("ERRO AO GERAR CARDÁPIO", "erro");
-        } else if (typeof alertaSistema === 'function') {
-            alertaSistema("Ocorreu um erro ao tentar gerar o cardápio.", "Erro de Conexão");
-        }
+  window.fecharModalCardapio();
+
+  if (typeof isDatabaseReady === "function" && !isDatabaseReady()) return;
+  if (typeof showToast === "function") showToast("GERANDO CARDÁPIO...");
+
+  const loja = localStorage.getItem("nomeLoja") || "ESPETINHO & CIA";
+  const logoBase64 = await obterLogoBase64("img/logo.jpg");
+
+  try {
+    const { data: produtos } = await _supabase
+      .from("produtos")
+      .select("*")
+      .eq("status", true)
+      .order("nome");
+
+    if (!produtos || produtos.length === 0) {
+      if (typeof alertaSistema === "function")
+        alertaSistema("Não há produtos ativos.", "Cardápio Vazio");
+      return;
     }
-}
 
-window.gerarTemplateClassico = function(produtos, loja, logoBase64, mensagem) {
-    const icons = { 'espetos': '🍢', 'cervejas': '🍺', 'bebidas': '🥤', 'refeicao': '🍽️', 'acompanhamentos': '🍚', 'combos': '🍻' };
-    const categoriesObj = {};
-    
-    produtos.forEach(p => { 
-        const cat = (p.categoria || 'outros').toLowerCase(); 
-        if (!categoriesObj[cat]) categoriesObj[cat] = []; 
-        categoriesObj[cat].push(p); 
-    });
-    
-    const ordem = ['espetos', 'refeicao', 'acompanhamentos', 'bebidas'];
-    const chaves = [...ordem.filter(c => categoriesObj[c]), ...Object.keys(categoriesObj).filter(c => !ordem.includes(c))];
-    
-    let html = chaves.map(key => `
+    if (modelo === "classico") {
+      window.gerarTemplateClassico(produtos, loja, logoBase64, mensagem);
+    } else {
+      window.gerarTemplateModerno(produtos, loja, logoBase64, message);
+    }
+  } catch (e) {
+    console.error("Erro ao gerar cardápio", e);
+    if (typeof showToast === "function")
+      showToast("ERRO AO GERAR CARDÁPIO", "erro");
+  }
+};
+
+window.gerarTemplateClassico = function (produtos, loja, logoBase64, mensagem) {
+  const icons = {
+    espetos: "🍢",
+    cervejas: "🍺",
+    bebidas: "🥤",
+    refeicao: "🍽️",
+    acompanhamentos: "🍚",
+    combos: "🍻",
+  };
+  const categoriesObj = {};
+
+  produtos.forEach((p) => {
+    const cat = (p.categoria || "outros").toLowerCase();
+    if (!categoriesObj[cat]) categoriesObj[cat] = [];
+    categoriesObj[cat].push(p);
+  });
+
+  const ordem = ["espetos", "refeicao", "acompanhamentos", "bebidas"];
+  const chaves = [
+    ...ordem.filter((c) => categoriesObj[c]),
+    ...Object.keys(categoriesObj).filter((c) => !ordem.includes(c)),
+  ];
+
+  let html = chaves
+    .map(
+      (key) => `
         <div class="categoria-section">
-            <h3 class="categoria-titulo">${icons[key] || '📦'} ${key.toUpperCase()}</h3>
+            <h3 class="categoria-titulo">${icons[key] || "📦"} ${key.toUpperCase()}</h3>
             <div class="itens-grid">
-                ${categoriesObj[key].map(i => `
+                ${categoriesObj[key]
+                  .map(
+                    (i) => `
                     <div style="display: flex; flex-direction: column; margin-bottom: 4px; page-break-inside: avoid;">
                         <div class="item-info" style="margin-bottom: 1px;">
                             <span class="item-nome">${i.nome.toUpperCase()}</span>
                             <div class="linha-pontilhada"></div>
                             <span class="item-preco">R$ ${window.fmSeguro(i.preco)}</span>
                         </div>
-                        ${i.observacao ? `<div style="font-size: 9px; font-weight: 600; color: #64748b; font-style: italic; line-height: 1.1; text-transform: uppercase;">${i.observacao}</div>` : ''}
+                        ${i.observacao ? `<div style="font-size: 9px; font-weight: 600; color: #64748b; font-style: italic; line-height: 1.1; text-transform: uppercase;">${i.observacao}</div>` : ""}
                     </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
             </div>
-        </div>`).join('');
-        
-    window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'classico');
-}
+        </div>`,
+    )
+    .join("");
 
-window.gerarTemplateModerno = function(produtos, loja, logoBase64, mensagem) {
-    const categorias = [...new Set(produtos.map(p => (p.categoria || 'outros').toLowerCase()))];
-    
-    let html = categorias.map(cat => `
+  window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, "classico");
+};
+
+window.gerarTemplateModerno = function (produtos, loja, logoBase64, mensagem) {
+  const categorias = [
+    ...new Set(produtos.map((p) => (p.categoria || "outros").toLowerCase())),
+  ];
+
+  let html = categorias
+    .map(
+      (cat) => `
         <div class="cat-section-moderno">
             <div class="cat-titulo-moderno">${cat.toUpperCase()}</div>
-            ${produtos.filter(p => (p.categoria || 'outros').toLowerCase() === cat).map(p => `
-                <div style="margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid;">
-                    <div class="item-moderno" style="margin-bottom: 2px;">
-                        <span class="item-nome-moderno">${p.nome.toUpperCase()}</span>
-                        <div class="item-dots-moderno"></div>
-                        <span class="item-preco-moderno">R$ ${window.fmSeguro(p.preco)}</span>
-                    </div>
-                    ${p.observacao ? `<div style="font-size: 10px; color: #64748b; font-style: italic; line-height: 1; text-transform: uppercase; margin-top: -2px;">${p.observacao}</div>` : ''}
-                </div>
-            `).join('')}
-        </div>`).join('');
-        
-    window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'moderno');
-}
-
-window.gerarTemplateModerno = function(produtos, loja, logoBase64, mensagem) {
-    const categorias = [...new Set(produtos.map(p => (p.categoria || 'outros').toLowerCase()))];
-    
-    let html = categorias.map(cat => `
-        <div class="cat-section-moderno">
-            <div class="cat-titulo-moderno">${cat.toUpperCase()}</div>
-            ${produtos.filter(p => (p.categoria || 'outros').toLowerCase() === cat).map(p => `
+            ${produtos
+              .filter((p) => (p.categoria || "outros").toLowerCase() === cat)
+              .map(
+                (p) => `
                 <div style="margin-bottom: 6px; page-break-inside: avoid; break-inside: avoid;">
-                    
                     <div class="item-moderno" style="margin-bottom: 1px;">
                         <span class="item-nome-moderno">${p.nome.toUpperCase()}</span>
                         <div class="item-dots-moderno"></div>
                         <span class="item-preco-moderno">R$ ${window.fmSeguro(p.preco)}</span>
                     </div>
-                    
-                    ${p.observacao ? `<div style="font-size: 9px; color: #64748b; font-weight: 600; font-style: italic; line-height: 1.1; text-transform: uppercase; margin-top: -1px;">${p.observacao}</div>` : ''}
-                
+                    ${p.observacao ? `<div style="font-size: 9px; color: #64748b; font-weight: 600; font-style: italic; line-height: 1.1; text-transform: uppercase; margin-top: -1px;">${p.observacao}</div>` : ""}
                 </div>
-            `).join('')}
-        </div>`).join('');
-        
-    window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, 'moderno');
-}
+            `,
+              )
+              .join("")}
+        </div>`,
+    )
+    .join("");
 
-window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, estilo) {
-    const dataHora = new Date().toLocaleString('pt-BR');
-    const nomePdf = `Cardapio_${loja.replace(/\s+/g, '_')}`;
-    
-    // CSS do Cabeçalho muito mais compacto
-    const cssHeader = `
+  window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, "moderno");
+};
+
+window.abrirJanelaImpressao = function (
+  loja,
+  logoBase64,
+  conteudo,
+  mensagem,
+  estilo,
+) {
+  const dataHora = new Date().toLocaleString("pt-BR");
+  const nomePdf = `Cardapio_${loja.replace(/\s+/g, "_")}`;
+
+  const cssHeader = `
         .header-pdf { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e63946; padding-bottom: 10px; margin-bottom: 15px; }
         .header-info h1 { font-size: 22px; font-weight: 900; font-style: italic; color: #e63946; text-transform: uppercase; margin-bottom: 2px; line-height: 1; }
         .header-info p { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
         .header-logo img { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #f1f5f9; }
-        
         @media print {
-            /* Define margens mínimas de 8mm para a folha A4 e um leve zoom-out */
             @page { margin: 8mm; size: A4 portrait; }
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0 !important; }
             .categoria-section, .cat-section-moderno { page-break-inside: avoid; break-inside: avoid; }
-            /* Se ainda estiver grande, essa linha reduz tudo em 5% na impressão */
             html { zoom: 0.95; } 
         }
     `;
 
-    // Redução drástica de paddings, gaps e margens (Modelo Clássico)
-    const cssClassico = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+  const cssClassico = `@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
     body{font-family:'Montserrat',sans-serif;color:#1e293b;} 
     ${cssHeader} 
     .categoria-titulo{color:#e63946;border-bottom:2px solid #e63946;margin-bottom:8px;text-transform:uppercase;font-size:13px;margin-top:12px; font-weight: 900;}
     .itens-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;}
     .item-info{display:flex;align-items:baseline;font-weight:700;font-size:11px;}
     .linha-pontilhada{flex-grow:1;border-bottom:1px dotted #ccc;margin:0 6px;}`;
-    
-    // Força 2 colunas e reduz paddings (Modelo Moderno)
-    const cssModerno = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+  const cssModerno = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
     body{font-family:'Inter',sans-serif;color:#1e293b;} 
     ${cssHeader} 
-    .content { column-count: 2; column-gap: 25px; } /* Divide tudo em 2 colunas */
+    .content { column-count: 2; column-gap: 25px; }
     .cat-titulo-moderno{color:#e63946;font-weight:900;border-bottom:2px solid #f1f5f9;margin:0 0 8px 0; padding-top: 10px; text-transform:uppercase;font-size:13px; break-after: avoid; page-break-after: avoid;}
     .cat-section-moderno { break-inside: avoid; page-break-inside: avoid; margin-bottom: 8px; }
     .item-moderno{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;font-size:11px;font-weight:700;}
     .item-dots-moderno{flex:1;border-bottom:1px dotted #cbd5e1;margin:0 8px;}`;
-    
-    const html = `<!DOCTYPE html>
+
+  const html = `<!DOCTYPE html>
     <html>
     <head>
         <title>Cardápio - ${loja}</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { background: #fff; padding: 15px; width: 100%; margin: 0 auto; }
-            ${estilo === 'classico' ? cssClassico : cssModerno}
+            ${estilo === "classico" ? cssClassico : cssModerno}
             .footer { margin-top: 15px; text-align: center; padding: 10px; border-top: 2px dashed #eee; font-weight: 900; color: #e63946; font-size: 11px; page-break-inside: avoid; }
         </style>
     </head>
@@ -478,258 +622,300 @@ window.abrirJanelaImpressao = function(loja, logoBase64, conteudo, mensagem, est
                 <small style="color: #94a3b8; font-size: 8px;">Atualizado em: ${dataHora}</small>
             </div>
             <div class="header-logo">
-                <img src="${logoBase64 || ''}" onerror="this.style.display='none'">
+                <img src="${logoBase64 || ""}" onerror="this.style.display='none'">
             </div>
         </div>
-
         <div class="content">${conteudo}</div>
-        
         <div class="footer">${mensagem}</div>
     </body>
     </html>`;
-    
-    // Chamada do Motor Iframe
-    window.imprimirConteudoIframe(html, nomePdf);
-}
 
-/* ---------------------------------------------------------------------------------
-   4. IMPRESSÃO TÉRMICA DE VENDAS E DESPESAS (58MM - UNIFICADA COM PREFERÊNCIA GLOBAL)
-   --------------------------------------------------------------------------------- */
-
-// Validador Universal de Modo Térmico/RawBT
-window.isRawBTThermalMode = function() {
-    const formatoGlobal = (localStorage.getItem('formatoImpressao') || '').toLowerCase();
-    const modoConfigurado = (localStorage.getItem('modoImpressao') || '').toLowerCase();
-    return ['direto', 'rawbt', 'termico'].includes(modoConfigurado) || 
-           ['direto', 'rawbt', 'termico'].includes(formatoGlobal);
+  window.imprimirConteudoIframe(html, nomePdf);
 };
 
-window.dispararImpressao = function(conteudoHtml, layout) {
-    const ua = navigator.userAgent.toLowerCase();
-    const isAndroid = /android/.test(ua);
+/* ---------------------------------------------------------------------------------
+   5. IMPRESSÃO TÉRMICA DINÂMICA (58MM / 80MM AUTODETECTÁVEL)
+   --------------------------------------------------------------------------------- */
+window.isRawBTThermalMode = function () {
+  const formatoGlobal = (
+    localStorage.getItem("formatoImpressao") || ""
+  ).toLowerCase();
+  const modoConfigurado = (
+    localStorage.getItem("modoImpressao") || ""
+  ).toLowerCase();
+  return (
+    ["direto", "rawbt", "termico"].includes(modoConfigurado) ||
+    ["direto", "rawbt", "termico"].includes(formatoGlobal)
+  );
+};
 
-    if (window.isRawBTThermalMode() && isAndroid) {
-        const htmlCompleto = `
+window.dispararImpressao = function (conteudoHtml, layout) {
+  const cfg = obterConfiguracoesImpressora();
+  const ua = navigator.userAgent.toLowerCase();
+  const isAndroid = /android/.test(ua);
+
+  if (window.isRawBTThermalMode() && isAndroid) {
+    const htmlCompleto = `
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="utf-8">
                 <style>
-                    html, body { margin: 0; padding: 0; width: 58mm; background: #fff; color: #000; font-family: 'Courier New', monospace; }
-                    ${getTicketCSS(layout)}
+                    html, body { margin: 0; padding: 0; width: ${cfg.pageWidth}; background: #fff; color: #000; font-family: 'Courier New', monospace; }
+                    ${getTicketCSS(layout, cfg)}
                 </style>
             </head>
             <body>
                 ${conteudoHtml}
+                <div style="height: ${cfg.espacoGuilhotina};">.</div>
             </body>
             </html>
         `;
 
-        const base64Html = btoa(unescape(encodeURIComponent(htmlCompleto)));
-        const urlRawBT = `intent:base64,${base64Html}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-        window.location.href = urlRawBT;
-        return;
-    }
+    const base64Html = btoa(unescape(encodeURIComponent(htmlCompleto)));
+    const urlRawBT = `intent:base64,${base64Html}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    window.location.href = urlRawBT;
+    return;
+  }
 
-    // ROTA PADRÃO (SE ESTIVER EM MODO PDF / WINDOWS / IOS)
-    const htmlIframe = `<html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;width:58mm;}@media print{.no-print{display:none!important;}}.btn-voltar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:10px 20px;border-radius:20px;text-decoration:none;z-index:9999;}${getTicketCSS(layout)}</style></head><body>${conteudoHtml}</body></html>`;
-    window.imprimirConteudoIframe(htmlIframe, 'Cupom_Impressao');
-}
+  const htmlIframe = `<html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;width:${cfg.pageWidth};}@media print{.no-print{display:none!important;}}${getTicketCSS(layout, cfg)}</style></head><body>${conteudoHtml}<div style="height: ${cfg.espacoGuilhotina};">.</div></body></html>`;
+  window.imprimirConteudoIframe(htmlIframe, "Cupom_Impressao");
+};
 
-window.enviarParaImpressora = function(texto) {
-    const ua = navigator.userAgent.toLowerCase();
-    const isAndroid = /android/.test(ua);
-    const base64Texto = btoa(unescape(encodeURIComponent(texto)));
-    
-    if (isAndroid && window.isRawBTThermalMode()) { 
-        window.location.href = "rawbt:base64," + base64Texto; 
-    } else { 
-        const html = `<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;padding:20px;">${texto}</pre>`; 
-        window.imprimirConteudoIframe(html, 'Ticket_Texto');
-    }
-}
+window.enviarParaImpressora = function (texto) {
+  const cfg = obterConfiguracoesImpressora();
+  const ua = navigator.userAgent.toLowerCase();
+  const isAndroid = /android/.test(ua);
+  const base64Texto = btoa(unescape(encodeURIComponent(texto)));
 
-// FORMATO 1: Imprimir cupons (Retirar no Balcão)
-window.imprimirCupom = function(venda) {
-    // 1. SE FOR MODO RAWBT -> GERAR TEXTO PURO COM LAYOUT
-    if (window.isRawBTThermalMode()) {
-        const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
-        const operador = (localStorage.getItem('userName') || 'ADMIN').toUpperCase();
-        const itensArray = Array.isArray(venda.itens) ? venda.itens : JSON.parse(venda.itens || '[]');
-        
-        let textoRaw = '\n';
+  if (isAndroid && window.isRawBTThermalMode()) {
+    window.location.href = "rawbt:base64," + base64Texto;
+  } else {
+    const html = `<pre style="font-family:monospace;font-size:${cfg.fontSizeBase};white-space:pre-wrap;padding:10px;width:${cfg.bodyWidth};">${texto}</pre><div style="height: ${cfg.espacoGuilhotina};">.</div>`;
+    window.imprimirConteudoIframe(html, "Ticket_Texto");
+  }
+};
 
-        const alinharCentro = (texto) => {
-            const str = String(texto).substring(0, 32);
-            return ' '.repeat(Math.max(0, Math.floor((32 - str.length) / 2))) + str;
-        };
+// FORMATO 1: Fichas Individuais (Retirar no Balcão)
+window.imprimirCupom = function (venda) {
+  const cfg = obterConfiguracoesImpressora();
+  const loja = localStorage.getItem("nomeLoja") || "ESPETINHO & CIA";
+  const operador = (localStorage.getItem("userName") || "ADMIN").toUpperCase();
+  const layout = localStorage.getItem("ticketLayout") || "original";
+  const dataVenda = new Date(venda.data || Date.now());
+  const itensArray = Array.isArray(venda.itens)
+    ? venda.itens
+    : JSON.parse(venda.itens || "[]");
 
-        itensArray.forEach(item => {
-            if(parseFloat(item.preco) > 0) {
-                for (let i = 0; i < (item.qtd || 1); i++) {
-                    const pedidoId = Math.floor(Math.random()*9000)+1000;
-                    
-                    // --- CABEÇALHO ---
-                    textoRaw += alinharCentro(loja) + '\n';
-                    textoRaw += alinharCentro(new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})) + '\n';
-                    textoRaw += '================================\n';
-                    
-                    // --- CORPO (O "BLOCO") ---
-                    // Nome e Valor
-                    textoRaw += alinharCentro(item.nome.toUpperCase()) + '\n';
-                    textoRaw += alinharCentro(`R$ ${window.fmSeguro(item.preco)}`) + '\n';
-                    
-                    // Linha de Destaque para Retirada
-                    textoRaw += '--------------------------------\n';
-                    textoRaw += alinharCentro('RETIRAR NO BALCAO') + '\n';
-                    textoRaw += '--------------------------------\n';
-                    
-                    // Pedido e Operador (Ajustado para não quebrar)
-                    const rodape = `PED#${pedidoId} | OP: ${operador.substring(0, 8)}`;
-                    textoRaw += alinharCentro(rodape) + '\n';
-                    
-                    textoRaw += '\n\n\n'; // Espaço entre tickets
-                }
-            }
-        });
+  // 1. SE FOR MODO RAWBT ANDROID (TEXTO PURO EXPANSÍVEL)
+  if (
+    window.isRawBTThermalMode() &&
+    /android/.test(navigator.userAgent.toLowerCase())
+  ) {
+    let textoRaw = "\n";
 
-        const textoCodificado = encodeURIComponent(textoRaw);
-        window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-        return;
-    }
+    const alinharCentro = (texto) => {
+      const str = String(texto).substring(0, cfg.maxChars);
+      return (
+        " ".repeat(Math.max(0, Math.floor((cfg.maxChars - str.length) / 2))) +
+        str
+      );
+    };
 
-    // 2. SE FOR NAVEGADOR -> MANTÉM SEU CÓDIGO HTML ORIGINAL
-    const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
-    const layout = localStorage.getItem('ticketLayout') || 'original';
-    const dataVenda = new Date(venda.data || Date.now());
-    const operador = localStorage.getItem('userName') || 'Admin';
-    let html = '';
-    
-    const itensArray = Array.isArray(venda.itens) ? venda.itens : JSON.parse(venda.itens || '[]');
+    itensArray.forEach((item) => {
+      if (parseFloat(item.preco) > 0) {
+        for (let i = 0; i < (item.qtd || 1); i++) {
+          const pedidoId = Math.floor(Math.random() * 9000) + 1000;
 
-    itensArray.forEach(item => {
-        if(parseFloat(item.preco) > 0) {
-            for (let i = 0; i < (item.qtd || 1); i++) {
-                const pedidoId = Math.floor(Math.random()*9000)+1000;
-                html += `<div class="ticket-wrapper"><div class="header"><div class="store-name">${loja}</div><div class="meta">${dataVenda.toLocaleDateString()} ${dataVenda.toLocaleTimeString().substring(0,5)}</div></div>`;
-                if (layout === 'padrao') { html += `<div class="box-padrao text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${window.fmSeguro(item.preco)}</div></div><div class="instruction-text text-center">RETIRAR NO BALCÃO</div>`; } 
-                else if (layout === 'eco') { html += `<div class="unified-box"><div class="item-name">${item.nome}</div><div class="item-price">R$ ${window.fmSeguro(item.preco)}</div></div>`; } 
-                else { html += `<div class="unified-box text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${window.fmSeguro(item.preco)}</div>${layout === 'original' ? '<div class="separator"></div>' : ''}<div class="instruction-text">RETIRAR NO BALCÃO</div></div>`; }
-                html += `<div class="footer text-center">PEDIDO #${pedidoId}<br>Op: ${operador}</div></div>`;
-            }
+          textoRaw += alinharCentro(loja) + "\n";
+          textoRaw +=
+            alinharCentro(
+              new Date().toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            ) + "\n";
+          textoRaw += "=".repeat(cfg.maxChars) + "\n";
+
+          textoRaw += alinharCentro(item.nome.toUpperCase()) + "\n";
+          textoRaw += alinharCentro(`R$ ${window.fmSeguro(item.preco)}`) + "\n";
+
+          textoRaw += "-".repeat(cfg.maxChars) + "\n";
+          textoRaw += alinharCentro("RETIRAR NO BALCAO") + "\n";
+          textoRaw += "-".repeat(cfg.maxChars) + "\n";
+
+          const rodape = `PED#${pedidoId} | OP: ${operador.substring(0, 12)}`;
+          textoRaw += alinharCentro(rodape) + "\n";
+          textoRaw += "\n".repeat(cfg.tamanho === "58" ? 3 : 5); // Avanço físico proporcional
         }
-    });
-    window.dispararImpressao(html, layout);
-}
-
-// FORMATO 2: Imprimir resumo completo da conta (Ticket Consolidado - Blindado p/ Texto)
-window.imprimirTicketVenda = function(dadosVenda) {
-    const loja = localStorage.getItem('nomeLoja') || "ESPETINHO E CIA";
-    const cnpj = localStorage.getItem('empresa_cnpj') || "";
-    const layout = localStorage.getItem('ticketLayout') || 'original'; 
-    
-    const ua = navigator.userAgent.toLowerCase();
-    const isAndroid = /android/.test(ua);
-    const isIOS = /iphone|ipad|ipod/.test(ua);
-
-    // 1. AGRUPAMENTO DOS ITENS (Mantemos a lógica de agrupar por obs para não somar preços diferentes, mas não vamos imprimi-la)
-    const itensArray = Array.isArray(dadosVenda.itens) ? dadosVenda.itens : JSON.parse(dadosVenda.itens || '[]');
-    const itensAgrupados = {};
-
-    itensArray.forEach(i => {
-        if (parseFloat(i.preco) > 0) {
-            const obs = i.detalhes || i.observacao || '';
-            const chave = `${i.nome.trim().toUpperCase()}_${obs.trim().toUpperCase()}`;
-            
-            if (!itensAgrupados[chave]) {
-                itensAgrupados[chave] = { ...i };
-            } else {
-                itensAgrupados[chave].qtd += i.qtd;
-            }
-        }
+      }
     });
 
-    const dataFormatada = new Date(dadosVenda.created_at || dadosVenda.data || Date.now()).toLocaleString('pt-BR');
-    const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes('PRÉ-CONTA');
+    const textoCodificado = encodeURIComponent(textoRaw);
+    window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    return;
+  }
 
-    // ====================================================================================
-    // ROTA 1: IMPRESSÃO DIRETA NO ANDROID (RAWBT) 
-    // ====================================================================================
-    if (typeof window.isRawBTThermalMode === 'function' && window.isRawBTThermalMode() && isAndroid) {
-        const alinharCentro = (texto) => {
-            const str = String(texto).substring(0, 32);
-            return ' '.repeat(Math.max(0, Math.floor((32 - str.length) / 2))) + str;
-        };
-        const alinharLados = (esq, dir) => {
-            const strEsq = String(esq); const strDir = String(dir);
-            const espacosLivres = 32 - strEsq.length - strDir.length;
-            if (espacosLivres > 0) return strEsq + ' '.repeat(espacosLivres) + strDir;
-            return strEsq.substring(0, 32 - strDir.length - 1) + ' ' + strDir;
-        };
+  // 2. SE FOR ROTA WEB NAVEGADOR
+  let html = "";
+  itensArray.forEach((item) => {
+    if (parseFloat(item.preco) > 0) {
+      for (let i = 0; i < (item.qtd || 1); i++) {
+        const pedidoId = Math.floor(Math.random() * 9000) + 1000;
 
-        let textoRaw = '\n'; 
-        textoRaw += alinharCentro(loja) + '\n';
-        if (cnpj) textoRaw += alinharCentro(`CNPJ: ${cnpj}`) + '\n';
-        textoRaw += '-'.repeat(32) + '\n';
-        textoRaw += alinharCentro(dadosVenda.tipo || 'VENDA') + '\n';
-        textoRaw += alinharLados('DATA:', dataFormatada) + '\n';
-        textoRaw += '-'.repeat(32) + '\n\n';
+        // A MÁGICA ESTÁ AQUI NA LARGURA COM O 'margin: 0 auto;' 👇
+        html += `<div class="ticket-wrapper" style="width: ${cfg.bodyWidth}; margin: 0 auto;"><div class="header"><div class="store-name">${loja}</div><div class="meta">${dataVenda.toLocaleDateString()} ${dataVenda.toLocaleTimeString().substring(0, 5)}</div></div>`;
 
-        Object.values(itensAgrupados).forEach(i => {
-            const precoStr = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
-            textoRaw += alinharLados(`${i.qtd}x ${i.nome.toUpperCase()}`, precoStr) + '\n';
-            // OBSERVAÇÕES REMOVIDAS DAQUI TAMBÉM (Para manter o padrão)
-        });
-
-        textoRaw += '\n' + '-'.repeat(32) + '\n';
-        const totalStr = window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2);
-        textoRaw += alinharLados('TOTAL:', `R$ ${totalStr}`) + '\n';
-        
-        if (dadosVenda.troco > 0) {
-            const recStr = window.fmSeguro ? window.fmSeguro(dadosVenda.recebido) : parseFloat(dadosVenda.recebido).toFixed(2);
-            const trcStr = window.fmSeguro ? window.fmSeguro(dadosVenda.troco) : parseFloat(dadosVenda.troco).toFixed(2);
-            textoRaw += alinharLados('RECEBIDO:', `R$ ${recStr}`) + '\n';
-            textoRaw += alinharLados('TROCO:', `R$ ${trcStr}`) + '\n';
+        if (layout === "padrao") {
+          html += `<div class="box-padrao text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${window.fmSeguro(item.preco)}</div></div><div class="instruction-text text-center">RETIRAR NO BALCÃO</div>`;
+        } else if (layout === "eco") {
+          html += `<div class="unified-box"><div class="item-name">${item.nome}</div><div class="item-price">R$ ${window.fmSeguro(item.preco)}</div></div>`;
+        } else {
+          html += `<div class="unified-box text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${window.fmSeguro(item.preco)}</div>${layout === "original" ? '<div class="separator"></div>' : ""}<div class="instruction-text">RETIRAR NO BALCÃO</div></div>`;
         }
+        html += `<div class="footer text-center">PEDIDO #${pedidoId}<br>Op: ${operador}</div></div>`;
+      }
+    }
+  });
+  window.dispararImpressao(html, layout);
+};
 
-        textoRaw += '-'.repeat(32) + '\n';
-        
-        if (!isPreConta) {
-            const formaPgto = (dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase();
-            textoRaw += alinharLados('PAGAMENTO:', formaPgto) + '\n';
-        }
-        
-        textoRaw += '\n' + alinharCentro('OBRIGADO PELA PREFERENCIA') + '\n\n\n\n';
-        const textoCodificado = encodeURIComponent(textoRaw);
-        window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-        return;
+// FORMATO 2: Resumo Completo da Venda / Pré-Conta Consolidada
+window.imprimirTicketVenda = function (dadosVenda) {
+  const cfg = obterConfiguracoesImpressora();
+  const loja = localStorage.getItem("nomeLoja") || "ESPETINHO E CIA";
+  const cnpj = localStorage.getItem("empresa_cnpj") || "";
+
+  const ua = navigator.userAgent.toLowerCase();
+  const isAndroid = /android/.test(ua);
+  const isIOS = /iphone|ipad|ipod/.test(ua);
+
+  const itensArray = Array.isArray(dadosVenda.itens)
+    ? dadosVenda.itens
+    : JSON.parse(dadosVenda.itens || "[]");
+  const itensAgrupados = {};
+
+  itensArray.forEach((i) => {
+    if (parseFloat(i.preco) > 0) {
+      const obs = i.detalhes || i.observacao || "";
+      const chave = `${i.nome.trim().toUpperCase()}_${obs.trim().toUpperCase()}`;
+      if (!itensAgrupados[chave]) {
+        itensAgrupados[chave] = { ...i };
+      } else {
+        itensAgrupados[chave].qtd += i.qtd;
+      }
+    }
+  });
+
+  const dataFormatada = new Date(
+    dadosVenda.created_at || dadosVenda.data || Date.now(),
+  ).toLocaleString("pt-BR");
+  const isPreConta = dadosVenda.tipo && dadosVenda.tipo.includes("PRÉ-CONTA");
+
+  // --- ROTA TEXTO RAWBT ANDROID COMPATÍVEL ---
+  if (
+    typeof window.isRawBTThermalMode === "function" &&
+    window.isRawBTThermalMode() &&
+    isAndroid
+  ) {
+    const alinharCentro = (texto) => {
+      const str = String(texto).substring(0, cfg.maxChars);
+      return (
+        " ".repeat(Math.max(0, Math.floor((cfg.maxChars - str.length) / 2))) +
+        str
+      );
+    };
+    const alinharLados = (esq, dir) => {
+      const strEsq = String(esq);
+      const strDir = String(dir);
+      const espacosLivres = cfg.maxChars - strEsq.length - strDir.length;
+      if (espacosLivres > 0) return strEsq + " ".repeat(espacosLivres) + strDir;
+      return (
+        strEsq.substring(0, cfg.maxChars - strDir.length - 1) + " " + strDir
+      );
+    };
+
+    let textoRaw = "\n";
+    textoRaw += alinharCentro(loja) + "\n";
+    if (cnpj) textoRaw += alinharCentro(`CNPJ: ${cnpj}`) + "\n";
+    textoRaw += "-".repeat(cfg.maxChars) + "\n";
+    textoRaw += alinharCentro(dadosVenda.tipo || "VENDA") + "\n";
+    textoRaw += alinharLados("DATA:", dataFormatada) + "\n";
+    textoRaw += "-".repeat(cfg.maxChars) + "\n\n";
+
+    Object.values(itensAgrupados).forEach((i) => {
+      const precoStr = window.fmSeguro
+        ? window.fmSeguro(i.preco * i.qtd)
+        : (i.preco * i.qtd).toFixed(2);
+      textoRaw +=
+        alinharLados(`${i.qtd}x ${i.nome.toUpperCase()}`, precoStr) + "\n";
+    });
+
+    textoRaw += "\n" + "-".repeat(cfg.maxChars) + "\n";
+    const totalStr = window.fmSeguro
+      ? window.fmSeguro(dadosVenda.total)
+      : parseFloat(dadosVenda.total).toFixed(2);
+    textoRaw += alinharLados("TOTAL:", `R$ ${totalStr}`) + "\n";
+
+    if (dadosVenda.troco > 0) {
+      const recStr = window.fmSeguro
+        ? window.fmSeguro(dadosVenda.recebido)
+        : parseFloat(dadosVenda.recebido).toFixed(2);
+      const trcStr = window.fmSeguro
+        ? window.fmSeguro(dadosVenda.troco)
+        : parseFloat(dadosVenda.troco).toFixed(2);
+      textoRaw += alinharLados("RECEBIDO:", `R$ ${recStr}`) + "\n";
+      textoRaw += alinharLados("TROCO:", `R$ ${trcStr}`) + "\n";
     }
 
-    // ====================================================================================
-    // ROTA 2: IMPRESSÃO NO WINDOWS (NOTEBOOK) / NAVEGADOR
-    // ====================================================================================
-    let htmlItens = '';
-    Object.values(itensAgrupados).forEach(i => {
-        const precoFormatado = window.fmSeguro ? window.fmSeguro(i.preco * i.qtd) : (i.preco * i.qtd).toFixed(2);
+    textoRaw += "-".repeat(cfg.maxChars) + "\n";
+    if (!isPreConta) {
+      const formaPgto = (
+        dadosVenda.forma_pagamento ||
+        dadosVenda.pagamento ||
+        "DINHEIRO"
+      ).toUpperCase();
+      textoRaw += alinharLados("PAGAMENTO:", formaPgto) + "\n";
+    }
 
-        // OBSERVAÇÕES REMOVIDAS (Cupom focado apenas no produto e valor)
-        htmlItens += `
+    textoRaw +=
+      "\n" +
+      alinharCentro("OBRIGADO PELA PREFERENCIA") +
+      "\n".repeat(cfg.tamanho === "58" ? 4 : 6);
+    const textoCodificado = encodeURIComponent(textoRaw);
+    window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    return;
+  }
+
+  // --- ROTA NAVEGADOR WEB (COMPUTADORES / IOS VIA OPENLABELS) ---
+  let htmlItens = "";
+  Object.values(itensAgrupados).forEach((i) => {
+    const precoFormatado = window.fmSeguro
+      ? window.fmSeguro(i.preco * i.qtd)
+      : (i.preco * i.qtd).toFixed(2);
+    htmlItens += `
         <div class="item-row-container">
             <div class="item-row">
                 <div class="item-name">${i.qtd}x ${i.nome.toUpperCase()}</div>
                 <div class="item-price">R$ ${precoFormatado}</div>
             </div>
         </div>`;
-    });
+  });
 
-    let pgtoHtml = !isPreConta ? `<div class="pgto-box">PAGAMENTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || 'DINHEIRO').toUpperCase()}</div>` : '';
+  let pgtoHtml = !isPreConta
+    ? `<div class="pgto-box">PAGAMENTO: ${(dadosVenda.forma_pagamento || dadosVenda.pagamento || "DINHEIRO").toUpperCase()}</div>`
+    : "";
+  let trocoHtml = "";
 
-    let trocoHtml = '';
-    if (dadosVenda.troco > 0) {
-        const recFormat = window.fmSeguro ? window.fmSeguro(dadosVenda.recebido) : parseFloat(dadosVenda.recebido).toFixed(2);
-        const trocoFormat = window.fmSeguro ? window.fmSeguro(dadosVenda.troco) : parseFloat(dadosVenda.troco).toFixed(2);
-        
-        trocoHtml = `
+  if (dadosVenda.troco > 0) {
+    const recFormat = window.fmSeguro
+      ? window.fmSeguro(dadosVenda.recebido)
+      : parseFloat(dadosVenda.recebido).toFixed(2);
+    const trocoFormat = window.fmSeguro
+      ? window.fmSeguro(dadosVenda.troco)
+      : parseFloat(dadosVenda.troco).toFixed(2);
+
+    trocoHtml = `
         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px; width: 100%;">
             <span class="bold">RECEBIDO</span>
             <span class="bold">R$ ${recFormat}</span>
@@ -738,310 +924,291 @@ window.imprimirTicketVenda = function(dadosVenda) {
             <span>TROCO</span>
             <span>R$ ${trocoFormat}</span>
         </div>`;
-    }
+  }
 
-    const htmlCompleto = `
+  const htmlCompleto = `
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <style>
-            @page { margin: 0; size: 58mm auto; }
+            @page { margin: 0; size: ${cfg.pageWidth} auto; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
-
             body { 
                 font-family: 'Courier New', Courier, monospace; 
-                width: 48mm !important; 
-                max-width: 48mm !important; 
+                width: ${cfg.bodyWidth} !important; 
+                max-width: ${cfg.bodyWidth} !important; 
                 margin: 0 auto; 
-                padding: 0 2mm; 
+                padding: 0; 
                 background: #fff; 
                 color: #000 !important; 
-                font-size: 11px; 
+                font-size: ${cfg.fontSizeBase}; 
                 line-height: 1.2;
                 overflow-x: hidden;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-
             .text-center { text-align: center; }
-            /* Negrito forçado para evitar letras claras na impressão térmica */
             .bold { font-weight: 900 !important; color: #000 !important; }
             .uppercase { text-transform: uppercase; }
             .divisor { border-top: 1px dashed #000; margin: 6px 0; width: 100%; }
-
-            .store-name { font-size: 14px; font-weight: 900; margin-bottom: 2px; }
+            .store-name { font-size: ${cfg.fontSizeTitulo}; font-weight: 900; margin-bottom: 2px; }
             .meta { font-size: 10px; margin-bottom: 6px; }
-
             .item-row-container { margin-bottom: 4px; padding-bottom: 2px; width: 100%; }
             .item-row { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
             .item-name { font-weight: 900; flex: 1; padding-right: 4px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; }
             .item-price { font-weight: 900; white-space: nowrap; text-align: right; }
-
-            .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; margin-top: 6px; width: 100%; }
+            .total-row { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; margin-top: 6px; width: 100%; }
             .pgto-box { font-size: 11px; font-weight: 900; margin-top: 5px; }
-            .footer { margin-top: 12px; font-size: 10px; }
+            .footer { margin-top: 12px; font-size: 11px; }
         </style>
     </head>
     <body>
         <div class="text-center">
             <div class="store-name">${loja}</div>
-            ${cnpj ? `<div class="bold" style="font-size:11px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
-            <div class="bold uppercase" style="font-size:12px; margin-bottom: 4px;">${dadosVenda.tipo || 'VENDA'}</div>
+            ${cnpj ? `<div class="bold" style="font-size:11px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ""}
+            <div class="bold uppercase" style="font-size:12px; margin-bottom: 4px;">${dadosVenda.tipo || "VENDA"}</div>
             <div class="meta bold">DATA: ${dataFormatada}</div>
         </div>
-        
         <div class="divisor"></div>
-        
-        <div>
-            ${htmlItens}
-        </div>
-        
+        <div>${htmlItens}</div>
         <div class="divisor"></div>
-        
         <div class="total-row">
             <span>TOTAL</span>
             <span>R$ ${window.fmSeguro ? window.fmSeguro(dadosVenda.total) : parseFloat(dadosVenda.total).toFixed(2)}</span>
         </div>
-        
         ${trocoHtml}
         ${pgtoHtml}
-        
         <div class="divisor"></div>
         <div class="footer text-center bold">OBRIGADO PELA PREFERÊNCIA</div>
+        <div style="height: ${cfg.espacoGuilhotina};">.</div>
     </body>
     </html>`;
 
-    if (localStorage.getItem('modoImpressao') === 'direto' && isIOS) { 
-        window.location.href = "openlabels://print?text=" + encodeURIComponent(htmlCompleto); 
-        return; 
-    }
-    
-    // Chamada do Motor Iframe
-    window.imprimirConteudoIframe(htmlCompleto, `Ticket_${dadosVenda.id || 'Conta'}`);
-}
+  if (localStorage.getItem("modoImpressao") === "direto" && isIOS) {
+    window.location.href =
+      "openlabels://print?text=" + encodeURIComponent(htmlCompleto);
+    return;
+  }
 
+  window.imprimirConteudoIframe(
+    htmlCompleto,
+    `Ticket_${dadosVenda.id || "Conta"}`,
+  );
+};
 
-window.gerarTicketHTML = function(dados, loja) {
-    const cnpj = localStorage.getItem('empresa_cnpj') || "";
-    let htmlItens = '';
-    
-    if (dados.itens) {
-        const itensAgrupadosHtml = {};
-        const itensArray = Array.isArray(dados.itens) ? dados.itens : JSON.parse(dados.itens || '[]');
+window.gerarTicketHTML = function (dados, loja) {
+  const cfg = obterConfiguracoesImpressora();
+  const cnpj = localStorage.getItem("empresa_cnpj") || "";
+  let htmlItens = "";
 
-        itensArray.forEach(i => {
-            if (parseFloat(i.preco) > 0) {
-                const chave = i.nome.trim().toUpperCase();
-                if (!itensAgrupadosHtml[chave]) {
-                    itensAgrupadosHtml[chave] = { ...i };
-                } else {
-                    itensAgrupadosHtml[chave].qtd += i.qtd;
-                }
-            }
-        });
+  if (dados.itens) {
+    const itensAgrupadosHtml = {};
+    const itensArray = Array.isArray(dados.itens)
+      ? dados.itens
+      : JSON.parse(dados.itens || "[]");
 
-        Object.values(itensAgrupadosHtml).forEach(i => {
-            htmlItens += `
+    itensArray.forEach((i) => {
+      if (parseFloat(i.preco) > 0) {
+        const chave = i.nome.trim().toUpperCase();
+        if (!itensAgrupadosHtml[chave]) {
+          itensAgrupadosHtml[chave] = { ...i };
+        } else {
+          itensAgrupadosHtml[chave].qtd += i.qtd;
+        }
+      }
+    });
+
+    Object.values(itensAgrupadosHtml).forEach((i) => {
+      htmlItens += `
             <div style="margin-bottom: 4px; border-bottom: 1px dashed #ccc; padding-bottom: 3px;">
-                <div style="font-size:11px; font-weight: bold; text-transform: uppercase; line-height: 1.1; word-wrap: break-word;">
+                <div style="font-size:${cfg.fontSizeBase}; font-weight: bold; text-transform: uppercase; line-height: 1.1; word-wrap: break-word;">
                     ${i.qtd}x ${i.nome}
                 </div>
-                <div style="text-align: right; font-size:11px; font-weight: bold; margin-top: 2px;">
+                <div style="text-align: right; font-size:${cfg.fontSizeBase}; font-weight: bold; margin-top: 2px;">
                     R$ ${window.fmSeguro(i.preco * i.qtd)}
                 </div>
             </div>`;
-        });
-    }
+    });
+  }
 
-    const isPreConta = dados.tipo && dados.tipo.includes('PRÉ-CONTA');
-    
-    let pgtoHtml = '';
-    if (!isPreConta) {
-        pgtoHtml = `<div style="font-size:11px; margin-top:5px;">PAGAMENTO: ${(dados.forma_pagamento || dados.pagamento || 'DINHEIRO').toUpperCase()}</div><div class="divisor"></div>`;
-    } else {
-        pgtoHtml = `<div class="divisor"></div>`;
-    }
-    
-    const html = `
+  const isPreConta = dados.tipo && dados.tipo.includes("PRÉ-CONTA");
+  let pgtoHtml = !isPreConta
+    ? `<div style="font-size:11px; margin-top:5px;">PAGAMENTO: ${(dados.forma_pagamento || dados.pagamento || "DINHEIRO").toUpperCase()}</div><div class="divisor"></div>`
+    : `<div class="divisor"></div>`;
+
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
-        <title>Cupom - ${loja}</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            @page { margin: 0; size: 58mm auto; }
-            html, body { width: 58mm !important; max-width: 58mm !important; background-color: #fff; color: #000; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.2; }
-            .ticket-container { width: 58mm !important; max-width: 58mm !important; padding: 2mm 3mm; overflow: hidden; }
+            @page { margin: 0; size: ${cfg.pageWidth} auto; }
+            /* MÁGICA AQUI: margin: 0 auto; para centralizar o body no papel */
+            html, body { width: ${cfg.bodyWidth} !important; max-width: ${cfg.bodyWidth} !important; margin: 0 auto; background-color: #fff; color: #000; font-family: 'Courier New', Courier, monospace; font-size: ${cfg.fontSizeBase}; line-height: 1.2; }
             .text-center { text-align: center; }
             .divisor { border-top: 1px dashed #000; margin: 6px 0; }
             .bold { font-weight: bold; }
-            @media print { body { width: 58mm !important; } }
         </style>
     </head>
     <body>
-        <div class="ticket-container">
-            <div class="text-center bold" style="font-size:14px; margin-bottom: 2px;">${loja}</div>
-            ${cnpj ? `<div class="text-center" style="font-size:10px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ''}
-            <div class="text-center bold" style="font-size:12px; margin-bottom: 6px;">${dados.tipo || 'VENDA'}</div>
-            <div class="text-center" style="font-size:9px; margin-bottom: 6px;">DATA: ${new Date(dados.created_at || dados.data || Date.now()).toLocaleString('pt-BR')}</div>
-            
+        <div style="padding: 1mm 0;">
+            <div class="text-center bold" style="font-size:${cfg.fontSizeTitulo}; margin-bottom: 2px;">${loja}</div>
+            ${cnpj ? `<div class="text-center" style="font-size:10px; margin-bottom: 2px;">CNPJ: ${cnpj}</div>` : ""}
+            <div class="text-center bold" style="font-size:12px; margin-bottom: 6px;">${dados.tipo || "VENDA"}</div>
+            <div class="text-center" style="font-size:9px; margin-bottom: 6px;">DATA: ${new Date(dados.created_at || dados.data || Date.now()).toLocaleString("pt-BR")}</div>
             <div class="divisor"></div>
             ${htmlItens}
-            
-            <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold; margin-top:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:bold; margin-top:6px;">
                 <span>TOTAL</span>
                 <span>R$ ${window.fmSeguro(dados.total)}</span>
             </div>
-            
             ${pgtoHtml}
-            
-            <div class="text-center bold" style="margin-top:12px; font-size:10px;">OBRIGADO PELA PREFERÊNCIA</div>
+            <div class="text-center bold" style="margin-top:12px; font-size:11px;">OBRIGADO PELA PREFERÊNCIA</div>
+            <div style="height: ${cfg.espacoGuilhotina};">.</div>
         </div>
     </body>
     </html>`;
 
-    // Chamada do Motor Iframe
-    window.imprimirConteudoIframe(html, `Cupom_${loja}`);
-}
+  window.imprimirConteudoIframe(html, `Cupom_${loja}`);
+};
 
-// Dispara a impressão a partir do modal de confirmação
-window.imprimirComprovanteModal = function() {
-    if (window.dadosComprovanteAtual) {
-        // Chama a nossa função blindada de 48mm/Flexbox!
-        window.imprimirTicketVenda(window.dadosComprovanteAtual);
-        
-        // Fecha o modal após enviar para a impressora
-        window.fecharModalImpressaoComprovante();
-    } else {
-        if(typeof showToast === 'function') showToast("Dados da venda não encontrados.", "erro");
-    }
-}
+window.imprimirComprovanteModal = function () {
+  if (window.dadosComprovanteAtual) {
+    window.imprimirTicketVenda(window.dadosComprovanteAtual);
+    window.fecharModalImpressaoComprovante();
+  } else {
+    if (typeof showToast === "function")
+      showToast("Dados da venda não encontrados.", "erro");
+  }
+};
 
-// Função para fechar o modal
-window.fecharModalImpressaoComprovante = function() {
-    const modal = document.getElementById('modal-confirmacao-impressao');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-}
+window.fecharModalImpressaoComprovante = function () {
+  const modal = document.getElementById("modal-confirmacao-impressao");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+};
 
-window.imprimirComprovanteDespesa = function(id) {
-    _supabase.from('despesas').select('*').eq('id', id).single().then(({ data: d }) => {
-        if (!d) return;
-        const html = `<html><head><style>@page { size: 58mm auto; margin: 0; } body { width: 48mm; margin: 0; padding: 4mm; font-family: 'Courier New', monospace; font-size: 11px; }</style></head>
-        <body><div style="text-align:center"><b>${localStorage.getItem('nomeLoja') || 'ESPETINHO'}</b><br>COMPROVANTE DE DESPESA<br>------------------</div>
-        DESC: ${d.descricao}<br>CATEG: ${d.categoria}<br>STATUS: ${d.paga ? 'PAGO' : 'EM ABERTO'}<br>
-        <div style="text-align:center">------------------<br><b style="font-size:14px;">TOTAL: R$ ${window.fmSeguro(d.valor)}</b></div>
+window.imprimirComprovanteDespesa = function (id) {
+  const cfg = obterConfiguracoesImpressora();
+  _supabase
+    .from("despesas")
+    .select("*")
+    .eq("id", id)
+    .single()
+    .then(({ data: d }) => {
+      if (!d) return;
+      const html = `<html><head><style>@page { size: ${cfg.pageWidth} auto; margin: 0; } body { width: ${cfg.bodyWidth}; margin: 0 auto; padding: 2mm 0; font-family: 'Courier New', monospace; font-size: ${cfg.fontSizeBase}; }</style></head>
+        <body><div style="text-align:center"><b>${localStorage.getItem("nomeLoja") || "ESPETINHO"}</b><br>COMPROVANTE DE DESPESA<br>------------------</div>
+        DESC: ${d.descricao}<br>CATEG: ${d.categoria}<br>STATUS: ${d.paga ? "PAGO" : "EM ABERTO"}<br>
+        <div style="text-align:center">------------------<br><b style="font-size:15px;">TOTAL: R$ ${window.fmSeguro(d.valor)}</b></div>
+        <div style="height: ${cfg.espacoGuilhotina};">.</div>
         </body></html>`;
-        
-        // Chamada do Motor Iframe
-        window.imprimirConteudoIframe(html, `Despesa_${id}`);
+
+      window.imprimirConteudoIframe(html, `Despesa_${id}`);
     });
 };
 
 /* ---------------------------------------------------------------------------------
-   5. MOTOR DE IMPRESSÃO A4 (RELATÓRIOS E COMPILADORES)
+   6. MOTOR DE IMPRESSÃO A4 (RANKINGS E FLUXOS DE ESTOQUE)
    --------------------------------------------------------------------------------- */
+window.imprimirRelatorioAtual = async function (tipo = null) {
+  const relatorioEstoque = document.getElementById("view-estoque");
+  const relatorioFinanceiro = document.getElementById("view-financeiro");
+  const relatorioProdutos = document.getElementById("view-produtos");
 
-window.imprimirRelatorioAtual = async function(tipo = null) {
-    console.log(">>> [IMPRESSÃO] Roteando para o gerador oficial...");
-
-    const relatorioEstoque = document.getElementById('view-estoque');
-    const relatorioFinanceiro = document.getElementById('view-financeiro');
-    const relatorioProdutos = document.getElementById('view-produtos');
-    
-    if (tipo === 'produtos' || (relatorioProdutos && !relatorioProdutos.classList.contains('hidden'))) {
-        if (typeof window.imprimirPDFProdutos === 'function') {
-            await window.imprimirPDFProdutos();
-        } else {
-            if(typeof showToast === 'function') showToast("Função de impressão do ranking não encontrada.", "erro");
-        }
-        return;
-    }
-
-    if (tipo === 'estoque' || (relatorioEstoque && !relatorioEstoque.classList.contains('hidden'))) {
-        if (typeof window.imprimirPDFEstoque === 'function') {
-            await window.imprimirPDFEstoque();
-        } else {
-            console.error("Função imprimirPDFEstoque não encontrada.");
-        }
-        return;
-    } 
-    
-    if (tipo === 'financeiro' || (relatorioFinanceiro && !relatorioFinanceiro.classList.contains('hidden'))) {
-        if (typeof window.imprimirFluxoFinanceiro === 'function') {
-            window.imprimirFluxoFinanceiro();
-        } else {
-            if(typeof showToast === 'function') showToast("Função de impressão financeira não encontrada.", "erro");
-        }
-        return;
-    } 
-
-    if (tipo === 'comandas') {
-        if (typeof window.imprimirPDFComandas === 'function') {
-            await window.imprimirPDFComandas();
-        } else {
-            console.error("Função imprimirPDFComandas não encontrada.");
-        }
-        return;
-    }
-
-    if (tipo === 'despesas') {
-        if (typeof window.imprimirPDFDespesas === 'function') {
-            await window.imprimirPDFDespesas();
-        }
-        return;
-    }
-    
-    window.print(); 
+  if (
+    tipo === "produtos" ||
+    (relatorioProdutos && !relatorioProdutos.classList.contains("hidden"))
+  ) {
+    if (typeof window.imprimirPDFProdutos === "function")
+      await window.imprimirPDFProdutos();
+    return;
+  }
+  if (
+    tipo === "estoque" ||
+    (relatorioEstoque && !relatorioEstoque.classList.contains("hidden"))
+  ) {
+    if (typeof window.imprimirPDFEstoque === "function")
+      await window.imprimirPDFEstoque();
+    return;
+  }
+  if (
+    tipo === "financeiro" ||
+    (relatorioFinanceiro && !relatorioFinanceiro.classList.contains("hidden"))
+  ) {
+    if (typeof window.imprimirFluxoFinanceiro === "function")
+      window.imprimirFluxoFinanceiro();
+    return;
+  }
+  if (tipo === "comandas") {
+    if (typeof window.imprimirPDFComandas === "function")
+      await window.imprimirPDFComandas();
+    return;
+  }
+  if (tipo === "despesas") {
+    if (typeof window.imprimirPDFDespesas === "function")
+      await window.imprimirPDFDespesas();
+    return;
+  }
+  window.print();
 };
 
-window.imprimirPDFProdutos = async function() {
-    const dIni = document.getElementById('data-inicio-rel-produtos')?.value;
-    const dFim = document.getElementById('data-fim-rel-produtos')?.value;
+window.imprimirPDFProdutos = async function () {
+  const dIni = document.getElementById("data-inicio-rel-produtos")?.value;
+  const dFim = document.getElementById("data-fim-rel-produtos")?.value;
 
-    if (!dIni || !dFim) {
-        if(typeof showToast === 'function') showToast("Selecione um período primeiro.", "aviso");
-        return;
-    }
+  if (!dIni || !dFim) {
+    if (typeof showToast === "function")
+      showToast("Selecione um período primeiro.", "aviso");
+    return;
+  }
 
-    if(typeof showToast === 'function') showToast("GERANDO PDF DO RANKING...", "aviso");
+  if (typeof showToast === "function")
+    showToast("GERANDO PDF DO RANKING...", "aviso");
 
-    try {
-        const { data: vendas, error } = await _supabase
-            .from('historico_vendas')
-            .select('itens')
-            .gte('created_at', `${dIni}T00:00:00`)
-            .lte('created_at', `${dFim}T23:59:59`)
-            .neq('status', 'cancelada');
+  try {
+    const { data: vendas, error } = await _supabase
+      .from("historico_vendas")
+      .select("itens")
+      .gte("created_at", `${dIni}T00:00:00`)
+      .lte("created_at", `${dFim}T23:59:59`)
+      .neq("status", "cancelada");
 
-        if (error) throw error;
+    if (error) throw error;
 
-        const contagem = {};
-        (vendas || []).forEach(v => {
-            let itensArr = Array.isArray(v.itens) ? v.itens : JSON.parse(v.itens || '[]');
-            itensArr.forEach(i => {
-                const nome = i.nome || 'PRODUTO DESCONHECIDO';
-                const precoItem = parseFloat(i.preco || 0);
-                const qtdItem = parseFloat(i.qtd || i.quantidade || 1);
-                if (!nome.toUpperCase().includes('PGTO') && precoItem > 0) {
-                    contagem[nome] = (contagem[nome] || 0) + qtdItem;
-                }
-            });
-        });
+    const contagem = {};
+    (vendas || []).forEach((v) => {
+      let itensArr = Array.isArray(v.itens)
+        ? v.itens
+        : JSON.parse(v.itens || "[]");
+      itensArr.forEach((i) => {
+        const nome = i.nome || "PRODUTO DESCONHECIDO";
+        const precoItem = parseFloat(i.preco || 0);
+        const qtdItem = parseFloat(i.qtd || i.quantidade || 1);
+        if (!nome.toUpperCase().includes("PGTO") && precoItem > 0) {
+          contagem[nome] = (contagem[nome] || 0) + qtdItem;
+        }
+      });
+    });
 
-        const ranking = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
-        const logoBase64 = typeof obterLogoBase64 === 'function' ? await obterLogoBase64('img/logo.jpg') : '';
-        const nomeLoja = (localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA').toUpperCase();
-        const dataEmissao = new Date().toLocaleString('pt-BR');
-        
-        const hoje = new Date();
-        const nomeArquivo = `${String(hoje.getDate()).padStart(2, '0')}${String(hoje.getMonth() + 1).padStart(2, '0')}${hoje.getFullYear()}_Ranking_Produtos`;
+    const ranking = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
+    const logoBase64 =
+      typeof obterLogoBase64 === "function"
+        ? await obterLogoBase64("img/logo.jpg")
+        : "";
+    const nomeLoja = (
+      localStorage.getItem("nomeLoja") || "ESPETINHO & CIA"
+    ).toUpperCase();
+    const dataEmissao = new Date().toLocaleString("pt-BR");
 
-        const estilos = `
+    const hoje = new Date();
+    const nomeArquivo = `${String(hoje.getDate()).padStart(2, "0")}${String(hoje.getMonth() + 1).padStart(2, "0")}${hoje.getFullYear()}_Ranking_Produtos`;
+
+    const estilos = `
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { font-family: 'Helvetica', Arial, sans-serif; padding: 40px; color: #1e293b; background: #fff; line-height: 1.4; }
@@ -1051,7 +1218,6 @@ window.imprimirPDFProdutos = async function() {
                 .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
                 .header-logo { position: absolute; right: 0; top: 0; }
                 .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-                
                 .secao-titulo { font-size: 14px; color: #e63946; font-weight: bold; text-transform: uppercase; border-left: 5px solid #e63946; padding-left: 10px; margin: 30px 0 15px 0; }
                 table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 25px; }
                 th { background: #f1f5f9; padding: 12px; text-align: left; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
@@ -1062,117 +1228,113 @@ window.imprimirPDFProdutos = async function() {
             </style>
         `;
 
-        const linhas = ranking.map(([nome, qtd], index) => {
-            const medalhas = ['🥇', '🥈', '🥉'];
-            const icone = medalhas[index] || `${index + 1}º`;
-            return `
-                <tr>
-                    <td class="pos">${icone}</td>
-                    <td>${nome}</td>
-                    <td class="qtd">${qtd} UNIDADES</td>
-                </tr>`;
-        }).join('');
+    const linhas = ranking
+      .map(([nome, qtd], index) => {
+        const medalhas = ["🥇", "🥈", "🥉"];
+        const icone = medalhas[index] || `${index + 1}º`;
+        return `<tr><td class="pos">${icone}</td><td>${nome}</td><td class="qtd">${qtd} UNIDADES</td></tr>`;
+      })
+      .join("");
 
-        const html = `
+    const html = `
             <html>
-            <head>
-                <title>${nomeArquivo}</title>
-                ${estilos}
-            </head>
+            <head><title>${nomeArquivo}</title>${estilos}</head>
             <body>
                 <div class="header-pdf">
                     <div class="header-info">
                         <h1>${nomeLoja}</h1>
                         <p>Ranking de Produtos Mais Vendidos</p>
-                        <small style="color: #94a3b8;">Período: ${new Date(dIni + "T12:00:00").toLocaleDateString('pt-BR')} até ${new Date(dFim + "T12:00:00").toLocaleDateString('pt-BR')}</small>
+                        <small style="color: #94a3b8;">Período: ${new Date(dIni + "T12:00:00").toLocaleDateString("pt-BR")} até ${new Date(dFim + "T12:00:00").toLocaleDateString("pt-BR")}</small>
                     </div>
-                    <div class="header-logo"><img src="${logoBase64 || ''}" onerror="this.style.display='none'"></div>
+                    <div class="header-logo"><img src="${logoBase64 || ""}" onerror="this.style.display='none'"></div>
                 </div>
-
                 <h3 class="secao-titulo">➔ Desempenho de Vendas</h3>
                 <table>
-                    <thead>
-                        <tr>
-                            <th class="pos">Pos</th>
-                            <th>Descrição do Produto</th>
-                            <th class="qtd">Quantidade</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${linhas}
-                    </tbody>
+                    <thead><tr><th class="pos">Pos</th><th>Descrição do Produto</th><th class="qtd">Quantidade</th></tr></thead>
+                    <tbody>${linhas}</tbody>
                 </table>
-
                 <div class="footer-pdf">WebComanda - Emitido em ${dataEmissao}</div>
-            </body>
-            </html>
-        `;
+            </body></html>`;
 
-        // Chamada do Motor Iframe
-        window.imprimirConteudoIframe(html, nomeArquivo);
-
-    } catch (e) {
-        console.error("Erro PDF Ranking:", e);
-        if(typeof showToast === 'function') showToast("Erro ao gerar PDF", "erro");
-    }
+    window.imprimirConteudoIframe(html, nomeArquivo);
+  } catch (e) {
+    console.error("Erro PDF Ranking:", e);
+  }
 };
 
-window.imprimirPDFComandas = async function() {
-    let dIni = document.getElementById('data-inicio-comandas')?.value;
-    let dFim = document.getElementById('data-fim-comandas')?.value;
+window.imprimirPDFComandas = async function () {
+  let dIni = document.getElementById("data-inicio-comandas")?.value;
+  let dFim = document.getElementById("data-fim-comandas")?.value;
 
-    if (!dIni || !dFim) {
-        dIni = dIni || document.getElementById('data-inicio-fin')?.value || new Date().toISOString().split('T')[0];
-        dFim = dFim || document.getElementById('data-fim-fin')?.value || new Date().toISOString().split('T')[0];
-    }
+  if (!dIni || !dFim) {
+    dIni =
+      dIni ||
+      document.getElementById("data-inicio-fin")?.value ||
+      new Date().toISOString().split("T")[0];
+    dFim =
+      dFim ||
+      document.getElementById("data-fim-fin")?.value ||
+      new Date().toISOString().split("T")[0];
+  }
 
-    if(typeof showToast === 'function') showToast("GERANDO RELATÓRIO DE VENDAS...", "aviso");
+  if (typeof showToast === "function")
+    showToast("GERANDO RELATÓRIO DE VENDAS...", "aviso");
 
-    try {
-        const { data: vendas, error } = await _supabase
-            .from('historico_vendas')
-            .select('*')
-            .gte('created_at', `${dIni}T00:00:00`)
-            .lte('created_at', `${dFim}T23:59:59`)
-            .neq('status', 'cancelada')
-            .order('created_at', { ascending: true });
+  try {
+    const { data: vendas, error } = await _supabase
+      .from("historico_vendas")
+      .select("*")
+      .gte("created_at", `${dIni}T00:00:00`)
+      .lte("created_at", `${dFim}T23:59:59`)
+      .neq("status", "cancelada")
+      .order("created_at", { ascending: true });
 
-        if (error) throw error;
+    if (error) throw error;
 
-        let totalBruto = 0;
-        const pagamentos = {};
-        const itensVendidos = {};
+    let totalBruto = 0;
+    const pagamentos = {};
+    const itensVendidos = {};
 
-        vendas.forEach(v => {
-            totalBruto += parseFloat(v.total || 0);
-            const mtd = (v.forma_pagamento || v.metodo_pagamento || 'NÃO INFORMADO').toUpperCase();
-            pagamentos[mtd] = (pagamentos[mtd] || 0) + parseFloat(v.total || 0);
+    vendas.forEach((v) => {
+      totalBruto += parseFloat(v.total || 0);
+      const mtd = (
+        v.forma_pagamento ||
+        v.metodo_pagamento ||
+        "NÃO INFORMADO"
+      ).toUpperCase();
+      pagamentos[mtd] = (pagamentos[mtd] || 0) + parseFloat(v.total || 0);
 
-            let itensArr = Array.isArray(v.itens) ? v.itens : JSON.parse(v.itens || '[]');
-            itensArr.forEach(i => {
-                const nome = i.nome || 'PRODUTO';
-                const qtd = parseFloat(i.qtd || i.quantidade || 1);
-                itensVendidos[nome] = (itensVendidos[nome] || 0) + qtd;
-            });
+      let itensArr = Array.isArray(v.itens)
+        ? v.itens
+        : JSON.parse(v.itens || "[]");
+      itensArr.forEach((i) => {
+        const nome = i.nome || "PRODUTO";
+        const qtd = parseFloat(i.qtd || i.quantidade || 1);
+        itensVendidos[nome] = (itensVendidos[nome] || 0) + qtd;
+      });
+    });
+
+    const linhasComandas = vendas
+      .map((v) => {
+        const hora = new Date(v.created_at).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
         });
+        return `<tr><td>${hora}</td><td>${(v.mesa || "BALCÃO").toUpperCase()}</td><td>${(v.forma_pagamento || v.metodo_pagamento || "---").toUpperCase()}</td><td class="text-right">R$ ${parseFloat(v.total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td></tr>`;
+      })
+      .join("");
 
-        const linhasComandas = vendas.map(v => {
-            const hora = new Date(v.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            return `
-                <tr>
-                    <td>${hora}</td>
-                    <td>${(v.mesa || 'BALCÃO').toUpperCase()}</td>
-                    <td>${(v.forma_pagamento || v.metodo_pagamento || '---').toUpperCase()}</td>
-                    <td class="text-right">R$ ${parseFloat(v.total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                </tr>`;
-        }).join('');
+    const logoBase64 =
+      typeof obterLogoBase64 === "function"
+        ? await obterLogoBase64("img/logo.jpg")
+        : "";
+    const nomeLoja = (
+      localStorage.getItem("nomeLoja") || "ESPETINHO & CIA"
+    ).toUpperCase();
+    const hoje = new Date();
+    const nomeArquivo = `${String(hoje.getDate()).padStart(2, "0")}${String(hoje.getMonth() + 1).padStart(2, "0")}${hoje.getFullYear()}_Relatorio_Comandas`;
 
-        const logoBase64 = typeof obterLogoBase64 === 'function' ? await obterLogoBase64('img/logo.jpg') : '';
-        const nomeLoja = (localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA').toUpperCase();
-        const hoje = new Date();
-        const nomeArquivo = `${String(hoje.getDate()).padStart(2, '0')}${String(hoje.getMonth() + 1).padStart(2, '0')}${hoje.getFullYear()}_Relatorio_Comandas`;
-
-        const estilos = `
+    const estilos = `
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1e293b; background: #fff; line-height: 1.4; }
@@ -1181,12 +1343,10 @@ window.imprimirPDFComandas = async function() {
                 .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
                 .header-logo { position: absolute; right: 0; top: 0; }
                 .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; }
-                
                 .grid-resumo { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
                 .card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; border-left: 5px solid #e63946; }
                 .card label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 900; display: block; }
                 .card b { font-size: 18px; color: #1e293b; font-weight: 900; }
-
                 .secao-titulo { font-size: 14px; color: #e63946; font-weight: bold; text-transform: uppercase; border-left: 5px solid #e63946; padding-left: 10px; margin: 30px 0 15px 0; background: #fff5f5; padding-top: 5px; padding-bottom: 5px; }
                 table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }
                 th { background: #f1f5f9; padding: 10px; text-align: left; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
@@ -1196,102 +1356,90 @@ window.imprimirPDFComandas = async function() {
             </style>
         `;
 
-        const html = `
+    const html = `
             <html><head><title>${nomeArquivo}</title>${estilos}</head>
             <body>
                 <div class="header-pdf">
                     <div class="header-info">
                         <h1>${nomeLoja}</h1>
                         <p>Relatório Geral de Vendas e Comandas</p>
-                        <small style="color: #94a3b8;">Período: ${new Date(dIni + "T12:00:00").toLocaleDateString('pt-BR')} até ${new Date(dFim + "T12:00:00").toLocaleDateString('pt-BR')}</small>
+                        <small style="color: #94a3b8;">Período: ${new Date(dIni + "T12:00:00").toLocaleDateString("pt-BR")} até ${new Date(dFim + "T12:00:00").toLocaleDateString("pt-BR")}</small>
                     </div>
                     <div class="header-logo"><img src="${logoBase64}" onerror="this.style.display='none'"></div>
                 </div>
-
                 <div class="grid-resumo">
-                    <div class="card"><label>Faturamento Total</label><b>R$ ${totalBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</b></div>
+                    <div class="card"><label>Faturamento Total</label><b>R$ ${totalBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b></div>
                     <div class="card" style="border-color: #10b981;"><label>Qtd Comandas</label><b>${vendas.length} Finalizadas</b></div>
                 </div>
-
                 <h3 class="secao-titulo">➔ Resumo Financeiro</h3>
-                <table>
-                    <thead><tr><th>Método de Pagamento</th><th class="text-right">Total Recebido</th></tr></thead>
-                    <tbody>
-                        ${Object.entries(pagamentos).map(([m, v]) => `<tr><td>${m}</td><td class="text-right">R$ ${v.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td></tr>`).join('')}
-                    </tbody>
-                </table>
-
+                <table><thead><tr><th>Método de Pagamento</th><th class="text-right">Total Recebido</th></tr></thead><tbody>
+                    ${Object.entries(pagamentos)
+                      .map(
+                        ([m, v]) =>
+                          `<tr><td>${m}</td><td class="text-right">R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td></tr>`,
+                      )
+                      .join("")}
+                </tbody></table>
                 <h3 class="secao-titulo">➔ Saída Global de Itens</h3>
-                <table>
-                    <thead><tr><th>Descrição do Produto</th><th class="text-right">Quantidade</th></tr></thead>
-                    <tbody>
-                        ${Object.entries(itensVendidos).sort((a,b)=>b[1]-a[1]).map(([n, q]) => `<tr><td>${n}</td><td class="text-right">${q} UN</td></tr>`).join('')}
-                    </tbody>
-                </table>
-
+                <table><thead><tr><th>Descrição do Produto</th><th class="text-right">Quantidade</th></tr></thead><tbody>
+                    ${Object.entries(itensVendidos)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(
+                        ([n, q]) =>
+                          `<tr><td>${n}</td><td class="text-right">${q} UN</td></tr>`,
+                      )
+                      .join("")}
+                </tbody></table>
                 <h3 class="secao-titulo">➔ Relação Detalhada de Comandas</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 60px;">Hora</th>
-                            <th>Mesa/Cliente</th>
-                            <th>Pagamento</th>
-                            <th class="text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${linhasComandas}
-                    </tbody>
-                </table>
-
+                <table><thead><tr><th style="width: 60px;">Hora</th><th>Mesa/Cliente</th><th>Pagamento</th><th class="text-right">Total</th></tr></thead><tbody>
+                    ${linhasComandas}
+                </tbody></table>
                 <div class="footer-pdf">WebComanda - Sistema de Gestão Inteligente</div>
-            </body></html>
-        `;
+            </body></html>`;
 
-        // Chamada do Motor Iframe
-        window.imprimirConteudoIframe(html, nomeArquivo);
-
-    } catch (e) {
-        console.error(e);
-        if(typeof showToast === 'function') showToast("Erro ao processar impressão", "erro");
-    }
+    window.imprimirConteudoIframe(html, nomeArquivo);
+  } catch (e) {
+    console.error(e);
+  }
 };
 
-window.imprimirFluxoFinanceiro = async function() {
-    const dataIni = document.getElementById('data-inicio-fin')?.value;
-    const dataFim = document.getElementById('data-fim-fin')?.value;
-    const resumoHTML = document.getElementById('resumo-financeiro-cards')?.innerHTML || '';
-    const listaHTML = document.getElementById('conteudo-rel-financeiro')?.innerHTML || '';
+window.imprimirFluxoFinanceiro = async function () {
+  const dataIni = document.getElementById("data-inicio-fin")?.value;
+  const dataFim = document.getElementById("data-fim-fin")?.value;
+  const resumoHTML =
+    document.getElementById("resumo-financeiro-cards")?.innerHTML || "";
+  const listaHTML =
+    document.getElementById("conteudo-rel-financeiro")?.innerHTML || "";
 
-    if (!resumoHTML || resumoHTML.includes("Processando")) {
-        if(typeof showToast === 'function') showToast("Aguarde o carregamento dos dados antes de imprimir.", "aviso");
-        return;
-    }
+  if (!resumoHTML || resumoHTML.includes("Processando")) {
+    if (typeof showToast === "function")
+      showToast("Aguarde o carregamento dos dados.", "aviso");
+    return;
+  }
 
-    if(typeof showToast === 'function') showToast("GERANDO PDF FINANCEIRO...", "aviso");
+  if (typeof showToast === "function")
+    showToast("GERANDO PDF FINANCEIRO...", "aviso");
 
-    let dataStr = "PERÍODO: GERAL";
-    if (dataIni && dataFim) {
-        const dI = new Date(dataIni + "T12:00:00").toLocaleDateString('pt-BR');
-        const dF = new Date(dataFim + "T12:00:00").toLocaleDateString('pt-BR');
-        dataStr = (dI === dF) ? `DATA: ${dI}` : `PERÍODO: ${dI} ATÉ ${dF}`;
-    }
+  let dataStr = "PERÍODO: GERAL";
+  if (dataIni && dataFim) {
+    const dI = new Date(dataIni + "T12:00:00").toLocaleDateString("pt-BR");
+    const dF = new Date(dataFim + "T12:00:00").toLocaleDateString("pt-BR");
+    dataStr = dI === dF ? `DATA: ${dI}` : `PERÍODO: ${dI} ATÉ ${dF}`;
+  }
 
-    const dataEmissao = new Date().toLocaleString('pt-BR');
-    const nomeLoja = (localStorage.getItem('nomeLoja') || 'ESPETINHO & CIA').toUpperCase();
+  const dataEmissao = new Date().toLocaleString("pt-BR");
+  const nomeLoja = (
+    localStorage.getItem("nomeLoja") || "ESPETINHO & CIA"
+  ).toUpperCase();
+  let logoBase64 =
+    typeof obterLogoBase64 === "function"
+      ? await obterLogoBase64("img/logo.jpg")
+      : "";
 
-    let logoBase64 = '';
-    if (typeof obterLogoBase64 === 'function') {
-        logoBase64 = await obterLogoBase64('img/logo.jpg');
-    }
+  const hoje = new Date();
+  const nomeArquivo = `${String(hoje.getDate()).padStart(2, "0")}${String(hoje.getMonth() + 1).padStart(2, "0")}${hoje.getFullYear()}_Fluxo_Financeiro`;
 
-    const hoje = new Date();
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const ano = hoje.getFullYear();
-    const nomeArquivo = `${dia}${mes}${ano}_Fluxo_Financeiro`;
-
-    const estilos = `
+  const estilos = `
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             @page { size: A4 portrait; margin: 15mm; }
@@ -1299,24 +1447,25 @@ window.imprimirFluxoFinanceiro = async function() {
             .header-pdf { position: relative; border-bottom: 4px solid #e63946; padding-bottom: 20px; margin-bottom: 30px; min-height: 100px; }
             .header-info { padding-right: 110px; }
             .header-info h1 { font-size: 30px; font-weight: 900; font-style: italic; color: #e63946; text-transform: uppercase; margin-bottom: 5px; }
-            .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
             .header-logo { position: absolute; right: 0; top: 0; }
-            .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; }
             .secao-titulo { font-size: 14px; color: #e63946; font-weight: bold; text-transform: uppercase; border-left: 5px solid #e63946; padding-left: 10px; margin: 30px 0 15px 0; }
             .footer-pdf { margin-top: 50px; text-align: center; font-size: 10px; color: #cbd5e1; border-top: 1px solid #f1f5f9; padding-top: 20px; font-style: italic; }
             .shadow-sm, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
             .rounded-2xl, .rounded-xl { border-radius: 8px !important; border: 1px solid #e2e8f0 !important; }
             .bg-slate-900, .bg-slate-800, .dark\\:bg-slate-900 { background-color: #f8fafc !important; }
             .dark\\:text-white, .text-white { color: #1e293b !important; }
-            .border-slate-800, .dark\\:border-slate-800 { border-color: #e2e8f0 !important; }
             .text-emerald-500 { color: #10b981 !important; font-weight: 900 !important; }
             .text-red-500 { color: #ef4444 !important; font-weight: 900 !important; }
         </style>
     `;
 
-    const cardsHTML = typeof resumoCardsLimpos === 'function' ? resumoCardsLimpos(resumoHTML) : resumoHTML;
+  const cardsHTML =
+    typeof resumoCardsLimpos === "function"
+      ? resumoCardsLimpos(resumoHTML)
+      : resumoHTML;
 
-    const htmlPrint = `
+  const htmlPrint = `
         <!DOCTYPE html>
         <html lang="pt-br">
         <head>
@@ -1332,72 +1481,62 @@ window.imprimirFluxoFinanceiro = async function() {
                     <p>Relatório de Fluxo de Caixa (Financeiro)</p>
                     <small style="color: #94a3b8;">Emitido em: ${dataEmissao} &nbsp;|&nbsp; ${dataStr}</small>
                 </div>
-                <div class="header-logo"><img src="${logoBase64 || ''}" onerror="this.style.display='none'"></div>
+                <div class="header-logo"><img src="${logoBase64 || ""}" onerror="this.style.display='none'"></div>
             </div>
             <h3 class="secao-titulo">➔ Resumo Consolidado</h3>
-            <div class="grid grid-cols-3 gap-4 mb-8">
-                ${cardsHTML}
-            </div>
+            <div class="grid grid-cols-3 gap-4 mb-8">${cardsHTML}</div>
             <h3 class="secao-titulo">➔ Detalhamento dos Lançamentos</h3>
-            <div class="space-y-2">
-                ${listaHTML}
-            </div>
+            <div class="space-y-2">${listaHTML}</div>
             <div class="footer-pdf">WebComanda - Sistema de Gestão Inteligente</div>
-        </body>
-        </html>
-    `;
+        </body></html>`;
 
-    // Chamada do Motor Iframe
-    window.imprimirConteudoIframe(htmlPrint, nomeArquivo);
+  window.imprimirConteudoIframe(htmlPrint, nomeArquivo);
 };
 
 function resumoCardsLimpos(html) {
-    return html.replace(/onclick="[^"]*"/g, "")
-               .replace(/cursor-pointer/g, "")
-               .replace(/hover:border-emerald-200/g, "")
-               .replace(/hover:border-red-200/g, "")
-               .replace(/dark:hover:border-emerald-900\/50/g, "")
-               .replace(/dark:hover:border-red-900\/50/g, "")
-               .replace(/🔍/g, "");
+  return html
+    .replace(/onclick="[^"]*"/g, "")
+    .replace(/cursor-pointer/g, "")
+    .replace(/hover:border-emerald-200/g, "")
+    .replace(/hover:border-red-200/g, "");
 }
 
-window.imprimirPDFEstoque = async function() {
-    if(typeof showToast === 'function') showToast("GERANDO PDF DE ESTOQUE...", "aviso");
+window.imprimirPDFEstoque = async function () {
+  if (typeof showToast === "function")
+    showToast("GERANDO PDF DE ESTOQUE...", "aviso");
 
-    try {
-        const { data: produtos, error } = await _supabase
-            .from('produtos')
-            .select('*')
-            .eq('controlar_estoque', true)
-            .order('nome');
+  try {
+    const { data: produtos, error } = await _supabase
+      .from("produtos")
+      .select("*")
+      .eq("controlar_estoque", true)
+      .order("nome");
 
-        if (error || !produtos) throw error;
+    if (error || !produtos) throw error;
 
-        const operador = (localStorage.getItem('userName') || 'ADMIN').toUpperCase();
-        const dataEmissao = new Date().toLocaleString('pt-BR');
-        const nomeLoja = (localStorage.getItem('nomeLoja') || 'SISTEMA NÚCLEO PDV').toUpperCase();
+    const operador = (
+      localStorage.getItem("userName") || "ADMIN"
+    ).toUpperCase();
+    const dataEmissao = new Date().toLocaleString("pt-BR");
+    const nomeLoja = (
+      localStorage.getItem("nomeLoja") || "ESPETINHO & CIA"
+    ).toUpperCase();
+    let logoBase64 =
+      typeof obterLogoBase64 === "function"
+        ? await obterLogoBase64("img/logo.jpg")
+        : "";
 
-        let logoBase64 = '';
-        if (typeof obterLogoBase64 === 'function') {
-            logoBase64 = await obterLogoBase64('img/logo.jpg');
-        }
+    const hoje = new Date();
+    const nomeArquivo = `${String(hoje.getDate()).padStart(2, "0")}${String(hoje.getMonth() + 1).padStart(2, "0")}${hoje.getFullYear()}_Relatorio_Estoque`;
 
-        const hoje = new Date();
-        const dia = String(hoje.getDate()).padStart(2, '0');
-        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-        const ano = hoje.getFullYear();
-        const nomeArquivo = `${dia}${mes}${ano}_Relatorio_Estoque`;
-
-        const estilos = `
+    const estilos = `
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { font-family: 'Helvetica', Arial, sans-serif; padding: 40px; color: #1e293b; background: #fff; line-height: 1.4; }
                 .header-pdf { position: relative; border-bottom: 4px solid #e63946; padding-bottom: 20px; margin-bottom: 30px; min-height: 100px; }
-                .header-info { padding-right: 110px; }
                 .header-info h1 { font-size: 30px; font-weight: 900; font-style: italic; color: #e63946; text-transform: uppercase; margin-bottom: 5px; }
-                .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
                 .header-logo { position: absolute; right: 0; top: 0; }
-                .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; }
                 .secao-titulo { font-size: 14px; color: #e63946; font-weight: bold; text-transform: uppercase; border-left: 5px solid #e63946; padding-left: 10px; margin: 30px 0 15px 0; }
                 table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }
                 th { background: #f1f5f9; padding: 12px; text-align: left; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
@@ -1408,28 +1547,23 @@ window.imprimirPDFEstoque = async function() {
             </style>
         `;
 
-        let linhasTabela = produtos.map(p => {
-            const qtd = parseFloat(p.estoque_atual || 0);
-            const alerta = qtd <= 5 ? '<span style="color:#ef4444; font-size:9px; font-weight:900; margin-left:6px;">(BAIXO)</span>' : '';
-            const corQtd = qtd <= 5 ? 'color:#ef4444;' : 'color:#15803d;';
-            
-            return `
-            <tr>
-                <td class="text-center" style="font-weight: 900; ${corQtd} font-size: 13px;">${qtd}</td>
-                <td>${p.nome.toUpperCase()} ${alerta}</td>
-                <td>${(p.categoria || 'N/A').toUpperCase()}</td>
-                <td class="text-right" style="color: #64748b;">R$ ${window.fmSeguro ? window.fmSeguro(p.preco_custo || 0) : p.preco_custo}</td>
-                <td class="text-right">R$ ${window.fmSeguro ? window.fmSeguro(p.preco || 0) : p.preco}</td>
-            </tr>`;
-        }).join('');
+    let linhasTabela = produtos
+      .map((p) => {
+        const qtd = parseFloat(p.estoque_atual || 0);
+        const alerta =
+          qtd <= 5
+            ? '<span style="color:#ef4444; font-size:9px; font-weight:900; margin-left:6px;">(BAIXO)</span>'
+            : "";
+        const corQtd = qtd <= 5 ? "color:#ef4444;" : "color:#15803d;";
 
-        const html = `
+        return `<tr><td class="text-center" style="font-weight: 900; ${corQtd} font-size: 13px;">${qtd}</td><td>${p.nome.toUpperCase()} ${alerta}</td><td>${(p.categoria || "N/A").toUpperCase()}</td><td class="text-right" style="color: #64748b;">R$ ${window.fmSeguro(p.preco_custo || 0)}</td><td class="text-right">R$ ${window.fmSeguro(p.preco || 0)}</td></tr>`;
+      })
+      .join("");
+
+    const html = `
         <!DOCTYPE html>
         <html>
-        <head>
-            <title>${nomeArquivo}</title>
-            ${estilos}
-        </head>
+        <head><title>${nomeArquivo}</title>${estilos}</head>
         <body>
             <div class="header-pdf">
                 <div class="header-info">
@@ -1437,142 +1571,155 @@ window.imprimirPDFEstoque = async function() {
                     <p>Relatório de Posição de Estoque</p>
                     <small style="color: #94a3b8;">Emitido em: ${dataEmissao} &nbsp;|&nbsp; Operador: ${operador}</small>
                 </div>
-                <div class="header-logo"><img src="${logoBase64 || ''}" onerror="this.style.display='none'"></div>
+                <div class="header-logo"><img src="${logoBase64 || ""}" onerror="this.style.display='none'"></div>
             </div>
             <h3 class="secao-titulo">➔ Inventário Atual</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 10%" class="text-center">QTD</th>
-                        <th style="width: 40%">DESCRIÇÃO</th>
-                        <th style="width: 20%">CATEGORIA</th>
-                        <th style="width: 15%" class="text-right">PREÇO CUSTO</th>
-                        <th style="width: 15%" class="text-right">PREÇO VENDA</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${linhasTabela}
-                </tbody>
-            </table>
+            <table><thead><tr><th style="width: 10%" class="text-center">QTD</th><th style="width: 40%">DESCRIÇÃO</th><th style="width: 20%">CATEGORIA</th><th style="width: 15%" class="text-right">PREÇO CUSTO</th><th style="width: 15%" class="text-right">PREÇO VENDA</th></tr></thead><tbody>${linhasTabela}</tbody></table>
             <div class="footer-pdf">WebComanda - Sistema de Gestão Inteligente</div>
-        </body>
-        </html>`;
+        </body></html>`;
 
-        // Chamada do Motor Iframe
-        window.imprimirConteudoIframe(html, nomeArquivo);
-
-    } catch (err) {
-        console.error("Erro ao gerar PDF:", err);
-        if(typeof showToast === 'function') showToast("ERRO AO GERAR RELATÓRIO", "erro");
-    }
+    window.imprimirConteudoIframe(html, nomeArquivo);
+  } catch (err) {
+    console.error("Erro ao gerar PDF:", err);
+  }
 };
 
-window.reimprimirComanda = async function(id) {
-    try {
-        const { data: m, error } = await _supabase.from('comandas').select('*').eq('id', id).single();
-        if (error || !m) throw new Error("Comanda não encontrada.");
+// FORMATO 3: Reimpressão de Comandas Antigas (Histórico)
+window.reimprimirComanda = async function (id) {
+  const cfg = obterConfiguracoesImpressora();
+  try {
+    const { data: m, error } = await _supabase
+      .from("comandas")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error || !m) throw new Error("Comanda não encontrada.");
 
-        const loja = localStorage.getItem('nomeLoja') || 'ESPETINHO E CIA';
-        const cnpj = localStorage.getItem('empresa_cnpj') || '';
-        const itens = typeof m.itens === 'string' ? JSON.parse(m.itens) : m.itens;
-        const dataF = new Date(m.fechada_em);
-        const dataFormatada = dataF.toLocaleDateString('pt-BR') + ' ' + dataF.toLocaleTimeString('pt-BR');
+    const loja = localStorage.getItem("nomeLoja") || "ESPETINHO E CIA";
+    const cnpj = localStorage.getItem("empresa_cnpj") || "";
+    const itens = typeof m.itens === "string" ? JSON.parse(m.itens) : m.itens;
+    const dataF = new Date(m.fechada_em);
+    const dataFormatada =
+      dataF.toLocaleDateString("pt-BR") +
+      " " +
+      dataF.toLocaleTimeString("pt-BR");
 
-        const ua = navigator.userAgent.toLowerCase();
-        const isAndroid = /android/.test(ua);
+    // --- ROTA TEXTO RAWBT ANDROID (REIMPRESSÃO ADAPTÁVEL) ---
+    if (
+      window.isRawBTThermalMode() &&
+      /android/.test(navigator.userAgent.toLowerCase())
+    ) {
+      const alinharCentro = (texto) => {
+        const str = String(texto).substring(0, cfg.maxChars);
+        return (
+          " ".repeat(Math.max(0, Math.floor((cfg.maxChars - str.length) / 2))) +
+          str
+        );
+      };
+      const alinharLados = (esq, dir) => {
+        const strEsq = String(esq);
+        const strDir = String(dir);
+        const espacosLivres = cfg.maxChars - strEsq.length - strDir.length;
+        if (espacosLivres > 0)
+          return strEsq + " ".repeat(espacosLivres) + strDir;
+        return (
+          strEsq.substring(0, cfg.maxChars - strDir.length - 1) + " " + strDir
+        );
+      };
 
-        // SE FOR MODO RAWBT -> GERA TEXTO PURO ALINHADO
-        if (window.isRawBTThermalMode() && isAndroid) {
-            const alinharCentro = (texto) => {
-                const str = String(texto).substring(0, 32);
-                const espacos = Math.max(0, Math.floor((32 - str.length) / 2));
-                return ' '.repeat(espacos) + str;
-            };
+      let textoRaw = "\n";
+      textoRaw += alinharCentro(loja) + "\n";
+      if (cnpj) textoRaw += alinharCentro(`CNPJ: ${cnpj}`) + "\n";
+      textoRaw += "-".repeat(cfg.maxChars) + "\n";
+      textoRaw +=
+        alinharCentro(`2 VIA - ${m.identificacao.toUpperCase()}`) + "\n";
+      textoRaw += alinharLados("DATA:", dataFormatada) + "\n";
+      textoRaw += "-".repeat(cfg.maxChars) + "\n\n";
 
-            const alinharLados = (esq, dir) => {
-                const strEsq = String(esq);
-                const strDir = String(dir);
-                const espacosLivres = 32 - strEsq.length - strDir.length;
-                if (espacosLivres > 0) return strEsq + ' '.repeat(espacosLivres) + strDir;
-                return strEsq.substring(0, 32 - strDir.length - 1) + ' ' + strDir;
-            };
-
-            let textoRaw = '\n'; 
-            textoRaw += alinharCentro(loja) + '\n';
-            if (cnpj) textoRaw += alinharCentro(`CNPJ: ${cnpj}`) + '\n';
-            textoRaw += '-'.repeat(32) + '\n';
-            textoRaw += alinharCentro(`2 VIA - ${m.identificacao.toUpperCase()}`) + '\n';
-            textoRaw += alinharLados('DATA:', dataFormatada) + '\n';
-            textoRaw += '-'.repeat(32) + '\n\n';
-
-            itens.forEach(item => {
-                const precoStr = (parseFloat(item.preco) * item.qtd).toFixed(2).replace('.', ',');
-                textoRaw += alinharLados(`${item.qtd}x ${item.nome.toUpperCase()}`, `R$ ${precoStr}`) + '\n';
-                if (item.detalhes || item.observacao) {
-                    const obsLimpa = (item.detalhes || item.observacao).replace(/<br>/g, ' | ');
-                    textoRaw += `  OBS: ${obsLimpa}\n`;
-                }
-            });
-
-            textoRaw += '\n' + '-'.repeat(32) + '\n';
-            textoRaw += alinharLados('TOTAL:', `R$ ${parseFloat(m.total).toFixed(2).replace('.', ',')}`) + '\n';
-            textoRaw += '-'.repeat(32) + '\n';
-            textoRaw += alinharLados('PAGAMENTO:', m.forma_pagamento || 'DINHEIRO') + '\n';
-            textoRaw += '\n' + alinharCentro('OBRIGADO PELA PREFERENCIA') + '\n\n\n\n';
-
-            const textoCodificado = encodeURIComponent(textoRaw);
-            window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-            return;
+      itens.forEach((item) => {
+        const precoStr = (parseFloat(item.preco) * item.qtd)
+          .toFixed(2)
+          .replace(".", ",");
+        textoRaw +=
+          alinharLados(
+            `${item.qtd}x ${item.nome.toUpperCase()}`,
+            `R$ ${precoStr}`,
+          ) + "\n";
+        if (item.detalhes || item.observacao) {
+          const obsLimpa = (item.detalhes || item.observacao).replace(
+            /<br>/g,
+            " | ",
+          );
+          textoRaw += `   OBS: ${obsLimpa}\n`;
         }
+      });
 
-        // ROTA NAVEGADOR / PC (MANTIDA ORIGINAL)
-        let html = `
-            <div style="font-family: 'Courier New', Courier, monospace; width: 300px; padding: 5px; color: #000;">
+      textoRaw += "\n" + "-".repeat(cfg.maxChars) + "\n";
+      textoRaw +=
+        alinharLados(
+          "TOTAL:",
+          `R$ ${parseFloat(m.total).toFixed(2).replace(".", ",")}`,
+        ) + "\n";
+      textoRaw += "-".repeat(cfg.maxChars) + "\n";
+      textoRaw +=
+        alinharLados("PAGAMENTO:", m.forma_pagamento || "DINHEIRO") + "\n";
+      textoRaw +=
+        "\n" +
+        alinharCentro("OBRIGADO PELA PREFERENCIA") +
+        "\n".repeat(cfg.tamanho === "58" ? 4 : 6);
+
+      const textoCodificado = encodeURIComponent(textoRaw);
+      window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+      return;
+    }
+
+    // --- ROTA NAVEGADOR WEB (REIMPRESSÃO ADAPTÁVEL) ---
+    let html = `
+            <div style="font-family: 'Courier New', Courier, monospace; width: ${cfg.bodyWidth}; padding: 0; color: #000; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <div style="font-size: 18px; font-weight: bold;">${loja}</div>
-                    ${cnpj ? `<div style="font-size: 11px; text-align: center;">CNPJ: ${cnpj}</div>` : ''}
+                    <div style="font-size: ${cfg.fontSizeTitulo}; font-weight: bold;">${loja}</div>
+                    ${cnpj ? `<div style="font-size: 11px; text-align: center;">CNPJ: ${cnpj}</div>` : ""}
                     <div style="font-size: 13px; font-weight: bold; margin-top: 4px;">2ª VIA - ${m.identificacao.toUpperCase()}</div>
-                    <div style="font-size: 10px; margin-top: 4px;">DATA: ${new Date(m.fechada_em).toLocaleString('pt-BR')}</div>
+                    <div style="font-size: 10px; margin-top: 4px;">DATA: ${dataFormatada}</div>
                 </div>
                 <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
                 <div style="margin-top: 10px;">
-                    ${itens.map(item => {
-                        const obsHtml = (item.detalhes || item.observacao) 
-                            ? `<div style="font-size: 11px; margin-top: 2px; padding-left: 5px; font-style: italic;">Obs: ${item.detalhes || item.observacao}</div>` 
-                            : '';
+                    ${itens
+                      .map((item) => {
+                        const obsHtml =
+                          item.detalhes || item.observacao
+                            ? `<div style="font-size: 11px; margin-top: 2px; padding-left: 5px; font-style: italic;">Obs: ${item.detalhes || item.observacao}</div>`
+                            : "";
                         return `
-                        <div style="margin-bottom: 10px;">
+                        <div style="margin-bottom: 8px;">
                             <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
                                 <span>${item.qtd}X ${item.nome.toUpperCase()}</span>
-                                <span>R$ ${(parseFloat(item.preco) * item.qtd).toFixed(2).replace('.', ',')}</span>
+                                <span>R$ ${(parseFloat(item.preco) * item.qtd).toFixed(2).replace(".", ",")}</span>
                             </div>
                             ${obsHtml}
                             <div style="border-top: 1px dashed #eee; margin-top: 4px;"></div>
                         </div>`;
-                    }).join('')}
+                      })
+                      .join("")}
                 </div>
                 <div style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 8px;">
                     <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold;">
                         <span>TOTAL</span>
-                        <span>R$ ${parseFloat(m.total).toFixed(2).replace('.', ',')}</span>
+                        <span>R$ ${parseFloat(m.total).toFixed(2).replace(".", ",")}</span>
                     </div>
                 </div>
-                <div style="margin-top: 10px; font-size: 10px;"><b>PAGAMENTO:</b> ${m.forma_pagamento || 'DINHEIRO'}</div>
+                <div style="margin-top: 10px; font-size: 11px;"><b>PAGAMENTO:</b> ${m.forma_pagamento || "DINHEIRO"}</div>
                 <div style="border-top: 1px dashed #000; margin: 15px 0 5px 0;"></div>
                 <div style="text-align: center; font-size: 12px; font-weight: bold; margin-top: 10px;">OBRIGADO PELA PREFERÊNCIA</div>
+                <div style="height: ${cfg.espacoGuilhotina};">.</div>
             </div>`;
 
-        // Direciona para o novo motor central!
-        window.imprimirConteudoHTML(html);
-
-    } catch (e) {
-        console.error('Erro na reimpressão:', e);
-        if (typeof showToast === 'function') showToast('ERRO AO GERAR IMPRESSÃO', 'erro');
-    }
+    window.imprimirConteudoIframe(html, `Reimpressao_Comanda_${id}`);
+  } catch (e) {
+    console.error("Erro na reimpressão:", e);
+  }
 };
 
-// Como o motor foi unificado com iframe anti-bloqueio, essa função
-// simplesmente repassa para o nosso motor central que criamos no topo do arquivo.
 function imprimirConteudoHTML(conteudo) {
-    window.imprimirConteudoIframe(conteudo, 'Reimpressao_Comanda');
+  window.imprimirConteudoIframe(conteudo, "Reimpressao_Comanda");
 }

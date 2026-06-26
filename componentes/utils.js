@@ -23,22 +23,24 @@ window.convMoedaFloat = function(valor) {
  * Máscara para campos de input de moeda
  */
 window.mascaraMoeda = function(elemento) {
-    // 1. Identifica se recebeu o input direto ('this') ou um evento ('event')
     const input = elemento.target ? elemento.target : elemento;
     
-    // 2. Pega o valor atual
-    let valor = input.value;
-    if (!valor) return;
-
-    // 3. Remove tudo que não for número
-    valor = valor.replace(/\D/g, '');
+    // VERIFICAÇÃO DE SEGURANÇA:
+    if (!input) return; 
     
-    // 4. Formata como moeda (ex: de 1000 para 10,00)
+    let valor = input.value;
+    
+    // Se o valor estiver vazio, apenas limpa e retorna
+    if (!valor) {
+        input.value = '';
+        return;
+    }
+
+    // O restante da sua lógica continua exatamente igual...
+    valor = valor.replace(/\D/g, '');
     valor = (valor / 100).toFixed(2) + '';
     valor = valor.replace('.', ',');
     valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-    
-    // 5. Devolve para o input com o prefixo
     input.value = valor === '0,00' ? '' : 'R$ ' + valor;
 };
 

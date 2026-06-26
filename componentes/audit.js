@@ -130,15 +130,8 @@ window.filtrarAuditoriaRapido = function(dias) {
 window.gerarPDFAuditoria = async function() {
     const logs = document.getElementById('lista-auditoria');
     
-    // Verificação se a lista está vazia
     if (!logs || logs.children.length === 0 || logs.innerText.includes('Nenhum')) {
-        if (typeof showToast === 'function') {
-            showToast('SEM DADOS PARA EXPORTAR', 'erro');
-        } else if (typeof alertaSistema === 'function') {
-            alertaSistema('Não há dados de auditoria disponíveis para exportar no momento.', 'Lista Vazia');
-        } else {
-            alert('SEM DADOS');
-        }
+        if (typeof showToast === 'function') showToast('SEM DADOS PARA EXPORTAR', 'erro');
         return;
     }
 
@@ -147,110 +140,70 @@ window.gerarPDFAuditoria = async function() {
     const loja = localStorage.getItem('nomeLoja') || "ESPETINHO & CIA";
     const dataHora = new Date().toLocaleString('pt-BR');
     
-    // Tenta buscar a logo caso a função exista no sistema
     let logoBase64 = '';
     if (typeof obterLogoBase64 === 'function') {
         logoBase64 = await obterLogoBase64('img/logo.jpg');
     }
 
-    // =========================================================================
-    // 1. GERANDO O NOME DO ARQUIVO (DDMMAAAA_NomeDoArquivo)
-    // =========================================================================
     const hoje = new Date();
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const ano = hoje.getFullYear();
-    const nomeArquivo = `${dia}${mes}${ano}_Relatorio_Auditoria`;
+    const nomeArquivo = `${String(hoje.getDate()).padStart(2, '0')}${String(hoje.getMonth() + 1).padStart(2, '0')}${hoje.getFullYear()}_Relatorio_Auditoria`;
 
-    // =========================================================================
-    // 2. O MOLDE PADRÃO DE ESTILOS CSS
-    // =========================================================================
     const estilos = `
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: 'Helvetica', Arial, sans-serif; padding: 40px; color: #1e293b; background: #fff; line-height: 1.4; }
             .header-pdf { position: relative; border-bottom: 4px solid #e63946; padding-bottom: 20px; margin-bottom: 30px; min-height: 100px; }
-            .header-info { padding-right: 110px; }
-            .header-info h1 { font-size: 30px; font-weight: 900; font-style: italic; color: #e63946; text-transform: uppercase; margin-bottom: 5px; }
-            .header-info p { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+            .header-info h1 { font-size: 30px; font-weight: 900; color: #e63946; text-transform: uppercase; margin-bottom: 5px; }
             .header-logo { position: absolute; right: 0; top: 0; }
-            .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-            
+            .header-logo img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; }
             .secao-titulo { font-size: 14px; color: #e63946; font-weight: bold; text-transform: uppercase; border-left: 5px solid #e63946; padding-left: 10px; margin: 30px 0 15px 0; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }
             th { background: #f1f5f9; padding: 12px; text-align: left; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
             td { padding: 12px; border-bottom: 1px solid #f1f5f9; color: #334155; font-weight: bold; }
             .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .footer-pdf { margin-top: 50px; text-align: center; font-size: 10px; color: #cbd5e1; border-top: 1px solid #f1f5f9; padding-top: 20px; font-style: italic; }
-            
-            /* Classes extras para formatar os logs */
-            .desc-cell { max-width: 300px; word-wrap: break-word; }
-            .tipo-badge { color: #0284c7; font-weight: 900; }
-            .data-txt { color: #94a3b8; }
-            .op-txt { color: #64748b; }
         </style>
     `;
 
-    // 3. Monta as linhas da tabela extraindo os dados do HTML
     const linhasTabela = Array.from(logs.children).map(div => {
         const dataStr = div.querySelector('.text-slate-300')?.innerText || '';
         const tipoStr = div.querySelector('.italic')?.innerText || '';
         const descStr = div.querySelector('p')?.innerText || '';
-        const opStr = div.querySelector('.pt-2')?.innerText || '';
+        const opStr = div.querySelector('.pt-2')?.innerText.replace('OP:', '').trim() || '';
 
-        return `
-            <tr>
-                <td class="data-txt">${dataStr}</td>
-                <td class="tipo-badge">${tipoStr}</td>
-                <td class="desc-cell">${descStr}</td>
-                <td class="text-right op-txt">${opStr}</td>
-            </tr>
-        `;
+        return `<tr><td>${dataStr}</td><td>${tipoStr}</td><td>${descStr}</td><td class="text-right">${opStr}</td></tr>`;
     }).join('');
 
-    // 4. Constrói o HTML final
     const html = `
+        <!DOCTYPE html>
         <html>
-        <head>
-            <title>${nomeArquivo}</title>
-            ${estilos}
-        </head>
+        <head><title>${nomeArquivo}</title>${estilos}</head>
         <body>
             <div class="header-pdf">
                 <div class="header-info">
                     <h1>${loja}</h1>
-                    <p>Relatório de Auditoria e Logs do Sistema</p>
-                    <small style="color: #94a3b8;">Emitido em: ${dataHora}</small>
+                    <p>Relatório de Auditoria e Logs</p>
+                    <small>Emitido em: ${dataHora}</small>
                 </div>
                 <div class="header-logo"><img src="${logoBase64 || ''}" onerror="this.style.display='none'"></div>
             </div>
-
             <h3 class="secao-titulo">➔ Histórico de Atividades</h3>
             <table>
-                <thead>
-                    <tr>
-                        <th style="width: 15%">Data / Hora</th>
-                        <th style="width: 15%">Módulo</th>
-                        <th style="width: 50%">Descrição da Ação</th>
-                        <th style="width: 20%" class="text-right">Operador</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${linhasTabela}
-                </tbody>
+                <thead><tr><th>Data/Hora</th><th>Módulo</th><th>Descrição</th><th class="text-right">Operador</th></tr></thead>
+                <tbody>${linhasTabela}</tbody>
             </table>
-
-            <div class="footer-pdf">WebComanda - Sistema de Gestão Inteligente</div>
-        </body>
-        </html>
+        </body></html>
     `;
 
-    const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    
-    setTimeout(() => { win.print(); win.close(); }, 500);
+    // AQUI ESTÁ A MÁGICA: Usamos nosso motor centralizado que não bloqueia
+    if (typeof window.imprimirConteudoIframe === 'function') {
+        window.imprimirConteudoIframe(html, nomeArquivo);
+    } else {
+        // Fallback caso print.js não esteja carregado
+        const win = window.open('', '_blank');
+        win.document.write(html);
+        win.document.close();
+        setTimeout(() => { win.print(); win.close(); }, 500);
+    }
 };
 
 window.toggleFiltroPeriodoAudit = function() {

@@ -207,15 +207,8 @@ window.registrarMovimentacaoCaixa = async function(tipo) {
     }
 };
 
-
 /* =================================================================================
-   ENCERRAMENTO DE TURNO / CAIXA
-   ================================================================================= */
-
-// 1. Abre o modal de confirmação
-// --- 1. ENCERRAMENTO DE TURNO (Ação do botão vermelho no Painel) ---
-/* =================================================================================
-   ENCERRAMENTO DE TURNO (TROCA DE OPERADOR)
+   ENCERRAMENTO DE TURNO (TROCA DE OPERADOR / LIMPEZA LOCAL)
    ================================================================================= */
 
 // 1. Abre o modal vermelho
@@ -236,7 +229,6 @@ window.fecharModalEncerramentoTurno = function() {
     }
 };
 
-// 3. Executa a limpeza apenas local (O caixa continua aberto no Supabase)
 // 3. Executa a limpeza apenas local (O caixa continua aberto no Supabase)
 window.confirmarEncerramentoTurno = async function(imprimirResumo = false) {
     
@@ -269,91 +261,6 @@ window.confirmarEncerramentoTurno = async function(imprimirResumo = false) {
     setTimeout(() => {
         window.location.href = 'home.html'; 
     }, tempoDeEspera);
-};
-
-window.fecharModalEncerramentoTurno = function() {
-    const modal = document.getElementById('modal-encerrar-turno');
-    if (modal) modal.classList.add('hidden');
-};
-
-// Esta é a função que o botão "Encerrar" do modal vermelho chama
-window.confirmarEncerramentoTurno = function() {
-    // 1. Limpa apenas a memória local do turno
-    // Isso faz o perfil (👤) mostrar "FECHADO" e parar o relógio
-    localStorage.removeItem('idCaixaAtual');
-    localStorage.removeItem('horaAberturaCaixa');
-    localStorage.removeItem('dataAberturaCaixa');
-
-    // 2. Feedback e redirecionamento
-    if (typeof showToast === 'function') showToast('TURNO ENCERRADO COM SUCESSO', 'sucesso');
-    
-    setTimeout(() => {
-        // Redireciona para a Home ou Login para o próximo operador entrar
-        window.location.href = 'home.html'; 
-    }, 1000);
-};
-
-// 2. Fecha o modal de confirmação (botão cancelar)
-window.fecharModalEncerramentoTurno = function() {
-    const modal = document.getElementById('modal-encerrar-turno');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-};
-
-// 3. Executa o fechamento real do turno
-window.confirmarEncerramentoTurno = async function() {
-    const idCaixa = localStorage.getItem('idCaixaAtual');
-    const adminNome = localStorage.getItem('userName') || 'Admin';
-
-    if (!idCaixa) {
-        if (typeof showToast === 'function') showToast('NENHUM CAIXA ATIVO', 'erro');
-        window.fecharModalEncerramentoTurno();
-        return;
-    }
-
-    try {
-        // Atualiza o status no banco de dados para FECHADO
-        const { error } = await _supabase
-            .from('caixa')
-            .update({ 
-                status: 'fechado',
-                fechado_em: new Date().toISOString()
-            })
-            .eq('id', idCaixa);
-
-        if (error) throw error;
-
-        // Registro de Auditoria
-        if (typeof registrarLog === 'function') {
-            await registrarLog('FINANCEIRO', `FECHAMENTO DE CAIXA: TURNO ENCERRADO (OP: ${adminNome})`);
-        }
-
-        // LIMPEZA DA MEMÓRIA (Resolve o bug do Tempo de Turno!)
-        localStorage.removeItem('idCaixaAtual');
-        localStorage.removeItem('dataAberturaCaixa');
-        localStorage.removeItem('horaAberturaCaixa');
-
-        // Fecha o modal
-        window.fecharModalEncerramentoTurno();
-
-        if (typeof showToast === 'function') showToast('TURNO ENCERRADO COM SUCESSO', 'sucesso');
-        
-        // Atualiza o perfil global para refletir que o caixa fechou
-        if (typeof window.carregarEstatisticasPerfil === 'function') {
-            window.carregarEstatisticasPerfil();
-        }
-
-        // Voltar para a tela inicial
-        setTimeout(() => {
-            window.location.href = 'home.html'; 
-        }, 1500);
-
-    } catch (e) {
-        console.error('[CAIXA] Erro ao encerrar turno:', e);
-        if (typeof showToast === 'function') showToast('ERRO AO ENCERRAR TURNO', 'erro');
-    }
 };
 
 /* --- Pontes para o HTML --- */

@@ -740,10 +740,8 @@ window.fecharHistoricoCozinha = function() {
     window.fecharModalGenerico('modal-historico-cozinha');
 };
 
-/* --- 7. IMPRESSÃO 58MM --- */
 
-/* --- FUNÇÃO DE IMPRESSÃO (TICKET 58mm) --- */
-
+/* --- FUNÇÃO DE IMPRESSÃO (TICKET COZINHA ADAPTÁVEL) --- */
 window.imprimirTicket58mm = async function(id, idLote) {
     const c = COMANDAS_ATIVAS.find(x => x.id === id);
     if (!c) return;
@@ -761,95 +759,111 @@ window.imprimirTicket58mm = async function(id, idLote) {
 
     const dataHora = new Date(idLote).toLocaleString('pt-BR');
 
-    const win = window.open('', '_blank', 'width=300,height=600');
-    win.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                /* O papel tem 58mm, mas avisamos o sistema. */
-                @page { margin: 0; size: 58mm auto; }
-                
-                * { 
-                    margin: 0; 
-                    padding: 0; 
-                    box-sizing: border-box; 
-                }
+    // 1. LEITURA INTELIGENTE DO HARDWARE VIA PRINT.JS
+    const cfg = typeof obterConfiguracoesImpressora === 'function' 
+        ? obterConfiguracoesImpressora() 
+        : { pageWidth: '58mm', bodyWidth: '48mm', espacoGuilhotina: '6mm', maxChars: 32, tamanho: '58' };
 
-                body { 
-                    font-family: 'Courier New', Courier, monospace; 
-                    /* A MÁGICA ESTÁ AQUI: 48mm é a área real da cabeça térmica! */
-                    width: 48mm !important; 
-                    max-width: 48mm !important;
-                    padding: 0 2mm; /* Pequeno respiro lateral */
-                    margin: 0 auto; /* Centraliza na bobina */
-                    background: #fff;
-                    color: #000 !important; 
-                    overflow-x: hidden;
-                }
-                
-                .center { text-align: center; }
-                .header { font-weight: bold; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 5px; }
-                .mesa { font-size: 24px; font-weight: 900; margin: 10px 0; }
-                .item-container { margin-top: 10px; }
-                
-                .item-row { display: flex; align-items: flex-start; margin-bottom: 2px; width: 100%; }
-                .qtd { font-weight: 900; font-size: 16px; min-width: 22px; }
-                
-                /* word-break força a palavra a quebrar se for maior que a tela */
-                .nome { 
-                    font-weight: bold; 
-                    font-size: 14px; 
-                    text-transform: uppercase; 
-                    line-height: 1.1; 
-                    flex: 1; 
-                    word-wrap: break-word; 
-                    overflow-wrap: break-word; 
-                    word-break: break-word; 
-                }
-                
-                .obs { 
-                    font-size: 12px; 
-                    font-style: italic; 
-                    font-weight: bold; 
-                    margin-left: 22px; 
-                    margin-bottom: 6px; 
-                    color: #000; 
-                    word-wrap: break-word; 
-                    overflow-wrap: break-word; 
-                }
-                .footer { border-top: 2px solid #000; margin-top: 15px; padding-top: 5px; font-size: 12px; }
-            </style>
-        </head>
-        <body onload="setTimeout(() => { window.print(); window.close(); }, 500);">
-            <div class="center header">PEDIDO COZINHA</div>
-            <div class="center mesa">${c.identificacao}</div>
-            <div class="center" style="font-size: 11px; margin-bottom: 10px;">${dataHora}</div>
-            
-            <div class="item-container">
-                ${itensParaImprimir.map(i => `
-                    <div class="item-row">
-                        <div class="qtd">${i.qtd}x</div>
-                        <div class="nome">${i.nome}</div>
+    // 2. ROTA ANDROID RAWBT (TEXTO PURO, IMPRESSÃO INSTANTÂNEA)
+    if (typeof window.isRawBTThermalMode === 'function' && window.isRawBTThermalMode() && /android/.test(navigator.userAgent.toLowerCase())) {
+        let textoRaw = '\n';
+        const alinharCentro = (texto) => {
+            const str = String(texto).substring(0, cfg.maxChars);
+            return ' '.repeat(Math.max(0, Math.floor((cfg.maxChars - str.length) / 2))) + str;
+        };
+
+        textoRaw += alinharCentro('PEDIDO COZINHA') + '\n';
+        textoRaw += alinharCentro(`MESA: ${c.identificacao}`) + '\n';
+        textoRaw += alinharCentro(dataHora) + '\n';
+        textoRaw += '-'.repeat(cfg.maxChars) + '\n\n';
+
+        itensParaImprimir.forEach(i => {
+            textoRaw += `${i.qtd}x ${i.nome.toUpperCase()}\n`;
+            if (i.detalhes || i.observacao) {
+                const obsLimpa = (i.detalhes || i.observacao).replace(/<br>/g, ' | ');
+                textoRaw += `  OBS: ${obsLimpa}\n`;
+            }
+            textoRaw += '\n';
+        });
+
+        textoRaw += '-'.repeat(cfg.maxChars) + '\n';
+        textoRaw += alinharCentro('*** FIM DO PEDIDO ***') + '\n';
+        textoRaw += '\n'.repeat(cfg.tamanho === '58' ? 4 : 6); // Guilhotina
+
+        const textoCodificado = encodeURIComponent(textoRaw);
+        window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+        return;
+    }
+
+    // 3. ROTA WEB / PC / iOS (IFRAME OCULTO ANTI-BLOQUEIO)
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @page { margin: 0; size: ${cfg.pageWidth} auto; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+                font-family: 'Courier New', Courier, monospace; 
+                width: ${cfg.bodyWidth} !important; 
+                max-width: ${cfg.bodyWidth} !important;
+                margin: 0 auto; 
+                padding: 0 2mm; 
+                background: #fff;
+                color: #000 !important; 
+                overflow-x: hidden;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .center { text-align: center; }
+            .header { font-weight: bold; font-size: ${cfg.tamanho === '58' ? '14px' : '16px'}; border-bottom: 2px solid #000; padding-bottom: 5px; margin-top: 3mm; }
+            .mesa { font-size: ${cfg.tamanho === '58' ? '22px' : '28px'}; font-weight: 900; margin: 10px 0; text-transform: uppercase; }
+            .item-container { margin-top: 10px; }
+            .item-row { display: flex; align-items: flex-start; margin-bottom: 4px; width: 100%; border-bottom: 1px dashed #ccc; padding-bottom: 4px; }
+            .qtd { font-weight: 900; font-size: ${cfg.tamanho === '58' ? '16px' : '18px'}; min-width: 25px; }
+            .nome { font-weight: bold; font-size: ${cfg.tamanho === '58' ? '15px' : '17px'}; text-transform: uppercase; line-height: 1.1; flex: 1; word-wrap: break-word; overflow-wrap: break-word; }
+            .obs { font-size: 12px; font-style: italic; font-weight: bold; margin-left: 25px; margin-bottom: 6px; color: #000; word-wrap: break-word; }
+            .footer { border-top: 2px solid #000; margin-top: 15px; padding-top: 5px; font-size: 12px; }
+        </style>
+    </head>
+    <body>
+        <div class="center header">PEDIDO COZINHA</div>
+        <div class="center mesa">${c.identificacao}</div>
+        <div class="center" style="font-size: 11px; margin-bottom: 10px;">${dataHora}</div>
+        
+        <div class="item-container">
+            ${itensParaImprimir.map(i => `
+                <div class="item-row">
+                    <div class="qtd">${i.qtd}x</div>
+                    <div class="nome">
+                        ${i.nome}
+                        ${(i.detalhes || i.observacao) ? `
+                            ${(i.detalhes || i.observacao)
+                                .split('|')
+                                .map(parte => parte.trim())
+                                .filter(parte => parte.length > 0)
+                                .map(parte => `<div class="obs">↳ ${parte}</div>`)
+                                .join('')
+                            }
+                        ` : ''}
                     </div>
-                    ${(i.detalhes || i.observacao) ? `
-                        ${(i.detalhes || i.observacao)
-                            .split('|')
-                            .map(parte => parte.trim())
-                            .filter(parte => parte.length > 0)
-                            .map(parte => `<div class="obs">↳ ${parte}</div>`)
-                            .join('')
-                        }
-                    ` : ''}
-                `).join('')}
-            </div>
-            
-            <div class="footer center">*** FIM DO PEDIDO ***</div>
-        </body>
-        </html>
-    `);
-    win.document.close();
+                </div>
+            `).join('')}
+        </div>
+        
+        <div class="footer center">*** FIM DO PEDIDO ***</div>
+        <div style="height: ${cfg.espacoGuilhotina};">.</div>
+    </body>
+    </html>
+    `;
+
+    // Dispara para o nosso motor central que não bloqueia
+    if (typeof window.imprimirConteudoIframe === 'function') {
+        window.imprimirConteudoIframe(html, `Cozinha_${c.identificacao}`);
+    } else {
+        console.error('Motor central print.js não encontrado.');
+    }
 };
 /* --- 8. INICIALIZAÇÃO --- */
 
@@ -889,272 +903,6 @@ window.onload = async () => {
     window.escutarNovosPedidos();
 };
             
-// Controle de Abertura/Fechamento do Modal
-window.abrirModalImpressao = function() {
-    const modal = document.getElementById('modal-impressao');
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-};
-
-window.fecharModalImpressao = function() {
-    const modal = document.getElementById('modal-impressao');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-};
-
-// Fluxo de Impressão Contínua de 80mm via Iframe Oculto (Imprimir ou Salvar PDF)
-window.confirmarImpressao = function() {
-    const inputQtd = document.getElementById('qtd-fichas-imprimir');
-    const qtd = parseInt(inputQtd.value) || 1;
-
-    // 1. Fecha o modal imediatamente para limpar a interface
-    window.fecharModalImpressao();
-
-    // 2. Remove iframes de impressões anteriores para não acumular lixo na página
-    let iframeAntigo = document.getElementById('iframe-impressao-cozinha');
-    if (iframeAntigo) {
-        iframeAntigo.remove();
-    }
-
-    // 3. Cria o Iframe Invisível
-    let iframe = document.createElement('iframe');
-    iframe.id = 'iframe-impressao-cozinha';
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    // 4. Monta a estrutura da bobina contínua de 80mm
-    let htmlStr = `<!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Fichas de Preparação</title>
-        <style>
-            /* Configurações específicas para rolo contínuo de 80mm */
-            @media print {
-                @page { 
-                    margin: 0; 
-                    size: 80mm auto; /* Largura fixa de 80mm, altura infinita/dinâmica */
-                }
-                html, body { 
-                    margin: 0; 
-                    padding: 0; 
-                    background: #fff; 
-                }
-            }
-            
-            body {
-                font-family: 'Courier New', Courier, monospace;
-                width: 72mm; /* Largura segura para evitar cortes nas margens físicas */
-                margin: 0 auto;
-                color: #000;
-            }
-
-            .ficha-container {
-                width: 100%;
-                text-align: center;
-                padding-top: 5mm;
-                padding-bottom: 2mm;
-                box-sizing: border-box;
-                
-                /* Comando que avisa a guilhotina da impressora para cortar o papel após cada ficha */
-                page-break-after: always; 
-                break-after: page;
-            }
-
-            /* Evita que a última ficha envie um comando de corte em branco desnecessário */
-            .ficha-container:last-child {
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
-            .titulo-principal {
-                font-size: 24px;
-                font-weight: 900;
-                margin: 0 0 3px 0;
-            }
-            .subtitulo {
-                font-size: 13px;
-                text-transform: uppercase;
-                margin-bottom: 5px;
-            }
-            .linha-tracejada {
-                border-top: 2px dashed #000;
-                margin: 8px 0;
-                width: 100%;
-            }
-            .data-hora-container {
-                display: flex;
-                justify-content: space-between;
-                font-size: 12px;
-                font-weight: bold;
-                margin-bottom: 12px;
-            }
-            
-            /* ========================================= */
-            /* CORREÇÃO 1: CAIXA MESA LADO A LADO        */
-            /* ========================================= */
-            .caixa-mesa {
-                border: 2.5px solid #000;
-                border-radius: 8px;
-                padding: 12px 10px;
-                margin-bottom: 12px;
-                display: flex;
-                align-items: flex-end;
-                justify-content: center;
-                gap: 10px;
-            }
-            .caixa-mesa h2 {
-                font-size: 24px;
-                font-weight: 900;
-                margin: 0;
-                line-height: 1;
-            }
-            .linha-preenchimento {
-                border-bottom: 2px solid #000;
-                width: 50%;
-                height: 5px;
-            }
-            
-            .secao-titulo {
-                font-size: 14px;
-                font-weight: bold;
-                text-align: left;
-                border-bottom: 2px solid #000;
-                padding-bottom: 3px;
-                margin-bottom: 12px;
-                text-transform: uppercase;
-            }
-            .item-linha {
-                display: flex;
-                align-items: flex-end;
-                margin-bottom: 12px;
-                text-align: left;
-            }
-            .checkbox {
-                width: 20px;
-                height: 20px;
-                border: 2px solid #000;
-                margin-right: 8px;
-                flex-shrink: 0;
-            }
-            .item-texto {
-                font-size: 13px;
-                font-weight: bold;
-                white-space: nowrap;
-                padding-bottom: 1px;
-            }
-            .pontilhados {
-                flex-grow: 1;
-                border-bottom: 2px dotted #000;
-                margin-left: 5px;
-                height: 14px;
-            }
-            .caixa-observacoes {
-                border: 2px solid #000;
-                border-radius: 8px;
-                height: 70px; 
-                margin-top: 3px;
-                margin-bottom: 12px;
-            }
-            .rodape-contingencia {
-                font-size: 11px;
-                text-transform: uppercase;
-                margin-top: 4px;
-                font-weight: bold;
-                letter-spacing: 0.5px;
-            }
-            
-            /* ========================================= */
-            /* CORREÇÃO 2: SOBRA PARA NÃO SOBREPOR/CORTAR*/
-            /* ========================================= */
-            .espaco-corte {
-                height: 15mm; /* Margem técnica para o papel avançar antes do corte físico */
-            }
-        </style>
-    </head>
-    <body>
-    `;
-
-    // 5. Laço para gerar o número de fichas contínuas solicitadas
-    for (let i = 0; i < qtd; i++) {
-        htmlStr += `
-        <div class="ficha-container">
-            <h1 class="titulo-principal">WEBCOMANDA</h1>
-            <div class="subtitulo">FICHA DE PREPARAÇÃO</div>
-            
-            <div class="linha-tracejada"></div>
-            
-            <div class="data-hora-container">
-                <span>DATA: __/__/____</span>
-                <span>HORA: __:__</span>
-            </div>
-            
-            <div class="caixa-mesa">
-                <h2>MESA:</h2>
-                <div class="linha-preenchimento"></div>
-            </div>
-            
-            <div class="secao-titulo">ITENS DO PEDIDO</div>
-            
-            <div class="item-linha">
-                <div class="checkbox"></div>
-                <div class="item-texto">QTD:_____ |</div>
-                <div class="pontilhados"></div>
-            </div>
-            <div class="item-linha">
-                <div class="checkbox"></div>
-                <div class="item-texto">QTD:_____ |</div>
-                <div class="pontilhados"></div>
-            </div>
-            <div class="item-linha">
-                <div class="checkbox"></div>
-                <div class="item-texto">QTD:_____ |</div>
-                <div class="pontilhados"></div>
-            </div>
-            <div class="item-linha">
-                <div class="checkbox"></div>
-                <div class="item-texto">QTD:_____ |</div>
-                <div class="pontilhados"></div>
-            </div>
-            
-            <div class="secao-titulo">OBSERVAÇÕES</div>
-            <div class="caixa-observacoes"></div>
-            
-            <div class="linha-tracejada"></div>
-            <div class="rodape-contingencia">EMISSÃO MANUAL DE CONTINGÊNCIA</div>
-            
-            <div class="espaco-corte"></div>
-        </div>
-        `;
-    }
-
-    htmlStr += `</body></html>`;
-
-    // 6. Injeta o código HTML gerado no frame oculto
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(htmlStr);
-    doc.close();
-
-    // 7. Dispara a janela de impressão nativa do dispositivo
-    setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        
-        if (window.showToast) {
-            window.showToast("Janela de sistema aberta!", "sucesso");
-        }
-    }, 500);
-};
-
-
 // Abre o modal de impressão
 window.abrirModalImpressao = function() {
     const modal = document.getElementById('modal-impressao');
@@ -1170,5 +918,126 @@ window.fecharModalImpressao = function() {
     if (modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+    }
+};
+
+// Fluxo de Impressão Contínua (Adaptável para 58 ou 80mm)
+window.confirmarImpressao = function() {
+    const inputQtd = document.getElementById('qtd-fichas-imprimir');
+    const qtd = parseInt(inputQtd.value) || 1;
+
+    window.fecharModalImpressao();
+
+    const cfg = typeof obterConfiguracoesImpressora === 'function' 
+        ? obterConfiguracoesImpressora() 
+        : { pageWidth: '80mm', bodyWidth: '72mm', espacoGuilhotina: '15mm', tamanho: '80' };
+
+    let htmlStr = `<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            @media print {
+                @page { margin: 0; size: ${cfg.pageWidth} auto; }
+                html, body { margin: 0; padding: 0; background: #fff; }
+            }
+            body {
+                font-family: 'Courier New', Courier, monospace;
+                width: ${cfg.bodyWidth};
+                margin: 0 auto;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .ficha-container {
+                width: 100%;
+                text-align: center;
+                padding-top: 5mm;
+                padding-bottom: 2mm;
+                padding-left: 4mm;  /* Margem lateral de segurança */
+                padding-right: 4mm; /* Margem lateral de segurança */
+                box-sizing: border-box;
+                page-break-after: always; 
+                break-after: page;
+            }
+            .ficha-container:last-child { page-break-after: avoid; }
+            
+            .titulo-principal { font-size: 20px; font-weight: 900; color: #000 !important; margin: 0 0 3px 0; }
+            .subtitulo { font-size: 11px; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; color: #000 !important; }
+            .linha-tracejada { border-top: 2px dashed #000; margin: 8px 0; width: 100%; }
+            
+            .data-hora-container { 
+                display: flex; 
+                justify-content: center; 
+                gap: 20px; 
+                font-size: 12px; 
+                font-weight: 900; 
+                margin-bottom: 12px; 
+                color: #000 !important; 
+            }
+            
+            .caixa-mesa {
+                border: 3px solid #000;
+                border-radius: 8px;
+                padding: 10px;
+                margin: 0 auto 12px auto;
+                width: 90%; /* Respiro lateral extra */
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                gap: 10px;
+                box-sizing: border-box;
+            }
+            .caixa-mesa h2 { font-size: 20px; font-weight: 900; color: #000 !important; margin: 0; }
+            .linha-preenchimento { border-bottom: 2px solid #000; width: 50%; height: 5px; }
+            
+            .secao-titulo { font-size: 13px; font-weight: 900; text-align: left; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 12px; text-transform: uppercase; color: #000 !important; }
+            .item-linha { display: flex; align-items: flex-end; margin-bottom: 15px; text-align: left; }
+            .checkbox { width: 18px; height: 18px; border: 2px solid #000; margin-right: 8px; flex-shrink: 0; }
+            .item-texto { font-size: 13px; font-weight: 900; color: #000 !important; padding-bottom: 1px; }
+            .pontilhados { flex-grow: 1; border-bottom: 2px dotted #000; margin-left: 5px; height: 14px; }
+            
+            .caixa-observacoes { border: 2px solid #000; border-radius: 8px; height: 60px; margin: 3px auto 12px auto; width: 90%; }
+            .rodape-contingencia { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #000 !important; margin-top: 4px; }
+        </style>
+    </head>
+    <body>`;
+
+    for (let i = 0; i < qtd; i++) {
+        htmlStr += `
+        <div class="ficha-container">
+            <h1 class="titulo-principal">WEBCOMANDA</h1>
+            <div class="subtitulo">FICHA DE PREPARAÇÃO</div>
+            <div class="linha-tracejada"></div>
+            
+            <div class="data-hora-container">
+                <span>DATA: __/__/____</span>
+                <span>HORA: __:__</span>
+            </div>
+            
+            <div class="caixa-mesa">
+                <h2>MESA:</h2>
+                <div class="linha-preenchimento"></div>
+            </div>
+            
+            <div class="secao-titulo">ITENS DO PEDIDO</div>
+            <div class="item-linha"><div class="checkbox"></div><div class="item-texto">QTD:_____ |</div><div class="pontilhados"></div></div>
+            <div class="item-linha"><div class="checkbox"></div><div class="item-texto">QTD:_____ |</div><div class="pontilhados"></div></div>
+            
+            <div class="secao-titulo">OBSERVAÇÕES</div>
+            <div class="caixa-observacoes"></div>
+            
+            <div class="linha-tracejada"></div>
+            <div class="rodape-contingencia">EMISSÃO MANUAL DE CONTINGÊNCIA</div>
+            <div style="height: ${cfg.espacoGuilhotina};"></div>
+        </div>`;
+    }
+
+    htmlStr += `</body></html>`;
+
+    if (typeof window.imprimirConteudoIframe === 'function') {
+        window.imprimirConteudoIframe(htmlStr, 'Fichas_Contingencia');
+    } else {
+        console.error('Motor central print.js não encontrado.');
     }
 };
