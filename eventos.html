@@ -395,6 +395,7 @@
 
 <div id="modal-imprimir-placas" class="fixed inset-0 bg-slate-900/80 z-[200] hidden items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-xl border border-slate-100 dark:border-slate-700">
+        
         <div class="flex justify-between items-center mb-5">
             <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase">Imprimir Placas</h3>
             <button onclick="window.fecharModalImpressaoPlacas()" class="text-slate-400 hover:text-red-500 transition">
@@ -402,13 +403,22 @@
             </button>
         </div>
 
+        <div class="mb-5 bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+            <label for="select-layout-placas" class="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">⚙️ Formato de Saída</label>
+            <select id="select-layout-placas" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase cursor-pointer transition">
+                <option value="a4_4">Folha A4 (4 por página)</option>
+                <option value="a4_2">Folha A4 (2 por página)</option>
+                <option value="termica_80">Bobina Térmica (80mm)</option>
+            </select>
+        </div>
+
         <div class="mb-4">
             <span class="block text-[10px] font-black text-indigo-500 uppercase tracking-wider mb-2">📌 Mesas Reservadas</span>
             <div class="grid grid-cols-2 gap-2">
-                <button onclick="window.gerarPlacasA5('reservadas', 'imprimir')" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
+                <button onclick="window.gerarPlacasA5('reservadas', 'imprimir', document.getElementById('select-layout-placas').value)" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
                     🖨️ Imprimir
                 </button>
-                <button onclick="window.gerarPlacasA5('reservadas', 'pdf')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-indigo-500/20">
+                <button onclick="window.gerarPlacasA5('reservadas', 'pdf', document.getElementById('select-layout-placas').value)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-indigo-500/20">
                     📄 Salvar PDF
                 </button>
             </div>
@@ -417,10 +427,10 @@
         <div class="mb-4">
             <span class="block text-[10px] font-black text-emerald-500 uppercase tracking-wider mb-2">🍃 Mesas Disponíveis (Livres)</span>
             <div class="grid grid-cols-2 gap-2">
-                <button onclick="window.gerarPlacasA5('disponiveis', 'imprimir')" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
+                <button onclick="window.gerarPlacasA5('disponiveis', 'imprimir', document.getElementById('select-layout-placas').value)" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
                     🖨️ Imprimir
                 </button>
-                <button onclick="window.gerarPlacasA5('disponiveis', 'pdf')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-emerald-500/20">
+                <button onclick="window.gerarPlacasA5('disponiveis', 'pdf', document.getElementById('select-layout-placas').value)" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-emerald-500/20">
                     📄 Salvar PDF
                 </button>
             </div>
@@ -429,30 +439,42 @@
         <div class="border-t border-slate-100 dark:border-slate-700 pt-4">
             <span class="block text-[10px] font-black text-amber-500 uppercase tracking-wider mb-2">📊 Todas as Mesas (Lote Completo)</span>
             <div class="grid grid-cols-2 gap-2">
-                <button onclick="window.gerarPlacasA5('todas', 'imprimir')" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
+                <button onclick="window.gerarPlacasA5('todas', 'imprimir', document.getElementById('select-layout-placas').value)" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1">
                     🖨️ Imprimir
                 </button>
-                <button onclick="window.gerarPlacasA5('todas', 'pdf')" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-amber-500/20">
+                <button onclick="window.gerarPlacasA5('todas', 'pdf', document.getElementById('select-layout-placas').value)" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-2 rounded-xl text-[11px] uppercase transition flex justify-center items-center gap-1 shadow-md shadow-amber-500/20">
                     📄 Salvar PDF
                 </button>
             </div>
         </div>
+        
     </div>
 </div>
 
 <div id="modal-admin-patrocinadores" class="hidden fixed inset-0 bg-slate-900/90 z-[120] flex items-end sm:items-center justify-center backdrop-blur-sm p-4 transition-opacity">
     <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl flex flex-col max-h-[85vh] animate-slide-up border border-slate-100 dark:border-slate-800">
-<div class="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-    <h3 class="text-[#e63946] font-black text-lg uppercase italic tracking-tighter">🏆 PATROCINADORES</h3>
-    <div class="flex gap-2">
-        <button onclick="window.imprimirPlacaPatrocinadores()" class="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-black text-xs uppercase flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
-            🖨️ IMPRIMIR
-        </button>
-        <button onclick="fecharModalAdminPatrocinadores()" class="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 font-bold active:scale-90 transition-transform">✕</button>
-    </div>
-</div>
+        
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <h3 class="text-[#e63946] font-black text-lg uppercase italic tracking-tighter">🏆 PATROCINADORES</h3>
+            <div class="flex gap-2">
+                <button onclick="window.imprimirPlacaPatrocinadores(null, document.getElementById('select-layout-patroc').value)" class="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-black text-xs uppercase flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
+                    🖨️ IMPRIMIR
+                </button>
+                <button onclick="fecharModalAdminPatrocinadores()" class="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 font-bold active:scale-90 transition-transform">✕</button>
+            </div>
+        </div>
         
         <div class="overflow-y-auto custom-scrollbar flex-1 pr-2">
+            
+            <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6 border border-slate-100 dark:border-slate-700 flex flex-col gap-2">
+                <label for="select-layout-patroc" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">⚙️ Formato de Impressão</label>
+                <select id="select-layout-patroc" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-blue-500 uppercase cursor-pointer transition shadow-sm">
+                    <option value="a4_4">Folha A4 (4 por pág)</option>
+                    <option value="a4_2">Folha A4 (2 por pág)</option>
+                    <option value="termica_80">Térmica (Bobina 80mm)</option>
+                </select>
+            </div>
+
             <form onsubmit="window.salvarNovoPatrocinador(event)" class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6 border border-slate-100 dark:border-slate-700">
                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Adicionar Patrocinador</label>
                 <div class="flex gap-2">
@@ -467,11 +489,10 @@
                     <p class="text-xs text-slate-400 italic">Carregando...</p>
                 </div>
             </div>
+            
         </div>
     </div>
 </div>
-
-
 
 
     <div id="toast-container" class="fixed bottom-4 right-4 z-[200] flex flex-col gap-2"></div>
