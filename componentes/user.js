@@ -100,11 +100,14 @@ window.salvarNovoUsuario = async function() {
             return showToast('ESTE LOGIN JÁ EXISTE!', 'erro');
         }
 
+        // CORREÇÕES APLICADAS:
+        // 1. Removido o btoa() para manter o padrão de senha de texto da edição
+        // 2. Trocado "cargo" por "nivel" para bater com a sua tabela do banco
         const { error } = await _supabase.from('usuarios').insert([{ 
             nome, 
             usuario, 
-            senha: btoa(senha), 
-            cargo: 'OPERADOR',
+            senha: senha, 
+            nivel: 'OPERADOR', 
             ativo: true,
             recebe_notificacoes: false 
         }]);
@@ -162,7 +165,7 @@ window.salvarEdicaoUsuario = async function() {
     try {
         const dadosAtualizados = { nome, usuario: login, recebe_notificacoes: recebeNotificacoes };
         
-        // CORREÇÃO: Removido o btoa para salvar a senha como texto comum
+        // CORREÇÃO MANTIDA: Senha sendo salva como texto comum
         if (novaSenha && novaSenha.trim() !== '') {
             dadosAtualizados.senha = novaSenha; 
         }

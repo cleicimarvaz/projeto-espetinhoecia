@@ -471,7 +471,8 @@ window.processarImpressaoCardapio = async function () {
     if (modelo === "classico") {
       window.gerarTemplateClassico(produtos, loja, logoBase64, mensagem);
     } else {
-      window.gerarTemplateModerno(produtos, loja, logoBase64, message);
+      // CORRIGIDO: alterado de 'message' para 'mensagem'
+      window.gerarTemplateModerno(produtos, loja, logoBase64, mensagem);
     }
   } catch (e) {
     console.error("Erro ao gerar cardápio", e);
@@ -531,36 +532,66 @@ window.gerarTemplateClassico = function (produtos, loja, logoBase64, mensagem) {
   window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, "classico");
 };
 
-window.gerarTemplateModerno = function (produtos, loja, logoBase64, mensagem) {
-  const categorias = [
-    ...new Set(produtos.map((p) => (p.categoria || "outros").toLowerCase())),
-  ];
+window.gerarTemplateModerno = function (produtos = [], loja = "Loja", logoBase64 = "", mensagem = "") {
+    // 1. BLINDAGEM: Garante que os produtos existam e sejam um array
+    if (!Array.isArray(produtos) || produtos.length === 0) {
+        console.warn("Nenhum produto recebido para gerar o cardápio.");
+        if (typeof window.showToast === 'function') window.showToast("Nenhum produto encontrado.", "erro");
+        return;
+    }
 
-  let html = categorias
-    .map(
-      (cat) => `
-        <div class="cat-section-moderno">
-            <div class="cat-titulo-moderno">${cat.toUpperCase()}</div>
-            ${produtos
-              .filter((p) => (p.categoria || "outros").toLowerCase() === cat)
-              .map(
-                (p) => `
-                <div style="margin-bottom: 6px; page-break-inside: avoid; break-inside: avoid;">
-                    <div class="item-moderno" style="margin-bottom: 1px;">
-                        <span class="item-nome-moderno">${p.nome.toUpperCase()}</span>
-                        <div class="item-dots-moderno"></div>
-                        <span class="item-preco-moderno">R$ ${window.fmSeguro(p.preco)}</span>
-                    </div>
-                    ${p.observacao ? `<div style="font-size: 9px; color: #64748b; font-weight: 600; font-style: italic; line-height: 1.1; text-transform: uppercase; margin-top: -1px;">${p.observacao}</div>` : ""}
-                </div>
-            `,
-              )
-              .join("")}
-        </div>`,
-    )
-    .join("");
+    try {
+        const categorias = [
+            ...new Set(produtos.map((p) => (p.categoria || "outros").toLowerCase())),
+        ];
 
-  window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, "moderno");
+        let html = categorias
+            .map(
+                (cat) => `
+                <div class="cat-section-moderno">
+                    <div class="cat-titulo-moderno">${cat.toUpperCase()}</div>
+                    ${produtos
+                        .filter((p) => (p.categoria || "outros").toLowerCase() === cat)
+                        .map(
+                            (p) => {
+                                // 2. BLINDAGEM: Evita quebra se o nome for nulo ou undefined
+                                const nomeProduto = (p.nome || "Item sem nome").toUpperCase();
+                                
+                                // 3. BLINDAGEM: Garante que o preço seja formatado mesmo se a fmSeguro falhar
+                                let precoFormatado = "0,00";
+                                if (typeof window.fmSeguro === 'function') {
+                                    precoFormatado = window.fmSeguro(p.preco);
+                                } else {
+                                    precoFormatado = Number(p.preco || 0).toFixed(2).replace('.', ',');
+                                }
+
+                                return `
+                                <div style="margin-bottom: 6px; page-break-inside: avoid; break-inside: avoid;">
+                                    <div class="item-moderno" style="margin-bottom: 1px;">
+                                        <span class="item-nome-moderno">${nomeProduto}</span>
+                                        <div class="item-dots-moderno"></div>
+                                        <span class="item-preco-moderno">R$ ${precoFormatado}</span>
+                                    </div>
+                                    ${p.observacao ? `<div style="font-size: 9px; color: #64748b; font-weight: 600; font-style: italic; line-height: 1.1; text-transform: uppercase; margin-top: -1px;">${p.observacao}</div>` : ""}
+                                </div>
+                                `;
+                            }
+                        )
+                        .join("")}
+                </div>`
+            )
+            .join("");
+
+        // 4. BLINDAGEM: Verifica se a função de impressão final existe
+        if (typeof window.abrirJanelaImpressao === 'function') {
+            window.abrirJanelaImpressao(loja, logoBase64, html, mensagem, "moderno");
+        } else {
+            console.error("Erro: A função window.abrirJanelaImpressao não foi encontrada.");
+        }
+
+    } catch (error) {
+        console.error("Erro crítico ao montar o template moderno:", error);
+    }
 };
 
 window.abrirJanelaImpressao = function (
