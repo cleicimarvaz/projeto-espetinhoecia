@@ -778,39 +778,40 @@ window.abrirGerenciamentoEvento = async function (id, nome) {
 // =========================================================================
 // FUNÇÃO QUE GERA A PLACA DO EVENTO ATUAL (A4 PAISAGEM)
 // =========================================================================
-window.imprimirPlacaDoEvento = function () {
-  const nomeEvento = window.nomeEventoAtivo || "NOSSO EVENTO";
+window.imprimirPlacaDoEvento = function (layoutOpcao = 'a4_4', qtdImpressoes = 1) {
+    const nomeEvento = window.nomeEventoAtivo || "NOSSO EVENTO";
 
-  // Se você já tiver criado uma coluna "patrocinadores" no banco (em formato JSON), ele usa.
-  // Se não, usa esses de exemplo para você já conseguir imprimir.
-  let listaPatroc = window.patrocinadoresEventoAtivo;
-  if (typeof listaPatroc === "string") {
-    try {
-      listaPatroc = JSON.parse(listaPatroc);
-    } catch (e) {
-      listaPatroc = null;
+    // Busca os patrocinadores
+    let listaPatroc = window.patrocinadoresEventoAtivo;
+    if (typeof listaPatroc === "string") {
+        try {
+            listaPatroc = JSON.parse(listaPatroc);
+        } catch (e) {
+            listaPatroc = null;
+        }
     }
-  }
 
-  const patrocinadores = listaPatroc || [
-    { nome: "Supermercado Central", cota: "Ouro" },
-    { nome: "Distribuidora de Bebidas", cota: "Ouro" },
-    { nome: "Gráfica Rápida", cota: "Prata" },
-    { nome: "Açougue do Bairro", cota: "Apoio" },
-  ];
+    const patrocinadores = listaPatroc || [
+        { nome: "Supermercado Central", cota: "Ouro" },
+        { nome: "Distribuidora de Bebidas", cota: "Ouro" },
+        { nome: "Gráfica Rápida", cota: "Prata" },
+        { nome: "Açougue do Bairro", cota: "Apoio" },
+    ];
 
-  let htmlPatrocinadores = patrocinadores
-    .map(
-      (p) => `
+    // Monta o HTML dos patrocinadores (flexível para os 3 layouts)
+    let htmlPatrocinadores = patrocinadores.map(p => `
         <div class="patrocinador-card">
             <div class="patrocinador-nome">${p.nome.toUpperCase()}</div>
-            <div class="patrocinador-cota">Cota ${p.cota.toUpperCase()}</div>
+            <div class="patrocinador-cota">COTA ${p.cota.toUpperCase()}</div>
         </div>
-    `,
-    )
-    .join("");
+    `).join("");
 
-  const html = `
+    // Configuração da Térmica (caso seja selecionada)
+    const cfg = typeof obterConfiguracoesImpressora === 'function' 
+        ? obterConfiguracoesImpressora() 
+        : { pageWidth: '80mm', bodyWidth: '72mm', espacoGuilhotina: '15mm', tamanho: '80' };
+
+    let htmlStr = `
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head>
@@ -818,47 +819,92 @@ window.imprimirPlacaDoEvento = function () {
         <title>Patrocinadores - ${nomeEvento}</title>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
-            @media print {
-                @page { size: A4 landscape; margin: 15mm; }
-                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            }
             * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Montserrat', sans-serif; background-color: #fff; color: #1e293b; width: 100%; height: 90vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-            .header { margin-bottom: 50px; }
-            .agradecimento { font-size: 22px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 10px; }
-            .titulo { font-size: 60px; font-weight: 900; color: #e63946; text-transform: uppercase; line-height: 1; margin-bottom: 20px; }
-            .evento-nome { font-size: 18px; font-weight: 900; background-color: #1e293b; color: #fff; display: inline-block; padding: 10px 30px; border-radius: 50px; text-transform: uppercase; letter-spacing: 2px; }
-            .grid-patrocinadores { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; max-width: 1000px; }
-            .patrocinador-card { background: #f8fafc; border: 3px solid #f1f5f9; border-radius: 20px; padding: 25px 30px; min-width: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-            .patrocinador-nome { font-size: 24px; font-weight: 900; color: #0f172a; margin-bottom: 8px; text-align: center; line-height: 1.1; }
-            .patrocinador-cota { font-size: 12px; font-weight: 900; color: #e63946; text-transform: uppercase; letter-spacing: 2px; border-top: 2px solid #e2e8f0; padding-top: 10px; width: 80%; }
+            body { font-family: 'Montserrat', sans-serif; background-color: #fff; color: #1e293b; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    `;
+
+    // --- 1. LAYOUT: 4 POR PÁGINA (A4 Retrato) ---
+    if (layoutOpcao === 'a4_4') {
+        htmlStr += `
+            @media print { @page { size: A4 portrait; margin: 10mm; } }
+            .placa-wrapper { width: 48%; height: 135mm; float: left; margin: 1%; border: 3px dashed #cbd5e1; padding: 10mm 5mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-inside: avoid; border-radius: 15px;}
+            .agradecimento { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+            .titulo { font-size: 26px; font-weight: 900; color: #e63946; text-transform: uppercase; line-height: 1; margin-bottom: 15px; }
+            .evento-nome { font-size: 12px; font-weight: 900; background-color: #1e293b; color: #fff; padding: 6px 20px; border-radius: 50px; text-transform: uppercase; margin-bottom: 20px; }
+            .grid-patrocinadores { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; }
+            .patrocinador-card { background: #f8fafc; border: 2px solid #f1f5f9; border-radius: 10px; padding: 10px; min-width: 45%; flex: 1; }
+            .patrocinador-nome { font-size: 14px; font-weight: 900; color: #0f172a; margin-bottom: 5px; }
+            .patrocinador-cota { font-size: 10px; font-weight: 900; color: #e63946; text-transform: uppercase; border-top: 1px solid #e2e8f0; padding-top: 5px; }
+        `;
+    } 
+    // --- 2. LAYOUT: 2 POR PÁGINA (A4 Retrato) ---
+    else if (layoutOpcao === 'a4_2') {
+        htmlStr += `
+            @media print { @page { size: A4 portrait; margin: 15mm; } }
+            .placa-wrapper { width: 100%; height: 130mm; border: 4px solid #1e293b; border-radius: 20px; padding: 15mm 10mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; margin-bottom: 10mm; page-break-inside: avoid; }
+            .placa-wrapper:nth-child(2n) { page-break-after: always; }
+            .agradecimento { font-size: 16px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px; }
+            .titulo { font-size: 40px; font-weight: 900; color: #e63946; text-transform: uppercase; line-height: 1; margin-bottom: 15px; }
+            .evento-nome { font-size: 16px; font-weight: 900; background-color: #1e293b; color: #fff; padding: 8px 30px; border-radius: 50px; text-transform: uppercase; margin-bottom: 25px; }
+            .grid-patrocinadores { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; }
+            .patrocinador-card { background: #f8fafc; border: 3px solid #f1f5f9; border-radius: 15px; padding: 15px; min-width: 45%; flex: 1; }
+            .patrocinador-nome { font-size: 18px; font-weight: 900; color: #0f172a; margin-bottom: 5px; }
+            .patrocinador-cota { font-size: 12px; font-weight: 900; color: #e63946; text-transform: uppercase; border-top: 2px solid #e2e8f0; padding-top: 5px; }
+        `;
+    } 
+    // --- 3. LAYOUT: TÉRMICA 80MM ---
+    else if (layoutOpcao === 'termica_80') {
+        htmlStr += `
+            @media print { @page { margin: 0; size: ${cfg.pageWidth} auto; } }
+            body { width: ${cfg.bodyWidth}; margin: 0 auto; color: #000 !important; font-family: 'Courier New', Courier, monospace; }
+            .placa-wrapper { width: 100%; text-align: center; padding: 10mm 2mm; border-bottom: 2px dashed #000; page-break-after: always; break-after: page; }
+            .placa-wrapper:last-child { border-bottom: none; page-break-after: avoid; }
+            .agradecimento { font-size: 11px; font-weight: 900; text-transform: uppercase; margin-bottom: 3px; color: #000 !important; }
+            .titulo { font-size: 22px; font-weight: 900; text-transform: uppercase; line-height: 1; margin-bottom: 10px; color: #000 !important; }
+            .evento-nome { font-size: 14px; font-weight: 900; border: 3px solid #000; padding: 5px 10px; text-transform: uppercase; margin-bottom: 15px; display: inline-block; color: #000 !important; }
+            .grid-patrocinadores { display: flex; flex-direction: column; width: 100%; gap: 5px; }
+            .patrocinador-card { border: 2px solid #000; border-radius: 8px; padding: 8px 2px; width: 100%; }
+            .patrocinador-nome { font-size: 16px; font-weight: 900; color: #000 !important; margin-bottom: 3px; line-height: 1.1; }
+            .patrocinador-cota { font-size: 11px; font-weight: 900; text-transform: uppercase; border-top: 1px dashed #000; padding-top: 3px; color: #000 !important; }
+        `;
+    }
+
+    htmlStr += `
         </style>
     </head>
     <body>
-        <div class="header">
-            <div class="agradecimento">Nosso muito obrigado aos</div>
-            <div class="titulo">Patrocinadores Oficiais</div>
-            <div class="evento-nome">${nomeEvento}</div>
-        </div>
-        <div class="grid-patrocinadores">
-            ${htmlPatrocinadores}
-        </div>
-    </body>
-    </html>`;
+    `;
 
-  // Dispara para o Motor Universal que criamos mais cedo
-  if (typeof window.imprimirConteudoIframe === "function") {
-    window.imprimirConteudoIframe(html, `Patrocinadores_${nomeEvento}`);
-  } else {
-    // Fallback caso a função do Iframe não esteja neste arquivo
-    const win = window.open("", "_blank");
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => {
-      win.print();
-      win.close();
-    }, 800);
-  }
+    // Gera a quantidade de placas solicitada pelo usuário
+    for (let i = 0; i < qtdImpressoes; i++) {
+        htmlStr += `
+        <div class="placa-wrapper">
+            <div class="agradecimento">Nosso muito obrigado aos</div>
+            <div class="titulo">Patrocinadores</div>
+            <div class="evento-nome">${nomeEvento}</div>
+            
+            <div class="grid-patrocinadores">
+                ${htmlPatrocinadores}
+            </div>
+            
+            ${layoutOpcao === 'termica_80' ? `<div style="font-size: 16px; line-height: 1.5; color: #fff;">&nbsp;<br>&nbsp;<br>&nbsp;</div>` : ''}
+        </div>`;
+    }
+
+    htmlStr += `</body></html>`;
+
+    // Dispara para o Motor Universal
+    if (typeof window.imprimirConteudoIframe === "function") {
+        window.imprimirConteudoIframe(htmlStr, `Patrocinadores_${nomeEvento}`);
+    } else {
+        const win = window.open("", "_blank");
+        win.document.write(htmlStr);
+        win.document.close();
+        setTimeout(() => {
+            win.print();
+            win.close();
+        }, 800);
+    }
 };
 
 window.salvarNovaCapacidade = async function () {
@@ -1706,7 +1752,7 @@ window.fecharModalImpressaoPlacas = function () {
 };
 
 // Lógica de Impressão
-window.gerarPlacasA5 = async function (tipo, formatoSaida) {
+window.gerarPlacasA5 = async function (tipo, formatoSaida, layoutOpcao = 'a4_4') {
   if (!window.eventoIdAtivo) return;
 
   // Fecha o modal antes de processar
@@ -1822,59 +1868,191 @@ window.gerarPlacasA5 = async function (tipo, formatoSaida) {
         window.location.pathname.lastIndexOf("/") + 1,
       );
 
+    // Configuração das dimensões da bobina caso use layout térmico
+    const cfg = typeof obterConfiguracoesImpressora === 'function' 
+        ? obterConfiguracoesImpressora() 
+        : { pageWidth: '80mm', bodyWidth: '72mm', espacoGuilhotina: '15mm', tamanho: '80' };
+
     let htmlStr = `<!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <base href="${baseUrl}">
-                <style>
-                    @page { size: A4 portrait; margin: 0; }
-                    body {
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        margin: 0; padding: 0; background-color: #fff; color: #1e293b; width: 210mm; 
-                    }
-                    .folha-a4 {
-                        width: 210mm; height: 296mm; padding: 10mm; box-sizing: border-box;
-                        display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px;
-                        page-break-after: always; margin: 0 auto;
-                    }
-                    .folha-a4:last-child { page-break-after: auto; }
-                    .card {
-                        border: 4px solid #1e293b; border-radius: 16px; display: flex; flex-direction: column;
-                        justify-content: center; align-items: center; text-align: center; position: relative;
-                        box-sizing: border-box; padding: 20px 20px 85px 20px; overflow: hidden; 
-                    }
-                    .badge {
-                        background-color: #1e293b; color: #fff; padding: 6px 20px; border-radius: 50px;
-                        font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 4px;
-                        position: absolute; top: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact;
-                    }
-                    .mesa { font-size: 70px; font-weight: 900; margin: 30px 0 0 0; line-height: 1; color: #0f172a; white-space: nowrap; }
-                    .cliente-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-top: 20px; font-weight: bold; }
-                    .cliente-nome { font-size: 24px; font-weight: 900; color: #0f172a; margin-top: 5px; text-transform: uppercase; word-break: break-word; max-width: 90%; }
-                    .logo-rodape { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
-                    .logo-rodape img { height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #f8fafc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                    .logo-texto { font-size: 11px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
-                </style>
-            </head>
-            <body>
-        `;
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <base href="${baseUrl}">
+            <style>
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fff; color: #1e293b; }
+    `;
 
-    for (let i = 0; i < listaFinal.length; i += 4) {
-      const grupo4Mesas = listaFinal.slice(i, i + 4);
-      htmlStr += `<div class="folha-a4">`;
-      grupo4Mesas.forEach((item) => {
-        const badgeHtml = item.reservado
-          ? `<div class="badge">Reservado</div>`
-          : "";
-        const clienteHtml = item.reservado
-          ? `
-                    <div class="cliente-label">Responsável</div>
-                    <div class="cliente-nome">${item.cliente.toUpperCase()}</div>
-                `
-          : "";
-
+    // 1. LAYOUT: A4 (4 POR PÁGINA)
+    if (layoutOpcao === 'a4_4') {
         htmlStr += `
+            @page { size: A4 portrait; margin: 0; }
+            body { width: 210mm; }
+            .folha-a4 { width: 210mm; height: 296mm; padding: 10mm; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; page-break-after: always; margin: 0 auto; }
+            .folha-a4:last-child { page-break-after: auto; }
+            .card { border: 4px solid #1e293b; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; position: relative; padding: 20px 20px 85px 20px; overflow: hidden; }
+            .badge { background-color: #1e293b; color: #fff; padding: 6px 20px; border-radius: 50px; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 4px; position: absolute; top: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .mesa { font-size: 60px; font-weight: 900; margin: 30px 0 0 0; line-height: 1; color: #0f172a; white-space: nowrap; }
+            .cliente-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-top: 20px; font-weight: bold; }
+            .cliente-nome { font-size: 24px; font-weight: 900; color: #0f172a; margin-top: 5px; text-transform: uppercase; word-break: break-word; max-width: 90%; }
+            .logo-rodape { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+            .logo-rodape img { height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #f8fafc; }
+            .logo-texto { font-size: 11px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
+        `;
+    } 
+    // 2. LAYOUT: A4 (2 POR PÁGINA)
+    else if (layoutOpcao === 'a4_2') {
+        htmlStr += `
+            @page { size: A4 portrait; margin: 0; }
+            body { width: 210mm; }
+            .folha-a4 { width: 210mm; height: 296mm; padding: 15mm; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 20px; page-break-after: always; margin: 0 auto; }
+            .folha-a4:last-child { page-break-after: auto; }
+            .card { border: 5px solid #1e293b; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; position: relative; padding: 40px 30px 110px 30px; overflow: hidden; }
+            .badge { background-color: #1e293b; color: #fff; padding: 8px 26px; border-radius: 50px; font-size: 15px; font-weight: 900; text-transform: uppercase; letter-spacing: 4px; position: absolute; top: 35px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .mesa { font-size: 85px; font-weight: 900; margin: 40px 0 0 0; line-height: 1; color: #0f172a; white-space: nowrap; }
+            .cliente-label { font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-top: 30px; font-weight: bold; }
+            .cliente-nome { font-size: 34px; font-weight: 900; color: #0f172a; margin-top: 5px; text-transform: uppercase; word-break: break-word; max-width: 90%; }
+            .logo-rodape { position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+            .logo-rodape img { height: 55px; width: 55px; object-fit: cover; border-radius: 50%; border: 2px solid #f8fafc; }
+            .logo-texto { font-size: 13px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
+        `;
+    } 
+    // 3. LAYOUT: TÉRMICA 80MM (CLONE DO DESIGN A4)
+    else if (layoutOpcao === 'termica_80') {
+        htmlStr += `
+            @media print { @page { margin: 0; size: ${cfg.pageWidth} auto; } }
+            body { 
+                width: ${cfg.bodyWidth}; 
+                margin: 0 auto; 
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                color: #000 !important; 
+                background: #fff;
+            }
+            
+            .wrapper-termico {
+                width: 100%;
+                padding: 6mm 0;
+                page-break-after: always;
+                break-after: page;
+                box-sizing: border-box;
+            }
+            .wrapper-termico:last-child { page-break-after: avoid; }
+            
+            /* Réplica Exata do Container do Card A4 */
+            .card { 
+                border: 4px solid #000; 
+                border-radius: 16px; 
+                display: block;
+                text-align: center; 
+                padding: 20px 15px; 
+                width: 96%;
+                margin: 0 auto;
+                box-sizing: border-box;
+            }
+            
+            /* Réplica Exata da Pílula (Badge) do A4 */
+            .badge { 
+                background-color: #000; 
+                color: #fff !important; 
+                padding: 6px 20px; 
+                border-radius: 50px;
+                font-size: 11px; 
+                font-weight: 900; 
+                text-transform: uppercase; 
+                letter-spacing: 3px;
+                display: inline-block;
+                margin-bottom: 10px;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Título da Mesa Idêntico ao A4 */
+            .mesa { 
+                font-size: 34px; 
+                font-weight: 900; 
+                margin: 10px 0; 
+                line-height: 1; 
+                color: #000 !important; 
+                white-space: nowrap; 
+            }
+            
+            /* Setor do Responsável */
+            .cliente-label { 
+                font-size: 11px; 
+                color: #000 !important; 
+                text-transform: uppercase; 
+                letter-spacing: 1.5px; 
+                margin-top: 15px; 
+                font-weight: bold; 
+                display: block;
+            }
+            .cliente-nome { 
+                font-size: 18px; 
+                font-weight: 900; 
+                color: #000 !important; 
+                margin-top: 4px; 
+                text-transform: uppercase; 
+                word-break: break-word; 
+                max-width: 95%;
+                margin-left: auto;
+                margin-right: auto;
+                display: block;
+            }
+            
+            /* Rodapé com a Foto Circular e Nome do Estabelecimento (Igual A4) */
+            .logo-rodape { 
+                margin-top: 20px;
+                text-align: center;
+                width: 100%;
+                display: block;
+            }
+            .logo-rodape img { 
+                height: 42px; 
+                width: 42px; 
+                object-fit: cover; 
+                border-radius: 50%; 
+                border: 2px solid #000; 
+                display: block;
+                margin: 0 auto 5px auto;
+            }
+            .logo-texto { 
+                font-size: 11px; 
+                font-weight: 900; 
+                color: #000 !important; 
+                text-transform: uppercase; 
+                letter-spacing: 1px; 
+                display: block;
+            }
+        `;
+    }
+
+    htmlStr += `
+            </style>
+        </head>
+        <body>
+    `;
+
+    // CONFIGURAÇÃO DO LOOP DE PÁGINAS DINÂMICO
+    let passoIncremento = layoutOpcao === 'a4_4' ? 4 : (layoutOpcao === 'a4_2' ? 2 : 1);
+
+    for (let i = 0; i < listaFinal.length; i += passoIncremento) {
+      const grupoMesas = listaFinal.slice(i, i + passoIncremento);
+      
+      if (layoutOpcao !== 'termica_80') {
+          htmlStr += `<div class="folha-a4">`;
+      }
+
+      grupoMesas.forEach((item) => {
+        if (layoutOpcao === 'termica_80') {
+            // ESTRUTURA TÉRMICA: Mapeia 100% as mesmas classes e elementos do A4
+            const badgeHtml = item.reservado ? `<div class="badge">Reservado</div>` : "";
+            const clienteHtml = item.reservado ? `
+                <div class="cliente-label">Responsável</div>
+                <div class="cliente-nome">${item.cliente.toUpperCase()}</div>
+            ` : "";
+
+            htmlStr += `
+                <div class="wrapper-termico">
                     <div class="card">
                         ${badgeHtml}
                         <div class="mesa">MESA ${String(item.mesa).padStart(2, "0")}</div>
@@ -1884,9 +2062,34 @@ window.gerarPlacasA5 = async function (tipo, formatoSaida) {
                             <span class="logo-texto">Espetinho & CIA</span>
                         </div>
                     </div>
-                `;
+                    <div style="font-size: 16px; line-height: 1.5; color: #fff;">&nbsp;<br>&nbsp;<br>&nbsp;</div>
+                </div>
+            `;
+        } else {
+            // Estrutura clássica para folhas A4
+            const badgeHtml = item.reservado ? `<div class="badge">Reservado</div>` : "";
+            const clienteHtml = item.reservado ? `
+                <div class="cliente-label">Responsável</div>
+                <div class="cliente-nome">${item.cliente.toUpperCase()}</div>
+            ` : "";
+
+            htmlStr += `
+                <div class="card">
+                    ${badgeHtml}
+                    <div class="mesa">MESA ${String(item.mesa).padStart(2, "0")}</div>
+                    ${clienteHtml}
+                    <div class="logo-rodape">
+                        <img src="img/logo.jpg?v=2" onerror="this.style.display='none'">
+                        <span class="logo-texto">Espetinho & CIA</span>
+                    </div>
+                </div>
+            `;
+        }
       });
-      htmlStr += `</div>`;
+
+      if (layoutOpcao !== 'termica_80') {
+          htmlStr += `</div>`;
+      }
     }
 
     htmlStr += `</body></html>`;
@@ -1990,88 +2193,146 @@ window.carregarWhatsAppNoModal = async function () {
   }
 };
 
-window.imprimirPlacaPatrocinadores = function (listaSelecionada = null) {
-  const nomes = listaSelecionada || window.patrocinadoresEventoAtivo || [];
-  if (nomes.length === 0) return alert("Nenhum patrocinador para imprimir!");
+window.imprimirPlacaPatrocinadores = function (listaSelecionada = null, layoutOpcao = 'a4_4') {
+    const nomes = listaSelecionada || window.patrocinadoresEventoAtivo || [];
+    if (nomes.length === 0) return alert("Nenhum patrocinador para imprimir!");
 
-  const nomeEvento = "ESPETINHO & CIA";
-  const baseUrl =
-    window.location.origin +
-    window.location.pathname.substring(
-      0,
-      window.location.pathname.lastIndexOf("/") + 1,
-    );
+    const nomeEvento = window.nomeEventoAtivo || "ESPETINHO & CIA";
+    const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
 
-  let htmlStr = `<!DOCTYPE html>
+    // Configuração das dimensões da bobina caso use layout térmico
+    const cfg = typeof obterConfiguracoesImpressora === 'function' 
+        ? obterConfiguracoesImpressora() 
+        : { pageWidth: '80mm', bodyWidth: '72mm', espacoGuilhotina: '15mm', tamanho: '80' };
+
+    let htmlStr = `<!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
         <base href="${baseUrl}">
         <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fff; color: #1e293b; }
+    `;
+
+    // --- 1. LAYOUT: A4 (4 POR PÁGINA) ---
+    if (layoutOpcao === 'a4_4') {
+        htmlStr += `
             @page { size: A4 portrait; margin: 0; }
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #fff; width: 210mm; }
-            .folha-a4 {
-                width: 210mm; height: 296mm; padding: 10mm; box-sizing: border-box;
-                display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px;
-                page-break-after: always; margin: 0 auto;
-            }
-            .card {
-                border: 4px solid #1e293b; border-radius: 16px; display: flex; flex-direction: column;
-                justify-content: center; align-items: center; text-align: center; position: relative;
-                padding: 20px 20px 85px 20px; box-sizing: border-box; overflow: hidden;
-            }
-            /* Este é o CSS que cria o bloco preto da reserva */
-.badge {
-    background-color: #1e293b; /* Fundo Preto/Azul Escuro */
-    color: #fff;              /* Texto Branco */
-    padding: 6px 20px; 
-    border-radius: 50px;      /* Arredondado */
-    font-size: 12px; 
-    font-weight: 900; 
-    text-transform: uppercase; 
-    letter-spacing: 4px;
-    position: absolute; 
-    top: 20px;
-    -webkit-print-color-adjust: exact; 
-    print-color-adjust: exact;
-}
+            body { width: 210mm; }
+            .folha-a4 { width: 210mm; height: 296mm; padding: 10mm; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; page-break-after: always; margin: 0 auto; box-sizing: border-box; }
+            .folha-a4:last-child { page-break-after: auto; }
             
-            .patrocinador-nome { 
-                font-size: 28px; font-weight: 900; color: #0f172a; text-transform: uppercase; 
-                margin-top: 20px; word-break: break-word; max-width: 90%;
-            }
+            .card { border: 4px solid #1e293b; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; position: relative; padding: 20px 20px 85px 20px; overflow: hidden; }
+            .badge { background-color: #1e293b; color: #fff; padding: 6px 20px; border-radius: 50px; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 4px; position: absolute; top: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .patrocinador-nome { font-size: 28px; font-weight: 900; color: #0f172a; text-transform: uppercase; margin-top: 20px; word-break: break-word; max-width: 90%; }
+            
             .logo-rodape { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
             .logo-rodape img { height: 45px; width: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #f8fafc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
             .logo-texto { font-size: 11px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
+        `;
+    } 
+    // --- 2. LAYOUT: A4 (2 POR PÁGINA) ---
+    else if (layoutOpcao === 'a4_2') {
+        htmlStr += `
+            @page { size: A4 portrait; margin: 0; }
+            body { width: 210mm; }
+            .folha-a4 { width: 210mm; height: 296mm; padding: 15mm; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 20px; page-break-after: always; margin: 0 auto; box-sizing: border-box; }
+            .folha-a4:last-child { page-break-after: auto; }
+            
+            .card { border: 5px solid #1e293b; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; position: relative; padding: 40px 30px 110px 30px; overflow: hidden; }
+            .badge { background-color: #1e293b; color: #fff; padding: 8px 26px; border-radius: 50px; font-size: 15px; font-weight: 900; text-transform: uppercase; letter-spacing: 4px; position: absolute; top: 35px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .patrocinador-nome { font-size: 42px; font-weight: 900; color: #0f172a; text-transform: uppercase; margin-top: 30px; word-break: break-word; max-width: 90%; }
+            
+            .logo-rodape { position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+            .logo-rodape img { height: 55px; width: 55px; object-fit: cover; border-radius: 50%; border: 2px solid #f8fafc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .logo-texto { font-size: 13px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
+        `;
+    } 
+    // --- 3. LAYOUT: TÉRMICA 80MM (CLONE DO A4) ---
+    else if (layoutOpcao === 'termica_80') {
+        htmlStr += `
+            @media print { @page { margin: 0; size: ${cfg.pageWidth} auto; } }
+            body { width: ${cfg.bodyWidth}; margin: 0 auto; color: #000 !important; background: #fff; }
+            
+            .wrapper-termico { width: 100%; padding: 6mm 0; page-break-after: always; break-after: page; box-sizing: border-box; }
+            .wrapper-termico:last-child { page-break-after: avoid; }
+            
+            .card { border: 4px solid #000; border-radius: 16px; display: block; text-align: center; padding: 25px 15px; width: 96%; margin: 0 auto; box-sizing: border-box; }
+            .badge { background-color: #000; color: #fff !important; padding: 6px 20px; border-radius: 50px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; display: inline-block; margin-bottom: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .patrocinador-nome { font-size: 22px; font-weight: 900; color: #000 !important; text-transform: uppercase; margin-bottom: 25px; word-break: break-word; line-height: 1.2; }
+            
+            .logo-rodape { text-align: center; width: 100%; display: block; margin-top: 15px; }
+            .logo-rodape img { height: 42px; width: 42px; object-fit: cover; border-radius: 50%; border: 2px solid #000; display: block; margin: 0 auto 5px auto; }
+            .logo-texto { font-size: 11px; font-weight: 900; color: #000 !important; text-transform: uppercase; letter-spacing: 1px; display: block; }
+        `;
+    }
+
+    htmlStr += `
         </style>
     </head>
     <body>`;
 
-  // Divide em blocos de 4 para o grid 2x2
-  for (let i = 0; i < nomes.length; i += 4) {
-    const grupo = nomes.slice(i, i + 4);
-    htmlStr += `<div class="folha-a4">`;
+    let passoIncremento = layoutOpcao === 'a4_4' ? 4 : (layoutOpcao === 'a4_2' ? 2 : 1);
 
-    grupo.forEach((nome) => {
-      const nomeFormatado = typeof nome === "object" ? nome.nome : nome;
-      htmlStr += `
-                <div class="card">
-                    <div class="badge">Patrocinador</div>
-                    <div class="patrocinador-nome">${nomeFormatado.toUpperCase()}</div>
-                    <div class="logo-rodape">
-                        <img src="img/logo.jpg?v=2" onerror="this.style.display='none'">
-                        <span class="logo-texto">${nomeEvento.toUpperCase()}</span>
+    for (let i = 0; i < nomes.length; i += passoIncremento) {
+        const grupo = nomes.slice(i, i + passoIncremento);
+        
+        if (layoutOpcao !== 'termica_80') {
+            htmlStr += `<div class="folha-a4">`;
+        }
+
+        grupo.forEach((nome) => {
+            const nomeFormatado = typeof nome === "object" ? nome.nome : nome;
+            const cotaExtra = typeof nome === "object" && nome.cota ? `<div style="font-size:12px; margin-top:5px; font-weight:bold;">COTA ${nome.cota.toUpperCase()}</div>` : '';
+            
+            if (layoutOpcao === 'termica_80') {
+                htmlStr += `
+                    <div class="wrapper-termico">
+                        <div class="card">
+                            <div class="badge">Patrocinador</div>
+                            <div class="patrocinador-nome">
+                                ${nomeFormatado.toUpperCase()}
+                                ${cotaExtra}
+                            </div>
+                            <div class="logo-rodape">
+                                <img src="img/logo.jpg?v=2" onerror="this.style.display='none'">
+                                <span class="logo-texto">ESPETINHO & CIA</span> </div>
+                        </div>
+                        <div style="font-size: 16px; line-height: 1.5; color: #fff;">&nbsp;<br>&nbsp;<br>&nbsp;</div>
                     </div>
-                </div>
-            `;
-    });
-    htmlStr += `</div>`;
-  }
+                `;
+            } else {
+                htmlStr += `
+                    <div class="card">
+                        <div class="badge">Patrocinador</div>
+                        <div class="patrocinador-nome">
+                            ${nomeFormatado.toUpperCase()}
+                            ${cotaExtra}
+                        </div>
+                        <div class="logo-rodape">
+                            <img src="img/logo.jpg?v=2" onerror="this.style.display='none'">
+                            <span class="logo-texto">ESPETINHO & CIA</span> </div>
+                    </div>
+                `;
+            }
+        });
 
-  htmlStr += `</body></html>`;
+        if (layoutOpcao !== 'termica_80') {
+            htmlStr += `</div>`;
+        }
+    }
 
-  // Usa a mesma função de impressão robusta que você já utiliza
-  window.imprimirConteudoIframe(htmlStr, "Placas_Patrocinadores");
+    htmlStr += `</body></html>`;
+
+    if (typeof window.imprimirConteudoIframe === "function") {
+        window.imprimirConteudoIframe(htmlStr, "Placas_Patrocinadores");
+    } else {
+        const win = window.open("", "_blank");
+        win.document.write(htmlStr);
+        win.document.close();
+        setTimeout(() => { win.print(); win.close(); }, 800);
+    }
 };
 
 /**
