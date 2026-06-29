@@ -1183,6 +1183,185 @@ window.imprimirComprovanteDespesa = function (id) {
     });
 };
 
+// =========================================================================
+// VARIÁVEIS E FUNÇÕES INTERCEPTADORAS DO MODAL DE IMPRESSÃO
+// =========================================================================
+
+// Variável global para segurar a venda enquanto o modal está aberto
+window.vendaPendenteImpressao = null;
+
+// Função chamada pelo botão da lista de vendas
+window.abrirModalImpressao = function(venda) {
+    window.vendaPendenteImpressao = venda; // Salva a venda atual
+    const inputNome = document.getElementById('input-nome-cliente-avulso');
+    
+    // Limpa o campo caso tenha resquício da última impressão
+    if (inputNome) inputNome.value = ""; 
+    
+    // Abre o modal
+    const modal = document.getElementById('modal-nome-cliente');
+    if (modal) modal.classList.remove('hidden');
+    
+    // Dá foco automático no input para agilizar a digitação
+    setTimeout(() => { if (inputNome) inputNome.focus(); }, 100); 
+};
+
+window.fecharModalImpressao = function() {
+    const modal = document.getElementById('modal-nome-cliente');
+    if (modal) modal.classList.add('hidden');
+    window.vendaPendenteImpressao = null;
+};
+
+// Função que os botões dentro do modal vão chamar
+window.confirmarImpressao = function(comNome) {
+    if (!window.vendaPendenteImpressao) return;
+
+    if (comNome) {
+        const inputNome = document.getElementById('input-nome-cliente-avulso');
+        const nomeDigitado = inputNome ? inputNome.value.trim() : "";
+        // Se clicar em "Com Nome" mas deixar em branco, não imprime nome
+        window.vendaPendenteImpressao.cliente_nome = nomeDigitado || ""; 
+    } else {
+        // Se clicar em "Sem nome", garante que a propriedade vá vazia
+        window.vendaPendenteImpressao.cliente_nome = ""; 
+    }
+
+    // Chama a função principal que desenha o ticket com a venda já atualizada
+    if (typeof window.imprimirComprovante === 'function') {
+        window.imprimirComprovante(window.vendaPendenteImpressao);
+    }
+    
+    // Esconde o modal
+    window.fecharModalImpressao();
+};
+
+// =========================================================================
+// FUNÇÃO PRINCIPAL: IMPRIMIR COMPROVANTE DETALHADO
+// =========================================================================
+window.imprimirComprovante = function (venda) {
+  const cfg = typeof obterConfiguracoesImpressora === 'function' ? obterConfiguracoesImpressora() : { maxChars: 32, tamanho: '80', bodyWidth: '72mm' };
+  
+  // 1. DADOS CONFIGURÁVEIS (Lendo do localStorage sincronizado com o Banco)
+  const loja = localStorage.getItem("nomeLoja") || "ESPETINHO & CIA";
+  const cnpj = localStorage.getItem("cnpjLoja") || "";
+  const telefone = localStorage.getItem("telefoneLoja") || "";
+  const endereco = localStorage.getItem("enderecoLoja") || "";
+  const nomeCliente = venda.cliente_nome || ""; // Nome do cliente capturado na venda
+  
+  const operador = (localStorage.getItem("userName") || "ADMIN").toUpperCase();
+  const dataVenda = new Date(venda.data || venda.dataFinalizacao || venda.criado_em || Date.now());
+  
+  let itensArray = Array.isArray(venda.itens) ? venda.itens : JSON.parse(venda.itens || "[]");
+  let qtdTotal = 0;
+  itensArray.forEach(i => qtdTotal += Number(i.qtd || 1));
+
+  const formataDinheiro = (v) => typeof window.fmSeguro === 'function' ? window.fmSeguro(v) : Number(v).toFixed(2).replace('.', ',');
+
+  // MODO RAWBT ANDROID (Texto Puro)
+  if (window.isRawBTThermalMode && window.isRawBTThermalMode() && /android/.test(navigator.userAgent.toLowerCase())) {
+      const alinharCentro = (texto) => {
+          const str = String(texto).substring(0, cfg.maxChars);
+          return " ".repeat(Math.max(0, Math.floor((cfg.maxChars - str.length) / 2))) + str;
+      };
+      
+      const preencherLinha = (esq, dir) => {
+          const espaco = cfg.maxChars - String(esq).length - String(dir).length;
+          return String(esq) + (espaco > 0 ? " ".repeat(espaco) : " ") + String(dir);
+      };
+
+      let txt = "\n" + (loja ? alinharCentro(loja.toUpperCase()) + "\n" : "");
+      if(endereco) txt += alinharCentro(endereco.substring(0, cfg.maxChars)) + "\n";
+      if(telefone) txt += alinharCentro("TEL: " + telefone) + "\n";
+      if(cnpj) txt += alinharCentro("CNPJ: " + cnpj) + "\n";
+      txt += "-".repeat(cfg.maxChars) + "\n";
+      if(nomeCliente) txt += "CLIENTE: " + nomeCliente.toUpperCase().substring(0, 20) + "\n";
+      txt += "QTD DESC         V.UN   TOTAL\n" + "-".repeat(cfg.maxChars) + "\n";
+
+      itensArray.forEach(item => {
+          txt += `${String(item.qtd || 1).padEnd(3, ' ')} ${String(item.nome).substring(0, 12).padEnd(12, ' ')} ${formataDinheiro(item.preco).padStart(6, ' ')} ${formataDinheiro(item.preco * (item.qtd || 1)).padStart(8, ' ')}\n`;
+      });
+      
+      txt += "-".repeat(cfg.maxChars) + "\n";
+      txt += preencherLinha("Total Itens", qtdTotal) + "\n";
+      txt += "-".repeat(cfg.maxChars) + "\n";
+      txt += preencherLinha("VALOR A PAGAR", "R$ " + formataDinheiro(venda.total)) + "\n";
+      txt += preencherLinha("PAGAMENTO", (venda.forma_pagamento || "DINHEIRO").toUpperCase()) + "\n";
+      txt += "-".repeat(cfg.maxChars) + "\n";
+      txt += alinharCentro("- SEM VALOR FISCAL -") + "\n";
+      txt += alinharCentro(`PEDIDO: ${venda.id} | OP: ${operador}`) + "\n";
+      txt += alinharCentro(`${dataVenda.toLocaleDateString('pt-BR')} ${dataVenda.toLocaleTimeString('pt-BR')}`) + "\n";
+      txt += "\n".repeat(cfg.tamanho === "58" ? 3 : 5);
+
+      const textoCodificado = encodeURIComponent(txt);
+      window.location.href = `intent:${textoCodificado}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+      return;
+  }
+
+  // MODO WEB HTML (Visual elegante em tabela monoespaçada)
+  let html = `
+  <div style="width: ${cfg.bodyWidth}; margin: 0 auto; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #000; line-height: 1.3;">
+      <div style="text-align: center; margin-bottom: 8px;">
+          ${loja ? `<b style="font-size: 14px;">${loja.toUpperCase()}</b><br>` : ''}
+          ${endereco ? endereco.toUpperCase() + '<br>' : ''}
+          ${telefone ? 'TEL: ' + telefone + '<br>' : ''}
+          ${cnpj ? 'CNPJ: ' + cnpj + '<br>' : ''}
+      </div>
+      
+      <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; text-align: center; font-weight: bold; margin-bottom: 5px;">
+          COMPROVANTE DE VENDA
+      </div>
+
+      ${nomeCliente ? `<div style="margin-bottom: 5px;"><b>CLIENTE:</b> ${nomeCliente.toUpperCase()}</div>` : ''}
+      
+      <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 5px;">
+          <div style="display: flex; font-weight: bold;">
+              <div style="width: 12%;">QTD</div>
+              <div style="width: 48%;">DESCRIÇÃO</div>
+              <div style="width: 20%; text-align: right;">V.UN</div>
+              <div style="width: 20%; text-align: right;">TOTAL</div>
+          </div>
+      </div>`;
+
+  itensArray.forEach(item => {
+      const totalItem = parseFloat(item.preco) * (item.qtd || 1);
+      html += `
+          <div style="display: flex; margin-bottom: 2px;">
+              <div style="width: 12%;">${item.qtd || 1}</div>
+              <div style="width: 48%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.nome.toUpperCase()}</div>
+              <div style="width: 20%; text-align: right;">${formataDinheiro(item.preco)}</div>
+              <div style="width: 20%; text-align: right;">${formataDinheiro(totalItem)}</div>
+          </div>`;
+  });
+
+  html += `
+      <div style="border-top: 1px dashed #000; margin-top: 5px; padding-top: 5px;">
+          <div style="display: flex; justify-content: space-between;">
+              <span>Total Itens</span>
+              <span>${qtdTotal}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 4px;">
+              <span>VALOR A PAGAR</span>
+              <span>R$ ${formataDinheiro(venda.total)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+              <span>PAGAMENTO</span>
+              <span>${(venda.forma_pagamento || 'DINHEIRO').toUpperCase()}</span>
+          </div>
+      </div>
+      <div style="border-top: 1px dashed #000; margin-top: 8px; padding-top: 8px; text-align: center; font-size: 9px;">
+          PEDIDO: ${venda.id} | OP: ${operador}<br>
+          ${dataVenda.toLocaleDateString('pt-BR')} ${dataVenda.toLocaleTimeString('pt-BR')}<br>
+          - SEM VALOR FISCAL -
+      </div>
+  </div>`;
+
+  if (typeof window.dispararImpressao === 'function') {
+      window.dispararImpressao(html, 'original');
+  } else {
+      console.error("[IMPRESSÃO] Função dispararImpressao não encontrada.");
+  }
+};
+
 /* ---------------------------------------------------------------------------------
    6. MOTOR DE IMPRESSÃO A4 (RANKINGS E FLUXOS DE ESTOQUE)
    --------------------------------------------------------------------------------- */

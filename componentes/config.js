@@ -51,9 +51,11 @@ console.log(`🚀 Sistema Espetinho & Cia - v${VERSION} carregado.`);
 
 // Função para salvar as preferências do Ticket (AGORA COM CNPJ)
 window.salvarConfiguracoes = async function() {
-    // 1. Captura os valores do HTML que você mandou
+    // 1. Captura os valores do HTML
     const nomeLoja = document.getElementById('cfg-nome-loja')?.value || 'Espetinho & Cia';
     const cnpj = document.getElementById('config-cnpj')?.value || '';
+    const telefone = document.getElementById('cfg-telefone-loja')?.value || ''; // NOVO CAMPO
+    const endereco = document.getElementById('cfg-endereco-loja')?.value || ''; // NOVO CAMPO
     const layout = document.getElementById('cfg-ticket-layout')?.value || 'padrao';
     const modo = document.getElementById('cfg-modo-impressao')?.value || 'direto';
     
@@ -66,11 +68,13 @@ window.salvarConfiguracoes = async function() {
     }
 
     try {
-        // --- AÇÃO 1: SALVAR DADOS DA LOJA (Nuvem) ---
+        // --- AÇÃO 1: SALVAR DADOS DA LOJA (Nuvem Supabase) ---
         const { error: errLoja } = await _supabase.from('configuracoes_sistema').upsert({
             id: 1, 
             nome_loja: nomeLoja,
             cnpj: cnpj,
+            telefone: telefone, // ENVIANDO PARA O BANCO
+            endereco: endereco, // ENVIANDO PARA O BANCO
             ticket_layout: layout,
             updated_at: new Date().toISOString()
         });
@@ -80,14 +84,16 @@ window.salvarConfiguracoes = async function() {
         if (usuarioLogado) {
             const { error: errUser } = await _supabase.from('usuarios')
                 .update({ modo_impressao: modo })
-                .eq('nome', usuarioLogado); // Certifique-se que a coluna no banco é 'nome' ou 'usuario'
+                .eq('nome', usuarioLogado); 
             
             if (errUser) console.error("Erro ao salvar modo do usuário:", errUser);
         }
 
         // --- AÇÃO 3: SINCRONIZAR MEMÓRIA LOCAL (LocalStorage) ---
         localStorage.setItem('nomeLoja', nomeLoja);
-        localStorage.setItem('empresa_cnpj', cnpj);
+        localStorage.setItem('cnpjLoja', cnpj); // Ajustado para bater com a impressão
+        localStorage.setItem('telefoneLoja', telefone); // SALVANDO NA MEMÓRIA
+        localStorage.setItem('enderecoLoja', endereco); // SALVANDO NA MEMÓRIA
         localStorage.setItem('ticketLayout', layout);
         localStorage.setItem('modoImpressao', modo);
 
@@ -115,7 +121,11 @@ window.carregarConfiguracoesNaTela = async function() {
         if (configBD) {
             localStorage.setItem('nomeLoja', configBD.nome_loja || '');
             localStorage.setItem('ticketLayout', configBD.ticket_layout || 'padrao');
-            localStorage.setItem('empresa_cnpj', configBD.cnpj || '');
+            // Ajustado para 'cnpjLoja' para manter padrão com o script de impressão
+            localStorage.setItem('cnpjLoja', configBD.cnpj || ''); 
+            // Adicionado os novos campos do banco
+            localStorage.setItem('telefoneLoja', configBD.telefone || ''); 
+            localStorage.setItem('enderecoLoja', configBD.endereco || ''); 
         }
     } catch (e) {
         console.warn("Usando dados locais. Não foi possível conectar ao banco:", e);
@@ -125,7 +135,9 @@ window.carregarConfiguracoesNaTela = async function() {
     const nome = localStorage.getItem('nomeLoja');
     const layout = localStorage.getItem('ticketLayout');
     const modo = localStorage.getItem('modoImpressao');
-    const cnpj = localStorage.getItem('empresa_cnpj');
+    const cnpj = localStorage.getItem('cnpjLoja'); // Lendo a chave ajustada
+    const telefone = localStorage.getItem('telefoneLoja'); // Lendo o novo campo
+    const endereco = localStorage.getItem('enderecoLoja'); // Lendo o novo campo
 
     if (nome) {
         const inputNome = document.getElementById('cfg-nome-loja');
@@ -142,6 +154,14 @@ window.carregarConfiguracoesNaTela = async function() {
     if (cnpj) {
         const inputCnpj = document.getElementById('config-cnpj');
         if (inputCnpj) inputCnpj.value = cnpj;
+    }
+    if (telefone) {
+        const inputTelefone = document.getElementById('cfg-telefone-loja');
+        if (inputTelefone) inputTelefone.value = telefone;
+    }
+    if (endereco) {
+        const inputEndereco = document.getElementById('cfg-endereco-loja');
+        if (inputEndereco) inputEndereco.value = endereco;
     }
 };
 
@@ -190,6 +210,31 @@ window.mascaraCNPJ = function(input) {
     v = v.replace(/(\d{4})(\d)/, '$1-$2');
     
     input.value = v;
+};
+
+window.mascaraTelefone = function(input) {
+    // Remove tudo o que não for número
+    let valor = input.value.replace(/\D/g, "");
+    
+    // Se não tiver nada, sai
+    if (valor.length === 0) {
+        input.value = "";
+        return;
+    }
+
+    // Aplica a formatação dependendo da quantidade de números
+    if (valor.length <= 10) {
+        // Formato Fixo: (XX) XXXX-XXXX
+        valor = valor.replace(/^(\d{2})(\d)/g, "($1) $2");
+        valor = valor.replace(/(\d{4})(\d)/, "$1-$2");
+    } else {
+        // Formato Celular: (XX) XXXXX-XXXX
+        valor = valor.replace(/^(\d{2})(\d)/g, "($1) $2");
+        valor = valor.replace(/(\d{5})(\d)/, "$1-$2");
+    }
+
+    // Limita o tamanho máximo para 15 caracteres (com a formatação) e atualiza o input
+    input.value = valor.substring(0, 15);
 };
 
 // =========================================================================

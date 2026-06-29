@@ -1430,10 +1430,12 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
                     total: c.total,
                     forma_pagamento: c.forma_pagamento,
                     dataFinalizacao: c.fechada_em,
+                    data: c.fechada_em, // Necessário para o ticket impresso
                     tabelaOrigem: 'comandas',
                     icone: '📋',
-                    status: c.status, // Guardando o status
-                    estornado_em: c.estornado_em
+                    status: c.status, 
+                    estornado_em: c.estornado_em,
+                    itens: c.itens // CRUCIAL: Passa os itens para a impressora ler
                 });
             });
         }
@@ -1447,10 +1449,12 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
                     total: v.total,
                     forma_pagamento: v.forma_pagamento,
                     dataFinalizacao: v.criado_em,
+                    data: v.criado_em, // Necessário para o ticket impresso
                     tabelaOrigem: 'historico_vendas',
                     icone: '🛒',
-                    status: v.status, // Guardando o status
-                    estornado_em: v.estornado_em
+                    status: v.status, 
+                    estornado_em: v.estornado_em,
+                    itens: v.itens // CRUCIAL: Passa os itens para a impressora ler
                 });
             });
         }
@@ -1482,11 +1486,14 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
 
             // Se for cancelada, troca o botão por um aviso
             const botaoEstornoHtml = isCancelada
-                ? `<div class="flex-1 bg-red-100/50 dark:bg-red-900/30 text-red-500 px-5 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center border border-red-200 dark:border-red-800">Já Cancelada ❌</div>`
+                ? `<div class="bg-red-100/50 dark:bg-red-900/30 text-red-500 px-5 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center border border-red-200 dark:border-red-800">Já Cancelada ❌</div>`
                 : `<button onclick="solicitarEstorno('${v.id}', '${v.total}', '${v.tabelaOrigem}')" 
                         class="bg-red-600 text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-red-500/20 active:scale-95 transition-all hover:bg-red-700">
                         Estornar ↩️
                    </button>`;
+
+            // Escapa o objeto inteiro para a função de impressão não quebrar com aspas
+            const vendaJSON = JSON.stringify(v).replace(/"/g, '&quot;');
 
             return `
             <div class="${estiloCard} p-5 rounded-[2.2rem] border shadow-sm flex flex-col justify-between gap-4 transition-all">
@@ -1504,7 +1511,7 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
                         </div>
                     </div>
                     <div class="flex items-center">
-                        <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${obterEstiloPilaPagamento(v.forma_pagamento)}">
+                        <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${typeof obterEstiloPilaPagamento === 'function' ? obterEstiloPilaPagamento(v.forma_pagamento) : 'bg-slate-200 text-slate-600'}">
                             ${v.forma_pagamento || 'DINHEIRO'}
                         </span>
                         ${badgeCancelada}
@@ -1521,6 +1528,11 @@ window.carregarVendasEstorno = async function(valor = 0, iniManual = null, fimMa
                         <button onclick="visualizarDetalhesVenda('${v.id}', '${v.tabelaOrigem}')" 
                             class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 py-3 rounded-2xl text-[10px] font-black uppercase shadow-sm active:scale-95 transition-all hover:bg-slate-200 dark:hover:bg-slate-700">
                             Ver 👁️
+                        </button>
+                        
+                        <button onclick='window.abrirModalImpressao(${vendaJSON})' 
+                            class="bg-emerald-600 text-white px-4 py-3 rounded-2xl text-[10px] font-black uppercase shadow-sm active:scale-95 transition-all hover:bg-emerald-700">
+                                Imprimir 🖨️
                         </button>
                         
                         ${botaoEstornoHtml}
@@ -1747,13 +1759,15 @@ window.visualizarDetalhesVenda = async function(id, tabelaOrigem) {
 
         // 6. Guarda os dados padronizados para a nossa Impressora!
         window.dadosReimpressaoAtual = {
+            id: id, // <-- ADICIONADO: Para sair o número do pedido no comprovante
             tipo: `2ª VIA - ${identificador}`,
             total: data.total,
-            pagamento: data.forma_pagamento || 'DINHEIRO',
+            forma_pagamento: data.forma_pagamento || 'DINHEIRO', // <-- AJUSTADO NOME DA CHAVE
             recebido: data.valor_recebido || data.recebido || 0,
             troco: data.troco || 0,
             itens: itensArray,
-            data: dataVenda 
+            data: dataVenda,
+            cliente_nome: data.cliente_nome || data.cliente || "" // <-- ADICIONADO: Para puxar o nome se tiver
         };
 
         // 7. Abre o modal
