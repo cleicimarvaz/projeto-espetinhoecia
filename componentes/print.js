@@ -729,18 +729,39 @@ window.enviarParaImpressora = function (texto) {
 
 // FORMATO 1: Fichas Individuais (Retirar no Balcão)
 window.imprimirCupom = function (venda) {
-  const cfg = obterConfiguracoesImpressora();
+  const cfg = typeof obterConfiguracoesImpressora === 'function' ? obterConfiguracoesImpressora() : { maxChars: 32, tamanho: '80', bodyWidth: '72mm' };
   const loja = localStorage.getItem("nomeLoja") || "ESPETINHO & CIA";
   const operador = (localStorage.getItem("userName") || "ADMIN").toUpperCase();
   const layout = localStorage.getItem("ticketLayout") || "original";
   const dataVenda = new Date(venda.data || Date.now());
-  const itensArray = Array.isArray(venda.itens)
+  let itensArray = Array.isArray(venda.itens)
     ? venda.itens
     : JSON.parse(venda.itens || "[]");
 
-  // 1. SE FOR MODO RAWBT ANDROID (TEXTO PURO EXPANSÍVEL)
+  // --- 1. MOTOR DE ORDENAÇÃO DE 3 NÍVEIS ---
+  const getPesoOrdenacao = (item) => {
+    const cat = (item.categoria || "").toLowerCase().trim();
+    // Nível 2: Cozinha Pesada (Ficam DEPOIS da tesoura)
+    if (['refeição', 'refeicao', 'acompanhamento', 'porção', 'porcao'].some(c => cat.includes(c))) return 2;
+    // Nível 1: Combos (Ficam ANTES da tesoura, sendo os últimos do bloco do balcão)
+    if (cat.includes('combo')) return 1;
+    // Nível 0: Bebidas, Espetos, Leves (Primeiros a sair)
+    return 0; 
+  };
+
+  // Reordena o array baseado nos pesos acima
+  itensArray.sort((a, b) => getPesoOrdenacao(a) - getPesoOrdenacao(b));
+
+  // Verifica se temos itens antes do corte (Pesos 0 ou 1) e depois do corte (Peso 2)
+  const temBar = itensArray.some(item => getPesoOrdenacao(item) < 2 && parseFloat(item.preco) > 0);
+  const temCozinha = itensArray.some(item => getPesoOrdenacao(item) === 2 && parseFloat(item.preco) > 0);
+  const precisaLinhaCorte = temBar && temCozinha;
+  let linhaCorteInserida = false;
+  // --- FIM DO MOTOR DE ORDENAÇÃO ---
+
+  // 2. SE FOR MODO RAWBT ANDROID (TEXTO PURO EXPANSÍVEL)
   if (
-    window.isRawBTThermalMode() &&
+    window.isRawBTThermalMode && window.isRawBTThermalMode() &&
     /android/.test(navigator.userAgent.toLowerCase())
   ) {
     let textoRaw = "\n";
@@ -748,13 +769,19 @@ window.imprimirCupom = function (venda) {
     const alinharCentro = (texto) => {
       const str = String(texto).substring(0, cfg.maxChars);
       return (
-        " ".repeat(Math.max(0, Math.floor((cfg.maxChars - str.length) / 2))) +
-        str
+        " ".repeat(Math.max(0, Math.floor((cfg.maxChars - str.length) / 2))) + str
       );
     };
 
     itensArray.forEach((item) => {
       if (parseFloat(item.preco) > 0) {
+        
+        // ✂️ GATILHO DA TESOURA RAWBT (Dispara exatamente quando começam os itens de Nível 2)
+        if (getPesoOrdenacao(item) === 2 && precisaLinhaCorte && !linhaCorteInserida) {
+          textoRaw += "\n" + alinharCentro("- - ✂ - CORTE AQUI - ✂ - -") + "\n\n";
+          linhaCorteInserida = true; // Trava para não repetir
+        }
+
         for (let i = 0; i < (item.qtd || 1); i++) {
           const pedidoId = Math.floor(Math.random() * 9000) + 1000;
 
@@ -769,7 +796,7 @@ window.imprimirCupom = function (venda) {
           textoRaw += "=".repeat(cfg.maxChars) + "\n";
 
           textoRaw += alinharCentro(item.nome.toUpperCase()) + "\n";
-          textoRaw += alinharCentro(`R$ ${window.fmSeguro(item.preco)}`) + "\n";
+          textoRaw += alinharCentro(`R$ ${typeof window.fmSeguro === 'function' ? window.fmSeguro(item.preco) : Number(item.preco).toFixed(2).replace('.', ',')}`) + "\n";
 
           textoRaw += "-".repeat(cfg.maxChars) + "\n";
           textoRaw += alinharCentro("RETIRAR NO BALCAO") + "\n";
@@ -777,7 +804,7 @@ window.imprimirCupom = function (venda) {
 
           const rodape = `PED#${pedidoId} | OP: ${operador.substring(0, 12)}`;
           textoRaw += alinharCentro(rodape) + "\n";
-          textoRaw += "\n".repeat(cfg.tamanho === "58" ? 3 : 5); // Avanço físico proporcional
+          textoRaw += "\n".repeat(cfg.tamanho === "58" ? 3 : 5); 
         }
       }
     });
@@ -787,28 +814,41 @@ window.imprimirCupom = function (venda) {
     return;
   }
 
-  // 2. SE FOR ROTA WEB NAVEGADOR
+  // 3. SE FOR ROTA WEB NAVEGADOR
   let html = "";
+  linhaCorteInserida = false; // Reseta a trava caso caia no fluxo Web
+
   itensArray.forEach((item) => {
     if (parseFloat(item.preco) > 0) {
+
+      // ✂️ GATILHO DA TESOURA HTML
+      if (getPesoOrdenacao(item) === 2 && precisaLinhaCorte && !linhaCorteInserida) {
+        html += `<div style="width: ${cfg.bodyWidth}; margin: 25px auto; text-align: center; border-top: 2px dashed #000; padding-top: 15px; font-weight: 900; font-size: 14px; letter-spacing: 2px; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;">✂ CORTE AQUI ✂</div>`;
+        linhaCorteInserida = true;
+      }
+
       for (let i = 0; i < (item.qtd || 1); i++) {
         const pedidoId = Math.floor(Math.random() * 9000) + 1000;
 
-        // A MÁGICA ESTÁ AQUI NA LARGURA COM O 'margin: 0 auto;' 👇
         html += `<div class="ticket-wrapper" style="width: ${cfg.bodyWidth}; margin: 0 auto;"><div class="header"><div class="store-name">${loja}</div><div class="meta">${dataVenda.toLocaleDateString()} ${dataVenda.toLocaleTimeString().substring(0, 5)}</div></div>`;
 
         if (layout === "padrao") {
-          html += `<div class="box-padrao text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${window.fmSeguro(item.preco)}</div></div><div class="instruction-text text-center">RETIRAR NO BALCÃO</div>`;
+          html += `<div class="box-padrao text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${typeof window.fmSeguro === 'function' ? window.fmSeguro(item.preco) : Number(item.preco).toFixed(2).replace('.', ',')}</div></div><div class="instruction-text text-center">RETIRAR NO BALCÃO</div>`;
         } else if (layout === "eco") {
-          html += `<div class="unified-box"><div class="item-name">${item.nome}</div><div class="item-price">R$ ${window.fmSeguro(item.preco)}</div></div>`;
+          html += `<div class="unified-box"><div class="item-name">${item.nome}</div><div class="item-price">R$ ${typeof window.fmSeguro === 'function' ? window.fmSeguro(item.preco) : Number(item.preco).toFixed(2).replace('.', ',')}</div></div>`;
         } else {
-          html += `<div class="unified-box text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${window.fmSeguro(item.preco)}</div>${layout === "original" ? '<div class="separator"></div>' : ""}<div class="instruction-text">RETIRAR NO BALCÃO</div></div>`;
+          html += `<div class="unified-box text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${typeof window.fmSeguro === 'function' ? window.fmSeguro(item.preco) : Number(item.preco).toFixed(2).replace('.', ',')}</div>${layout === "original" ? '<div class="separator"></div>' : ""}<div class="instruction-text">RETIRAR NO BALCÃO</div></div>`;
         }
         html += `<div class="footer text-center">PEDIDO #${pedidoId}<br>Op: ${operador}</div></div>`;
       }
     }
   });
-  window.dispararImpressao(html, layout);
+  
+  if (typeof window.dispararImpressao === 'function') {
+      window.dispararImpressao(html, layout);
+  } else {
+      console.error("[IMPRESSÃO] Função dispararImpressao não encontrada.");
+  }
 };
 
 // FORMATO 2: Resumo Completo da Venda / Pré-Conta Consolidada
