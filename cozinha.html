@@ -95,7 +95,7 @@
         </label>
     </div>
 
-    <button onclick="abrirModalImpressao()" class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-white px-4 py-3 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase active:scale-95 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all border border-slate-200 dark:border-slate-600 h-16 shadow-sm">
+<button onclick="abrirModalContingencia()" class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-white px-4 py-3 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase active:scale-95 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all border border-slate-200 dark:border-slate-600 h-16 shadow-sm">
         <i class="ph-bold ph-printer text-xl"></i>
         <span class="w-16 text-left leading-tight">Imprimir<br>Fichas</span>
     </button>
@@ -209,12 +209,12 @@
     </div>
 </div>
 
-<div id="modal-impressao" class="hidden fixed inset-0 bg-slate-900/90 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
+<div id="modal-contingencia" class="hidden fixed inset-0 bg-slate-900/90 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
     <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 animate-slide-up shadow-2xl border border-slate-100 dark:border-slate-800">
         
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-slate-800 dark:text-white font-black text-lg uppercase tracking-tighter">Gerar Fichas</h3>
-            <button onclick="window.fecharModalImpressao()" class="bg-slate-100 dark:bg-slate-800 w-9 h-9 rounded-full text-slate-500 hover:bg-slate-200 transition-all flex items-center justify-center">✕</button>
+            <button onclick="window.fecharModalContingencia()" class="bg-slate-100 dark:bg-slate-800 w-9 h-9 rounded-full text-slate-500 hover:bg-slate-200 transition-all flex items-center justify-center">✕</button>
         </div>
 
         <div class="mb-6">
@@ -222,7 +222,7 @@
             <input type="number" id="qtd-fichas-imprimir" value="1" min="1" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl text-3xl font-black text-center border-2 border-slate-100 dark:border-slate-700 dark:text-white outline-none focus:border-emerald-500 transition-all">
         </div>
 
-        <button onclick="window.confirmarImpressao()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-5 rounded-2xl text-xs font-black uppercase active:scale-95 italic transition-all shadow-lg shadow-emerald-500/30">
+        <button onclick="window.confirmarImpressaoContingencia()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-5 rounded-2xl text-xs font-black uppercase active:scale-95 italic transition-all shadow-lg shadow-emerald-500/30">
             🚀 GERAR IMPRESSÃO / PDF
         </button>
     </div>
