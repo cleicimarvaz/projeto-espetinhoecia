@@ -741,25 +741,19 @@ window.imprimirCupom = function (venda) {
   // --- 1. MOTOR DE ORDENAÇÃO DE 3 NÍVEIS ---
   const getPesoOrdenacao = (item) => {
     const cat = (item.categoria || "").toLowerCase().trim();
-    // Nível 2: Cozinha Pesada (Ficam DEPOIS da tesoura)
     if (['refeição', 'refeicao', 'acompanhamento', 'porção', 'porcao'].some(c => cat.includes(c))) return 2;
-    // Nível 1: Combos (Ficam ANTES da tesoura, sendo os últimos do bloco do balcão)
     if (cat.includes('combo')) return 1;
-    // Nível 0: Bebidas, Espetos, Leves (Primeiros a sair)
     return 0; 
   };
 
-  // Reordena o array baseado nos pesos acima
   itensArray.sort((a, b) => getPesoOrdenacao(a) - getPesoOrdenacao(b));
 
-  // Verifica se temos itens antes do corte (Pesos 0 ou 1) e depois do corte (Peso 2)
   const temBar = itensArray.some(item => getPesoOrdenacao(item) < 2 && parseFloat(item.preco) > 0);
   const temCozinha = itensArray.some(item => getPesoOrdenacao(item) === 2 && parseFloat(item.preco) > 0);
   const precisaLinhaCorte = temBar && temCozinha;
   let linhaCorteInserida = false;
-  // --- FIM DO MOTOR DE ORDENAÇÃO ---
 
-  // 2. SE FOR MODO RAWBT ANDROID (TEXTO PURO EXPANSÍVEL)
+  // --- 2. SE FOR MODO RAWBT ANDROID (TEXTO PURO EXPANSÍVEL) ---
   if (
     window.isRawBTThermalMode && window.isRawBTThermalMode() &&
     /android/.test(navigator.userAgent.toLowerCase())
@@ -776,10 +770,10 @@ window.imprimirCupom = function (venda) {
     itensArray.forEach((item) => {
       if (parseFloat(item.preco) > 0) {
         
-        // ✂️ GATILHO DA TESOURA RAWBT (Dispara exatamente quando começam os itens de Nível 2)
+        // ✂️ GATILHO DA TESOURA RAWBT (Corte visual das categorias)
         if (getPesoOrdenacao(item) === 2 && precisaLinhaCorte && !linhaCorteInserida) {
           textoRaw += "\n" + alinharCentro("- - ✂ - CORTE AQUI - ✂ - -") + "\n\n";
-          linhaCorteInserida = true; // Trava para não repetir
+          linhaCorteInserida = true;
         }
 
         for (let i = 0; i < (item.qtd || 1); i++) {
@@ -804,7 +798,12 @@ window.imprimirCupom = function (venda) {
 
           const rodape = `PED#${pedidoId} | OP: ${operador.substring(0, 12)}`;
           textoRaw += alinharCentro(rodape) + "\n";
+          
+          // ESPAÇAMENTO DA GUILHOTINA DINÂMICO (3 linhas para 58mm, 5 linhas para 80mm)
           textoRaw += "\n".repeat(cfg.tamanho === "58" ? 3 : 5); 
+          
+          // COMANDO MÁGICO DE CORTE (O RawBT vai ler isso e acionar a lâmina física aqui!)
+          textoRaw += "[cut]\n"; 
         }
       }
     });
@@ -814,23 +813,23 @@ window.imprimirCupom = function (venda) {
     return;
   }
 
-  // 3. SE FOR ROTA WEB NAVEGADOR
-  let html = "";
-  linhaCorteInserida = false; // Reseta a trava caso caia no fluxo Web
+  // --- 3. SE FOR ROTA WEB NAVEGADOR ---
+  let html = `<div style="width: 100%; display: flex; flex-direction: column; align-items: center;">`;
+  linhaCorteInserida = false;
 
   itensArray.forEach((item) => {
     if (parseFloat(item.preco) > 0) {
 
-      // ✂️ GATILHO DA TESOURA HTML
       if (getPesoOrdenacao(item) === 2 && precisaLinhaCorte && !linhaCorteInserida) {
-        html += `<div style="width: ${cfg.bodyWidth}; margin: 25px auto; text-align: center; border-top: 2px dashed #000; padding-top: 15px; font-weight: 900; font-size: 14px; letter-spacing: 2px; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;">✂ CORTE AQUI ✂</div>`;
+        html += `<div style="width: ${cfg.bodyWidth}; max-width: 100%; margin: 25px 0; text-align: center; border-top: 2px dashed #000; padding-top: 15px; font-weight: 900; font-size: 14px; letter-spacing: 2px; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;">✂ CORTE AQUI ✂</div>`;
         linhaCorteInserida = true;
       }
 
       for (let i = 0; i < (item.qtd || 1); i++) {
         const pedidoId = Math.floor(Math.random() * 9000) + 1000;
 
-        html += `<div class="ticket-wrapper" style="width: ${cfg.bodyWidth}; margin: 0 auto;"><div class="header"><div class="store-name">${loja}</div><div class="meta">${dataVenda.toLocaleDateString()} ${dataVenda.toLocaleTimeString().substring(0, 5)}</div></div>`;
+        // Adicionado break-after para forçar navegadores de PC a cortarem as páginas
+        html += `<div class="ticket-wrapper" style="width: ${cfg.bodyWidth}; max-width: 100%; margin-bottom: ${cfg.espacoGuilhotina || '15px'}; page-break-after: always; break-after: page;"><div class="header"><div class="store-name">${loja}</div><div class="meta">${dataVenda.toLocaleDateString()} ${dataVenda.toLocaleTimeString().substring(0, 5)}</div></div>`;
 
         if (layout === "padrao") {
           html += `<div class="box-padrao text-center"><div class="item-name">${item.nome}</div><div class="item-price">VALOR: R$ ${typeof window.fmSeguro === 'function' ? window.fmSeguro(item.preco) : Number(item.preco).toFixed(2).replace('.', ',')}</div></div><div class="instruction-text text-center">RETIRAR NO BALCÃO</div>`;
@@ -844,6 +843,8 @@ window.imprimirCupom = function (venda) {
     }
   });
   
+  html += `</div>`;
+
   if (typeof window.dispararImpressao === 'function') {
       window.dispararImpressao(html, layout);
   } else {

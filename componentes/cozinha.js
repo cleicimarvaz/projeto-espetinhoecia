@@ -921,12 +921,47 @@ window.fecharModalImpressao = function() {
     }
 };
 
-// Fluxo de Impressão Contínua (Adaptável para 58 ou 80mm)
-window.confirmarImpressao = function() {
+// =======================================================
+// MODAL E IMPRESSÃO DE CONTINGÊNCIA
+// =======================================================
+
+// 1. Função para ABRIR a tela de quantidade
+window.abrirModalContingencia = function() {
+    const modal = document.getElementById('modal-contingencia'); 
+    const inputQtd = document.getElementById('qtd-fichas-imprimir');
+    
+    // 1. Força o reset do valor ANTES da tela aparecer
+    if (inputQtd) {
+        inputQtd.value = "0"; 
+    }
+    
+    // 2. Abre o modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+    
+    // 3. Dá o foco e seleciona o texto para agilizar a vida do operador
+    setTimeout(() => {
+        if (inputQtd) {
+            inputQtd.focus();
+            inputQtd.select(); // Seleciona o "1" para o operador digitar por cima
+        }
+    }, 100);
+};
+
+// 2. Função para FECHAR a tela
+window.fecharModalContingencia = function() {
+    const modal = document.getElementById('modal-contingencia');
+    if (modal) modal.classList.add('hidden');
+};
+
+// 3. Função que GERA a ficha (Centralizada com Flexbox)
+window.confirmarImpressaoContingencia = function() {
     const inputQtd = document.getElementById('qtd-fichas-imprimir');
     const qtd = parseInt(inputQtd.value) || 1;
 
-    window.fecharModalImpressao();
+    // Fecha a tela antes de imprimir
+    window.fecharModalContingencia();
 
     const cfg = typeof obterConfiguracoesImpressora === 'function' 
         ? obterConfiguracoesImpressora() 
@@ -936,31 +971,39 @@ window.confirmarImpressao = function() {
     <html>
     <head>
         <meta charset="UTF-8">
-        <style>
+<style>
             @media print {
                 @page { margin: 0; size: ${cfg.pageWidth} auto; }
-                html, body { margin: 0; padding: 0; background: #fff; }
+                html, body { margin: 0; padding: 0; background: #fff; width: 100%; }
             }
             body {
                 font-family: 'Courier New', Courier, monospace;
-                width: ${cfg.bodyWidth};
-                margin: 0 auto;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                /* Removido o display: flex daqui para não bugar a quebra de página */
                 color: #000 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
             .ficha-container {
-                width: 100%;
+                width: ${cfg.bodyWidth};
+                max-width: 100%;
+                /* O segredo da centralização perfeita sem Flexbox: */
+                margin: 0 auto ${cfg.espacoGuilhotina || '15px'} auto; 
                 text-align: center;
                 padding-top: 5mm;
                 padding-bottom: 2mm;
-                padding-left: 4mm;  /* Margem lateral de segurança */
-                padding-right: 4mm; /* Margem lateral de segurança */
+                padding-left: 4mm;
+                padding-right: 4mm;
                 box-sizing: border-box;
-                page-break-after: always; 
+                page-break-after: always;
                 break-after: page;
             }
-            .ficha-container:last-child { page-break-after: avoid; }
+            .ficha-container:last-child { 
+                page-break-after: auto;
+                break-after: auto; 
+            }
             
             .titulo-principal { font-size: 20px; font-weight: 900; color: #000 !important; margin: 0 0 3px 0; }
             .subtitulo { font-size: 11px; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; color: #000 !important; }
@@ -980,8 +1023,9 @@ window.confirmarImpressao = function() {
                 border: 3px solid #000;
                 border-radius: 8px;
                 padding: 10px;
-                margin: 0 auto 12px auto;
-                width: 90%; /* Respiro lateral extra */
+                /* Centraliza a caixa da mesa dentro da ficha */
+                margin: 0 auto 12px auto; 
+                width: 90%;
                 display: flex;
                 align-items: flex-end;
                 justify-content: center;
@@ -1029,7 +1073,6 @@ window.confirmarImpressao = function() {
             
             <div class="linha-tracejada"></div>
             <div class="rodape-contingencia">EMISSÃO MANUAL DE CONTINGÊNCIA</div>
-            <div style="height: ${cfg.espacoGuilhotina};"></div>
         </div>`;
     }
 
