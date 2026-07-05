@@ -32,21 +32,29 @@ window.carregarEventosAdmin = async function () {
   }
 };
 
+// ==========================================
+// FILTRO DE EVENTOS ATIVOS / TODOS
+// ==========================================
 window.filtrarEventos = function () {
-  const apenasAtivos = document.getElementById("filtro-ativos").checked;
+  const checkboxAtivos = document.getElementById("filtro-ativos");
+  const apenasAtivos = checkboxAtivos ? checkboxAtivos.checked : true;
 
   if (!window.listaEventosCompleta) return;
 
+  // Filtra a lista baseada no status
   const eventosFiltrados = apenasAtivos
     ? window.listaEventosCompleta.filter((ev) => ev.status === "ativo")
     : window.listaEventosCompleta;
 
-  // Renderiza usando a nova função unificada
-  window.renderizarCardsEventos(eventosFiltrados);
+  // Envia a lista filtrada para o motor que desenha os cards na tela
+  if (typeof window.renderizarCardsEventos === 'function') {
+      window.renderizarCardsEventos(eventosFiltrados);
+  } else {
+      console.error("Função renderizarCardsEventos não encontrada!");
+  }
 };
 
 // Este é o "motor" que desenha os cards na tela.
-// Coloque esta função no seu eventos.js
 window.renderizarCardsEventos = function (eventos) {
   const container = document.getElementById("lista-eventos-admin");
   if (!container) {
@@ -109,23 +117,6 @@ window.renderizarCardsEventos = function (eventos) {
   }
 };
 
-window.filtrarEventos = function () {
-  const apenasAtivos = document.getElementById("filtro-ativos").checked;
-
-  if (!window.listaEventosCompleta) return;
-
-  // Filtra os eventos
-  const eventosFiltrados = apenasAtivos
-    ? window.listaEventosCompleta.filter((ev) => {
-        // Ajuste aqui a sua lógica: Exemplo, coluna 'status' igual a 'ativo'
-        // Ou se preferir por data: new Date(ev.data_evento) >= new Date()
-        return ev.status === "ativo";
-      })
-    : window.listaEventosCompleta;
-
-  // Chama a sua função original de renderização
-  renderizarCardsEventos(eventosFiltrados);
-};
 
 // Quando carregar a página inicialmente:
 // 1. Busque do Supabase
@@ -438,13 +429,18 @@ window.desenharCardsReservas = function (reservas) {
         ? `<p class="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mt-1 truncate">WPP: ${telefoneCliente}</p>`
         : "";
 
+      // --- AJUSTE APLICADO AQUI: Prepara os dados para o Modal ---
+      const nomeEscapado = nomeCliente.replace(/'/g, "\\'");
+      const arrayStringMap = JSON.stringify(res.mesas || []).replace(/"/g, "'");
+
       const botaoAprovar = !isConfirmada
         ? `
-            <button onclick="window.aprovarReserva('${res.id}')" class="flex-1 sm:flex-none w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest py-2.5 sm:py-2 px-1 rounded-lg shadow-sm transition-all active:scale-95 text-center">
+            <button onclick="window.abrirModalAcaoPendente('${res.id}', '${nomeEscapado}', ${arrayStringMap})" class="flex-1 sm:flex-none w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest py-2.5 sm:py-2 px-1 rounded-lg shadow-sm transition-all active:scale-95 text-center">
                 Aprovar
             </button>
         `
         : "";
+      // -----------------------------------------------------------
 
       const botaoCancelar = `
             <button onclick="window.excluirReserva('${res.id}')" class="flex-1 sm:flex-none w-full bg-red-500 hover:bg-red-600 text-white font-black text-[9px] uppercase tracking-widest py-2.5 sm:py-2 px-1 rounded-lg shadow-sm transition-all active:scale-95 text-center">
@@ -964,16 +960,24 @@ window.fecharGerenciamentoEvento = function () {
   document.getElementById("modal-gerenciar-evento").classList.add("hidden");
 };
 
+// ==========================================
+// 1. ATUALIZAÇÃO: SALVAR RESERVA MANUAL
+// ==========================================
 window.salvarReservaManual = async function (e) {
   e.preventDefault();
   if (!window.eventoIdAtivo) return;
 
-  const btn = document.getElementById("btn-salvar-rm");
-  btn.disabled = true;
-  btn.innerText = "RESERVANDO...";
+  // Como o clique pode vir de dois botões diferentes, nós pegamos o botão exato que disparou o evento
+  const btnClicado = e.target.closest ? e.target.closest('button') : null;
+  const textoOriginal = btnClicado ? btnClicado.innerHTML : "Aguarde...";
+  
+  if (btnClicado) {
+    btnClicado.disabled = true;
+    btnClicado.innerHTML = "⏳ PROCESSANDO...";
+  }
 
   try {
-    // 1. Pega a string do input e converte para um array de números [10, 11, 12]
+    // 1. Pega a string do input e converte para array
     const inputMesas = document.getElementById("rm-mesa").value;
     const listaMesas = inputMesas
       .split(",")
@@ -982,12 +986,15 @@ window.salvarReservaManual = async function (e) {
 
     const nome = document.getElementById("rm-nome").value;
     const tipo = document.getElementById("rm-tipo").value;
+    
+    // 🔍 A MÁGICA AQUI: Lê o status do campo oculto que o HTML preencheu
+    const campoStatus = document.getElementById("rm-status");
+    const statusDesejado = campoStatus ? campoStatus.value : "confirmada";
 
     if (listaMesas.length === 0)
       throw new Error("Selecione pelo menos uma mesa no mapa.");
 
-    // 2. Validação: Verifica se alguma das mesas selecionadas já está ocupada
-    // O Supabase .overlaps verifica se há qualquer intersecção entre arrays
+    // 2. Validação de Intersecção (Mesas Ocupadas)
     const { data: ocupadas, error: errBusca } = await _supabase
       .from("reservas_evento")
       .select("mesas")
@@ -999,33 +1006,143 @@ window.salvarReservaManual = async function (e) {
       throw new Error(`Uma ou mais mesas selecionadas já estão reservadas!`);
     }
 
-    // 3. Monta a nova reserva com o array completo
+    // 3. Monta a nova reserva com o status correto
     const novaReserva = {
       evento_id: String(window.eventoIdAtivo),
-      mesas: listaMesas, // Supabase salvará como um array [10, 11, 12]
+      mesas: listaMesas,
       cliente_nome: `${nome} (${tipo})`,
       cliente_telefone: "MANUAL - ADMIN",
-      status: "confirmada",
+      status: statusDesejado, // <-- Salva como pendente ou confirmada
     };
 
     const { error } = await _supabase
       .from("reservas_evento")
       .insert([novaReserva]);
+      
     if (error) throw error;
 
     if (window.showToast)
-      window.showToast(`Reservas efetuadas com sucesso!`, "sucesso");
+      window.showToast(`Reserva (${statusDesejado.toUpperCase()}) efetuada!`, "sucesso");
 
-    // 4. Limpa tudo
+    // 4. Limpa o formulário e o mapa
     document.getElementById("form-reserva-manual").reset();
-    if (window.limparSelecao) window.limparSelecao(); // Limpa as cores do mapa
+    if (window.limparSelecao) window.limparSelecao();
+    
+    // 5. Opcional: Atualiza a lista na tela e o mapa instantaneamente se essas funções existirem no seu código
+    if (typeof window.carregarReservasAdmin === 'function') window.carregarReservasAdmin();
+    if (typeof window.carregarMapaEventos === 'function') window.carregarMapaEventos();
+
   } catch (error) {
     console.error(error);
     if (window.showToast) window.showToast(error.message, "erro");
   } finally {
-    btn.disabled = false;
-    btn.innerText = "RESERVAR MESA";
+    if (btnClicado) {
+      btnClicado.disabled = false;
+      btnClicado.innerHTML = textoOriginal;
+    }
   }
+};
+
+
+// ==========================================
+// 2. NOVAS FUNÇÕES: GERENCIAR PENDÊNCIAS
+// ==========================================
+
+// Função para abrir a telinha de aprovação com os dados corretos
+window.abrirModalAcaoPendente = function(idReserva, nomeCliente, arrayMesas) {
+    document.getElementById('acao-pendente-id').value = idReserva;
+    document.getElementById('acao-pendente-nome').innerText = nomeCliente;
+    
+    // Formata o array visualmente: [10, 11] vira "10, 11"
+    const stringMesas = Array.isArray(arrayMesas) ? arrayMesas.join(', ') : arrayMesas;
+    document.getElementById('acao-pendente-mesas').innerText = `Mesas: ${stringMesas}`;
+    
+    document.getElementById('modal-acao-pendente').classList.remove('hidden');
+};
+
+// Disparada pelo botão Verde
+// Disparada pelo botão Verde do novo modal
+window.confirmarReservaPendente = async function() {
+    const id = document.getElementById('acao-pendente-id').value;
+    if(!id) return;
+    
+    try {
+        const { error } = await _supabase
+            .from('reservas_evento')
+            .update({ status: 'confirmada' })
+            .eq('id', id);
+            
+        if (error) throw error;
+        
+        if(window.showToast) window.showToast("Pagamento confirmado com sucesso!", "sucesso");
+        document.getElementById('modal-acao-pendente').classList.add('hidden');
+        
+        // ==========================================
+        // LÓGICA DE ENVIO DO WHATSAPP (MIGRADA)
+        // ==========================================
+        const reserva = window.listaReservasLocal.find((r) => r.id === id);
+        if (reserva && reserva.cliente_telefone && reserva.cliente_telefone !== "MANUAL - ADMIN") {
+            let telefonePuro = String(reserva.cliente_telefone).replace(/\D/g, "");
+            if (telefonePuro.length === 10 || telefonePuro.length === 11) {
+                telefonePuro = "55" + telefonePuro;
+            }
+            const nomeCliente = reserva.cliente_nome || "Cliente";
+            const mesaStr = Array.isArray(reserva.mesas) ? reserva.mesas.join(", ") : reserva.mesas;
+            const mensagem = `Olá, *${nomeCliente}*! 🎉\n\nO seu pagamento foi recebido e a sua reserva para a(s) mesa(s) *${mesaStr}* foi *confirmada* com sucesso!\n\nAgradecemos a preferência e aguardamos você.`;
+            
+            const urlWhatsapp = `https://wa.me/${telefonePuro}?text=${encodeURIComponent(mensagem)}`;
+            window.open(urlWhatsapp, "_blank");
+        }
+        // ==========================================
+        
+        // Recarrega os dados visuais
+        if (typeof window.carregarReservasAdmin === 'function') window.carregarReservasAdmin();
+        if (typeof window.carregarMapaEventos === 'function') window.carregarMapaEventos();
+        if (typeof window.atualizarListaSolicitacoes === 'function') window.atualizarListaSolicitacoes();
+        
+    } catch(error) {
+        console.error(error);
+        if(window.showToast) window.showToast("Erro ao confirmar pagamento", "erro");
+    }
+};
+
+// Disparada pelo botão Vermelho
+// Disparada pelo botão Vermelho
+window.liberarReservaPendente = async function() {
+    const id = document.getElementById('acao-pendente-id').value;
+    if(!id) return;
+    
+    // Chamando o seu modal customizado no lugar do confirm() nativo
+    const confirmado = await window.confirmarAcaoCustom(
+        "Liberar Mesa",
+        "Tem certeza que deseja cancelar essa reserva e liberar a mesa para venda?",
+        true // Esse 'true' diz para o modal que é uma ação de perigo (botão vermelho)
+    );
+    
+    // Se o usuário clicou em "Não", a função para aqui
+    if(!confirmado) return;
+    
+    try {
+        // Exclui a reserva do banco, liberando as mesas imediatamente
+        const { error } = await _supabase
+            .from('reservas_evento')
+            .delete()
+            .eq('id', id);
+            
+        if (error) throw error;
+        
+        if(window.showToast) window.showToast("Reserva cancelada. Mesa livre!", "sucesso");
+        document.getElementById('modal-acao-pendente').classList.add('hidden');
+        
+        // Recarrega os dados visuais
+        if (typeof window.carregarReservasAdmin === 'function') window.carregarReservasAdmin();
+        if (typeof window.carregarMapaEventos === 'function') window.carregarMapaEventos();
+        if (typeof window.atualizarListaSolicitacoes === 'function') window.atualizarListaSolicitacoes();
+        
+    } catch(error) {
+        console.error(error);
+        if(window.showToast) window.showToast("Erro ao liberar mesa", "erro");
+    }
 };
 
 window.alterarStatusEvento = async function (novoStatus) {
@@ -1319,56 +1436,38 @@ window.abrirMapaOcupacao = async function () {
   const eventoId = window.eventoIdAtivo;
   if (!eventoId) return;
 
-  // 1. Lê as mesas que já estão no input (para manter a seleção se a pessoa abrir o mapa de novo)
   const inputMesa = document.getElementById("rm-mesa");
-  window.mesasSelecionadasMap =
-    inputMesa && inputMesa.value
-      ? inputMesa.value
-          .split(",")
-          .map((m) => parseInt(m.trim()))
-          .filter((m) => !isNaN(m))
+  window.mesasSelecionadasMap = inputMesa && inputMesa.value
+      ? inputMesa.value.split(",").map((m) => parseInt(m.trim())).filter((m) => !isNaN(m))
       : [];
 
   try {
     const [{ data: evento }, { data: reservas }] = await Promise.all([
-      _supabase
-        .from("eventos")
-        .select("quantidade_mesas")
-        .eq("id", eventoId)
-        .single(),
-      _supabase
-        .from("reservas_evento")
-        .select("mesas, status")
-        .eq("evento_id", String(eventoId)),
+      _supabase.from("eventos").select("quantidade_mesas").eq("id", eventoId).single(),
+      _supabase.from("reservas_evento").select("id, mesas, status, cliente_nome").eq("evento_id", String(eventoId)),
     ]);
 
     const capacidade = evento ? parseInt(evento.quantidade_mesas) || 0 : 0;
     if (capacidade === 0) {
-      if (window.showToast)
-        window.showToast(
-          "Defina a capacidade de mesas no menu 'Gerenciar' primeiro.",
-          "erro",
-        );
+      if (window.showToast) window.showToast("Defina a capacidade de mesas no menu 'Gerenciar' primeiro.", "erro");
       return;
     }
 
-    const statusMesas = {};
+    const dadosMesas = {};
 
     if (reservas) {
       reservas.forEach((res) => {
-        const arrMesas = Array.isArray(res.mesas)
-          ? res.mesas
-          : typeof res.mesas === "string"
-            ? res.mesas.split(",")
-            : [res.mesas];
+        const arrMesas = Array.isArray(res.mesas) ? res.mesas : typeof res.mesas === "string" ? res.mesas.split(",") : [res.mesas];
         arrMesas.forEach((num) => {
           const n = parseInt(num);
           if (n) {
-            if (
-              res.status === "confirmada" ||
-              statusMesas[n] !== "confirmada"
-            ) {
-              statusMesas[n] = res.status;
+            if (res.status === "confirmada" || !dadosMesas[n] || dadosMesas[n].status !== "confirmada") {
+              dadosMesas[n] = {
+                status: res.status,
+                id: res.id,
+                nome: res.cliente_nome || "SEM NOME",
+                arrayMesasStr: JSON.stringify(arrMesas)
+              };
             }
           }
         });
@@ -1381,34 +1480,42 @@ window.abrirMapaOcupacao = async function () {
     for (let i = 1; i <= capacidade; i++) {
       let corClasses = "";
       let statusAtual = "livre";
-      let isSelecionada = window.mesasSelecionadasMap.includes(i); // Verifica se já está selecionada
+      let isSelecionada = window.mesasSelecionadasMap.includes(i);
+      let acaoClique = `onclick="window.toggleMesaMapaAcumulativo(${i}, 'livre', this)"`;
 
-      if (statusMesas[i] === "confirmada") {
-        corClasses = "bg-emerald-500 text-white opacity-90 cursor-not-allowed";
-        statusAtual = "ocupada";
-      } else if (statusMesas[i] === "pendente") {
-        corClasses = "bg-amber-400 text-white opacity-90 cursor-not-allowed";
-        statusAtual = "pendente";
+      if (dadosMesas[i]) {
+        // ==================================================
+        // A MÁGICA DA LIMPEZA AQUI:
+        // Remove tudo que estiver entre parênteses e espaços extras!
+        // ==================================================
+        const nomeLimpo = dadosMesas[i].nome.replace(/\s*\(.*?\)/g, "").trim();
+        const nomeEscapado = nomeLimpo.replace(/'/g, "\\'");
+
+        if (dadosMesas[i].status === "confirmada") {
+          corClasses = "bg-emerald-500 text-white opacity-90 cursor-pointer hover:bg-emerald-600 shadow-md transform hover:scale-105 transition-all";
+          statusAtual = "ocupada";
+          acaoClique = `onclick="window.abrirModalMesaOcupada('${dadosMesas[i].id}', '${nomeEscapado}', ${dadosMesas[i].arrayMesasStr.replace(/"/g, "'")})"`;
+          
+        } else if (dadosMesas[i].status === "pendente") {
+          corClasses = "bg-amber-400 text-white opacity-90 cursor-pointer hover:bg-amber-500 shadow-md transform hover:scale-105 transition-all";
+          statusAtual = "pendente";
+          acaoClique = `onclick="window.abrirModalAcaoPendente('${dadosMesas[i].id}', '${nomeEscapado}', ${dadosMesas[i].arrayMesasStr.replace(/"/g, "'")})"`;
+        }
       } else {
         statusAtual = "livre";
-        // Se estiver na lista de selecionadas, fica azul (indigo). Se não, fica branca/cinza.
         if (isSelecionada) {
-          corClasses =
-            "bg-indigo-600 text-white font-black cursor-pointer shadow-lg transform scale-105 ring-2 ring-indigo-300";
+          corClasses = "bg-indigo-600 text-white font-black cursor-pointer shadow-lg transform scale-105 ring-2 ring-indigo-300";
         } else {
-          corClasses =
-            "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:scale-105 transition-all font-bold shadow-sm";
+          corClasses = "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:scale-105 transition-all font-bold shadow-sm";
         }
       }
-
-      let acaoClique = `onclick="window.toggleMesaMapaAcumulativo(${i}, '${statusAtual}', this)"`;
 
       html += `<div ${acaoClique} class="aspect-square rounded-xl flex items-center justify-center text-sm transition-all duration-200 ${corClasses}" title="Mesa ${i}">${i}</div>`;
     }
 
     grid.innerHTML = html;
     document.getElementById("modal-mapa-ocupacao").classList.remove("hidden");
-    window.atualizarBotaoConfirmarMapa(); // Exibe o botão se já tiver mesa na memória
+    window.atualizarBotaoConfirmarMapa(); 
   } catch (err) {
     console.error("Erro ao gerar mapa:", err);
   }
@@ -2588,5 +2695,87 @@ window.salvarNovoMapa = async function() {
         // Volta o botão ao normal
         btn.innerText = textoOriginal;
         btn.disabled = false;
+    }
+};
+
+// ==========================================
+// GERENCIAMENTO DE MESAS OCUPADAS PELO MAPA
+// ==========================================
+
+window.abrirModalMesaOcupada = function(idReserva, nomeCliente, arrayMesas) {
+    document.getElementById('mesa-ocupada-id').value = idReserva;
+    document.getElementById('mesa-ocupada-nome').value = nomeCliente;
+
+    const stringMesas = Array.isArray(arrayMesas) ? arrayMesas.join(', ') : arrayMesas;
+    document.getElementById('mesa-ocupada-numeros').innerText = `Mesa(s): ${stringMesas}`;
+
+    document.getElementById('modal-mesa-ocupada').classList.remove('hidden');
+};
+
+window.fecharModalMesaOcupada = function() {
+    document.getElementById('modal-mesa-ocupada').classList.add('hidden');
+};
+
+window.salvarNomeMesaOcupada = async function() {
+    const id = document.getElementById('mesa-ocupada-id').value;
+    const novoNome = document.getElementById('mesa-ocupada-nome').value.trim();
+
+    if (!id || !novoNome) {
+        if(window.showToast) window.showToast("O nome não pode ficar vazio.", "aviso");
+        return;
+    }
+
+    try {
+        const { error } = await _supabase
+            .from('reservas_evento')
+            .update({ cliente_nome: novoNome })
+            .eq('id', id);
+
+        if (error) throw error;
+
+        if(window.showToast) window.showToast("Nome atualizado com sucesso!", "sucesso");
+        window.fecharModalMesaOcupada();
+
+        // Atualiza a tela de listagem por trás e recarrega o mapa
+        if (typeof window.atualizarListaSolicitacoes === 'function') window.atualizarListaSolicitacoes();
+        window.abrirMapaOcupacao();
+
+    } catch (error) {
+        console.error(error);
+        if(window.showToast) window.showToast("Erro ao atualizar o nome.", "erro");
+    }
+};
+
+window.cancelarMesaOcupada = async function() {
+    const id = document.getElementById('mesa-ocupada-id').value;
+    if(!id) return;
+
+    // Usa a sua trava de segurança impecável
+    const confirmado = await window.confirmarAcaoCustom(
+        "Cancelar Reserva",
+        "Tem certeza que deseja cancelar e liberar esta mesa permanentemente?",
+        true
+    );
+
+    if (!confirmado) return;
+
+    try {
+        const { error } = await _supabase
+            .from('reservas_evento')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        if(window.showToast) window.showToast("Reserva cancelada e mesa liberada!", "sucesso");
+        window.fecharModalMesaOcupada();
+
+        // Atualiza a tela de listagem por trás e recarrega o mapa visualmente livre
+        if (typeof window.atualizarListaSolicitacoes === 'function') window.atualizarListaSolicitacoes();
+        window.abrirMapaOcupacao();
+
+    } catch(error) {
+        console.error(error);
+        if(window.showToast) window.showToast("Erro ao liberar mesa.", "erro");
     }
 };
