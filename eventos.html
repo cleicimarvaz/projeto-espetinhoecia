@@ -288,7 +288,17 @@
                             </select>
                         </div>
                     </div>
-                    <button type="submit" id="btn-salvar-rm" class="btn-success w-full">Bloquear Mesa</button>
+                    <!-- Campo oculto para definir o status da reserva manual -->
+<input type="hidden" id="rm-status" value="confirmada">
+
+<div class="flex flex-col gap-2 mt-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+    <button type="button" onclick="document.getElementById('rm-status').value='pendente'; window.salvarReservaManual(event)" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-xl text-[11px] uppercase tracking-widest shadow-sm transition-all active:scale-95 flex justify-center items-center gap-2">
+        ⏳ Salvar como Pendente
+    </button>
+    <button type="button" onclick="document.getElementById('rm-status').value='confirmada'; window.salvarReservaManual(event)" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl text-[11px] uppercase tracking-widest shadow-sm transition-all active:scale-95 flex justify-center items-center gap-2">
+        ✓ Confirmar Pagamento
+    </button>
+</div>
                 </form>
             </div>
 
@@ -490,6 +500,69 @@
                 </div>
             </div>
             
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Ação para Reservas Pendentes -->
+<div id="modal-acao-pendente" class="hidden fixed inset-0 z-[180] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+    <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col animate-slide-up">
+        
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+            <div>
+                <h3 class="text-lg font-black uppercase text-amber-500 tracking-tighter">Aprovar Reserva</h3>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Mesa aguardando pagamento</p>
+            </div>
+            <button onclick="document.getElementById('modal-acao-pendente').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg font-black transition-colors">✕</button>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 mb-6 text-center">
+            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cliente / Contato</span>
+            <span class="block text-lg font-black text-slate-800 dark:text-white" id="acao-pendente-nome">--</span>
+            <span class="block text-xs font-bold text-indigo-500 mt-2" id="acao-pendente-mesas">Mesas: --</span>
+        </div>
+
+        <!-- ID da reserva oculto para a função JS saber quem atualizar -->
+        <input type="hidden" id="acao-pendente-id">
+
+        <div class="flex flex-col gap-3">
+            <button onclick="window.confirmarReservaPendente()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-emerald-500/30 transition-all active:scale-95">
+                ✓ Confirmar Pagamento
+            </button>
+            <button onclick="window.liberarReservaPendente()" class="w-full border-2 border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-black py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all">
+                ✕ Cancelar e Liberar Mesa
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gerenciar Mesa Ocupada -->
+<div id="modal-mesa-ocupada" class="hidden fixed inset-0 z-[180] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+    <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col animate-slide-up">
+
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+            <div>
+                <h3 class="text-lg font-black uppercase text-emerald-500 tracking-tighter">Mesa Reservada</h3>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider" id="mesa-ocupada-numeros">Mesas: --</p>
+            </div>
+            <button onclick="window.fecharModalMesaOcupada()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg font-black transition-colors">✕</button>
+        </div>
+
+        <!-- ID oculto para o banco de dados -->
+        <input type="hidden" id="mesa-ocupada-id">
+
+        <div class="mb-5 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Editar Nome do Cliente</label>
+            <input type="text" id="mesa-ocupada-nome" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all">
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <button onclick="window.salvarNomeMesaOcupada()" class="w-full bg-[#003366] hover:bg-blue-900 text-white font-black py-4 rounded-xl text-[11px] uppercase tracking-widest shadow-lg transition-all active:scale-95">
+                💾 Salvar Novo Nome
+            </button>
+            <button onclick="window.cancelarMesaOcupada()" class="w-full border-2 border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-black py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all">
+                ✕ Cancelar Reserva
+            </button>
         </div>
     </div>
 </div>
