@@ -1789,3 +1789,25 @@ window.dispararReimpressao = function() {
 window.fecharPreviewRecibo = function() {
     document.getElementById('modal-preview-recibo').classList.add('hidden');
 };
+
+// Função para abrir o painel de ordenação
+window.abrirMenuVendas = function() {
+    const overlay = document.getElementById('overlay-vendas');
+    const bottomSheet = document.getElementById('bottom-sheet-vendas');
+    
+    if (overlay && bottomSheet) {
+        overlay.classList.remove('hidden');
+        bottomSheet.classList.remove('translate-y-full');
+    }
+};
+
+// Função para fechar o painel de ordenação
+window.fecharMenuVendas = function() {
+    const overlay = document.getElementById('overlay-vendas');
+    const bottomSheet = document.getElementById('bottom-sheet-vendas');
+    
+    if (overlay && bottomSheet) {
+        overlay.classList.add('hidden');
+        bottomSheet.classList.add('translate-y-full');
+    }
+};

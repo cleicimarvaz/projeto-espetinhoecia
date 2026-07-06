@@ -871,6 +871,9 @@ window.abrirModalUltimosTickets = async function () {
     const modal = document.getElementById("modal-ultimos-tickets");
     const container = document.getElementById("lista-ultimos-tickets");
     
+    // --- LINHA NOVA: Esconde o botão da engrenagem ---
+    document.getElementById("btn-engrenagem").classList.add("hidden");
+    
     modal.classList.remove("hidden");
     container.innerHTML = '<p class="text-center text-slate-400 font-bold italic py-8 animate-pulse">Carregando histórico...</p>';
 
