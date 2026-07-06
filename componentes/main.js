@@ -1585,81 +1585,70 @@ window.fecharModalEstorno = function() {
 
 window.processarEstornoComSenha = async function() {
     const modal = document.getElementById('modal-estorno');
-    
-    // 1. O PULO DO GATO: Resgatar o ID e a tabela que o solicitarEstorno guardou
     const idVenda = modal.getAttribute('data-estorno-id');
     const tabela = modal.getAttribute('data-estorno-tabela') || 'historico_vendas';
     
-    // Resgatar o que foi digitado
     const usuarioDigitado = document.getElementById('input-user-estorno').value.trim();
     const senhaDigitada = document.getElementById('input-pass-estorno').value.trim();
 
-    // 2. Validações antes de ir para o banco
-    if (!idVenda) {
-        if (typeof showToast === 'function') showToast('Erro interno: ID da venda não encontrado.', 'erro');
-        return;
-    }
-
     if (!usuarioDigitado || !senhaDigitada) {
-        if (typeof showToast === 'function') showToast('Preencha usuário e senha para autorizar!', 'erro');
+        if (window.showToast) window.showToast("Preencha usuário e senha!", "aviso");
         return;
     }
-
-    // --- LÓGICA DE SENHA AQUI ---
-    // Se precisar validar a senha com o banco ou com uma senha fixa, faça aqui.
-    // Exemplo: if (senhaDigitada !== '1234') { showToast('Senha incorreta', 'erro'); return; }
 
     try {
-        // Efeito visual no botão (opcional, para evitar cliques duplos)
-        const btnConfirmar = document.querySelector('button[onclick="processarEstornoComSenha()"]');
-        if (btnConfirmar) {
-            btnConfirmar.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> PROCESSANDO...';
-            btnConfirmar.disabled = true;
+        // 1. Busca o usuário e valida credenciais + permissão
+        const { data: usuario, error } = await _supabase
+            .from('usuarios')
+            .select('*')
+            .eq('usuario', usuarioDigitado)
+            .eq('senha', senhaDigitada)
+            .eq('ativo', true) // Verifica se o usuário está ativo
+            .single();
+
+        if (error || !usuario) {
+            if (window.showToast) window.showToast("Usuário ou senha inválidos!", "erro");
+            return;
         }
 
-        console.log("Iniciando cancelamento no Supabase do ID:", idVenda, "na tabela:", tabela);
+        // 2. Verifica se o 'role' é admin
+        if (usuario.role !== 'admin') {
+            if (window.showToast) window.showToast("Acesso negado: Requer privilégios de administrador.", "erro");
+            return;
+        }
 
-        // 3. O UPDATE NO SUPABASE
-        const { error } = await _supabase
+        // 3. Processa o estorno
+        const { error: errorEstorno } = await _supabase
             .from(tabela)
             .update({ 
-                status: 'cancelada',
-                estornado_em: new Date().toISOString()
+                status: 'estornada',
+                estornado_em: new Date().toISOString(),
+                autorizado_por: usuario.nome || usuario.usuario.toUpperCase()
             })
             .eq('id', parseInt(idVenda));
 
-        if (error) throw error;
+        if (errorEstorno) throw errorEstorno;
 
-        // 4. Sucesso!
-        if (typeof showToast === 'function') showToast('Venda cancelada com sucesso!', 'sucesso');
-        
-        // Log de auditoria (se você estiver usando aquela sua função registrarLog)
+        if (window.showToast) window.showToast("Venda estornada por " + (usuario.nome || usuario.usuario), "sucesso");
+
+        // 4. Auditoria
         if (typeof registrarLog === 'function') {
-            await registrarLog('SEGURANÇA', 'ESTORNO', `Venda #${idVenda} cancelada por ${usuarioDigitado}`);
+            await registrarLog('SEGURANÇA', 'ESTORNO', `Venda #${idVenda} estornada por ${usuario.usuario}`);
         }
 
-        // Fechar modal e limpar inputs
+        // 5. Limpeza e UI
         document.getElementById('input-user-estorno').value = '';
         document.getElementById('input-pass-estorno').value = '';
-        if (typeof fecharModalEstorno === 'function') {
-            fecharModalEstorno();
-        } else {
-            modal.classList.add('hidden');
-        }
         
-        // Atualizar a tabela na tela
+        if (typeof fecharModalEstorno === 'function') fecharModalEstorno();
+        else modal.classList.add('hidden');
+        
+        if (typeof window.abrirModalUltimosTickets === 'function') window.abrirModalUltimosTickets();
         if (typeof carregarHistoricoVendas === 'function') carregarHistoricoVendas();
 
     } catch (e) {
-        console.error('❌ Erro no estorno:', e);
-        if (typeof showToast === 'function') showToast('Erro no banco: ' + e.message, 'erro');
-    } finally {
-        // Restaurar o botão ao normal
-        const btnConfirmar = document.querySelector('button[onclick="processarEstornoComSenha()"]');
-        if (btnConfirmar) {
-            btnConfirmar.innerHTML = 'CONFIRMAR';
-            btnConfirmar.disabled = false;
-        }
+        console.error('❌ Erro no processo de estorno:', e);
+        if (window.showToast) window.showToast("Erro ao processar: " + e.message, "erro");
     }
 };
 

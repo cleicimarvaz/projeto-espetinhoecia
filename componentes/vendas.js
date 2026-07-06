@@ -862,3 +862,168 @@ function selecionarPagamento(metodo, elementoClicado) {
         handlePagamentoChange();
     }
 }
+
+// ==========================================
+// MÓDULO: ÚLTIMOS TICKETS (REIMPRESSÃO E ESTORNO)
+// ==========================================
+
+window.abrirModalUltimosTickets = async function () {
+    const modal = document.getElementById("modal-ultimos-tickets");
+    const container = document.getElementById("lista-ultimos-tickets");
+    
+    modal.classList.remove("hidden");
+    container.innerHTML = '<p class="text-center text-slate-400 font-bold italic py-8 animate-pulse">Carregando histórico...</p>';
+
+    try {
+        const { data: tickets, error } = await _supabase
+            .from("historico_vendas") 
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+        if (error) throw error;
+        window.desenharListaUltimosTickets(tickets);
+
+    } catch (err) {
+        console.error("Erro ao buscar tickets:", err);
+        container.innerHTML = '<p class="text-center text-red-500 font-bold py-8">Erro ao carregar o histórico.</p>';
+    }
+};
+
+window.desenharListaUltimosTickets = function (tickets) {
+    const container = document.getElementById("lista-ultimos-tickets");
+
+    if (!tickets || tickets.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-400 font-bold italic py-8">Nenhum ticket recente encontrado.</p>';
+        return;
+    }
+
+    container.innerHTML = tickets.map((t) => {
+        const dataFormatada = new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+        const valorFormatado = parseFloat(t.total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        
+        const statusTicket = String(t.status || "").toLowerCase();
+        const isEstornado = statusTicket === "estornado" || statusTicket === "estornada" || statusTicket === "cancelada";
+        
+        const statusBadge = isEstornado 
+            ? `<span class="bg-red-100 text-red-600 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">Estornado</span>`
+            : `<span class="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">Concluída</span>`;
+
+        const numeroCupom = String(t.id).padStart(5, '0');
+
+        return `
+        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow-md transition-shadow">
+            
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-black text-[#333333] dark:text-slate-300 uppercase">TICKET #${numeroCupom}</span>
+                    ${statusBadge}
+                </div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    Hoje às ${dataFormatada} | ${t.forma_pagamento || 'N/A'}
+                </p>
+                <p class="text-lg font-black text-[#00A651] mt-1">${valorFormatado}</p>
+            </div>
+            
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="window.reimprimirTicket('${t.id}')" class="flex-1 sm:flex-none bg-[#003366] hover:bg-blue-900 text-white font-black text-[10px] uppercase tracking-widest py-3 px-4 rounded-lg shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1">
+                    🖨️ Reimprimir
+                </button>
+                
+                <button onclick="window.estornarTicket('${t.id}')" ${isEstornado ? 'disabled' : ''} class="flex-1 sm:flex-none border-2 border-red-500 text-red-500 hover:bg-red-50 font-black text-[10px] uppercase tracking-widest py-2.5 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                    ↩️ Estornar
+                </button>
+            </div>
+            
+        </div>`;
+    }).join("");
+};
+
+// ==========================================
+// AÇÕES DOS BOTÕES (REIMPRIMIR)
+// ==========================================
+
+window.reimprimirTicket = async function (idTicket) {
+    if (window.showToast) window.showToast("Gerando reimpressão...", "aviso");
+    
+    const btnEvent = event ? event.currentTarget : null;
+    let textoOriginal = "";
+    if (btnEvent) {
+        textoOriginal = btnEvent.innerHTML;
+        btnEvent.innerHTML = "⏳ Aguarde...";
+        btnEvent.disabled = true;
+    }
+
+    try {
+        const { data: vendaReal, error } = await _supabase
+            .from("historico_vendas")
+            .select("*")
+            .eq("id", idTicket)
+            .single();
+
+        if (error) throw error;
+        
+        const pacoteParaImpressao = {
+            id: vendaReal.id,
+            itens: vendaReal.itens,
+            data: vendaReal.created_at,
+            total: vendaReal.total,
+            forma_pagamento: vendaReal.forma_pagamento
+        };
+
+        if (typeof window.imprimirCupom === "function") {
+            setTimeout(() => {
+                window.imprimirCupom(pacoteParaImpressao);
+                if (window.showToast) window.showToast("Reimpressão enviada!", "sucesso");
+            }, 300);
+        } else {
+            console.error("Função imprimirCupom não encontrada neste arquivo.");
+        }
+
+    } catch (err) {
+        console.error("Erro na reimpressão:", err);
+        if (window.showToast) window.showToast("Erro ao buscar o ticket.", "erro");
+    } finally {
+        if (btnEvent) {
+            btnEvent.innerHTML = textoOriginal;
+            btnEvent.disabled = false;
+        }
+    }
+};
+
+// ==========================================
+// AÇÕES DOS BOTÕES (ESTORNO COM SENHA)
+// ==========================================
+
+// Memória global para saber qual ticket o gerente está autorizando
+window.ticketIdParaEstorno = null;
+
+// 1. ABRIR O MODAL DE ESTORNO
+window.estornarTicket = function(idTicket) {
+    const modal = document.getElementById('modal-estorno');
+    
+    if (!modal) {
+        console.error("Modal de estorno não encontrado!");
+        return;
+    }
+
+    // 🚀 O PULO DO GATO: Escreve o ID dentro do modal para a função de confirmar ler depois
+    modal.setAttribute('data-estorno-id', idTicket);
+    modal.setAttribute('data-estorno-tabela', 'historico_vendas');
+    
+    // Limpa os campos
+    document.getElementById('input-user-estorno').value = '';
+    document.getElementById('input-pass-estorno').value = '';
+    
+    // Atualiza subtítulo do modal (opcional, mas recomendado)
+    document.getElementById('label-valor-estorno').innerText = `TICKET #${String(idTicket).padStart(5, '0')}`;
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => { document.getElementById('input-user-estorno').focus(); }, 100);
+};
+
+// 2. FECHAR O MODAL
+window.fecharModalEstorno = function() {
+    document.getElementById('modal-estorno').classList.add('hidden');
+    window.ticketIdParaEstorno = null;
+};
