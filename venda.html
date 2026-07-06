@@ -62,7 +62,7 @@
         
         <div class="mb-6 flex flex-col gap-4">
             
-<div class="flex flex-row gap-3 w-full mb-6">
+<div class="flex flex-col sm:flex-row gap-3 w-full mb-6">
     
     <!-- Barra de Busca -->
     <div class="flex-[3] relative">
@@ -70,13 +70,13 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input type="text" id="busca-produto-venda" oninput="window.filtrarVitrine()" placeholder="BUSQUE POR PRODUTOS, BEBIDAS..." 
-               class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full py-3.5 pl-12 pr-4 text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-slate-400 transition-all shadow-sm uppercase">
+               class="w-full h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full py-3.5 pl-12 pr-4 text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-slate-400 transition-all shadow-sm uppercase">
     </div>
 
     <!-- Seletor de Organização -->
     <div class="flex-[1]">
         <select id="ordem-catalogo" onchange="window.filtrarVitrine()" 
-                class="w-full h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-4 text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-slate-400 transition-all shadow-sm cursor-pointer appearance-none uppercase">
+                class="w-full h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-4 py-3.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-slate-400 transition-all shadow-sm cursor-pointer appearance-none uppercase">
             <option value="nome-asc">🔤 NOME (A-Z)</option>
             <option value="nome-desc">🔤 NOME (Z-A)</option>
             <option value="preco-asc">💰 MENOR R$</option>
@@ -84,6 +84,11 @@
             <option value="categoria">📦 CATEGORIA</option>
         </select>
     </div>
+
+    <!-- Botão Últimos Tickets -->
+    <button onclick="window.abrirModalUltimosTickets()" class="shrink-0 h-full bg-[#333333] hover:bg-black text-white font-black text-[11px] uppercase tracking-widest px-6 py-3.5 rounded-full shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2">
+        🧾 Tíckets
+    </button>
 </div>
 
             <div class="flex gap-2.5 overflow-x-auto w-full custom-scrollbar pb-2">
@@ -400,6 +405,50 @@
         </button>
     </div>
 </div>
+
+<!-- Modal Últimos Tickets -->
+<div id="modal-ultimos-tickets" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+    <div class="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] animate-slide-up">
+        
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+            <div>
+                <h3 class="text-lg font-black uppercase text-[#003366] dark:text-white tracking-tighter">Últimos Tickets Emitidos</h3>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Histórico recente do caixa atual</p>
+            </div>
+            <button onclick="document.getElementById('modal-ultimos-tickets').classList.add('hidden')" class="text-slate-400 hover:text-red-500 text-lg font-black transition-colors">✕</button>
+        </div>
+
+        <!-- Container onde a lista será injetada -->
+        <div id="lista-ultimos-tickets" class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 pr-2 pb-4">
+            <!-- Os cards entrarão aqui dinamicamente -->
+        </div>
+
+    </div>
+</div>
+
+    <div id="modal-estorno" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in-center">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner">🔒</div>
+                <h3 class="text-sm font-black text-slate-800 dark:text-white uppercase italic tracking-tighter">Autorização Restrita</h3>
+                <p id="label-valor-estorno" class="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest"></p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[8px] font-black text-slate-400 uppercase ml-3 mb-1">Usuário Gerente</label>
+                    <input type="text" id="input-user-estorno" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 outline-none focus:border-orange-500 transition-all" placeholder="DIGITE O USUÁRIO">
+                </div>
+                <div>
+                    <label class="block text-[8px] font-black text-slate-400 uppercase ml-3 mb-1">Senha de Acesso</label>
+                    <input type="password" id="input-pass-estorno" class="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 outline-none focus:border-orange-500 transition-all" placeholder="••••••••">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="fecharModalEstorno()" class="flex-1 py-4 text-[10px] font-black text-slate-400 uppercase hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all">CANCELAR</button>
+                <button onclick="processarEstornoComSenha()" class="flex-1 py-4 bg-red-600 text-white text-[10px] font-black uppercase rounded-2xl shadow-lg shadow-red-500/20 active:scale-95 transition-all">CONFIRMAR</button>
+            </div>
+        </div>
+    </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="componentes/config.js"></script>
