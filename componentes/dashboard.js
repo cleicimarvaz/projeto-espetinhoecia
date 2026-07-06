@@ -299,25 +299,30 @@ window.exibirMensagemVazia = function() {
 /**HOME */
 window.atualizarFaturamentoHoje = async function() {
     try {
-        const agora = new Date();
-        const inicioDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0).toISOString();
-        const fimDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59).toISOString();
+        const hoje = new Date();
+        // Ajuste para pegar desde a meia-noite do dia atual no seu fuso horário
+        const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
 
+        // Buscamos todas as vendas do dia sem restringir pelo IN (para não pular nada por erro de digitação)
         const { data: vendas, error } = await _supabase
             .from('historico_vendas')
-            .select('total, status')
-            .gte('created_at', inicioDia)
-            .lte('created_at', fimDia)
-            .neq('status', 'estornada') // Garantia extra para não contar estornos na Home!
-            .neq('status', 'cancelada');
+            .select('total, status, created_at')
+            .gte('created_at', inicioDia);
 
         if (error) throw error;
 
-        const totalFaturado = vendas.reduce((acc, venda) => acc + (parseFloat(venda.total) || 0), 0);
+        // Soma apenas o que NÃO for estornada
+        const totalFaturado = vendas.reduce((acc, venda) => {
+            const status = (venda.status || '').toLowerCase().trim();
+            
+            // FILTRO DE SEGURANÇA: ignora explicitamente as estornadas
+            if (status === 'estornada') return acc;
+            
+            return acc + (parseFloat(venda.total) || 0);
+        }, 0);
 
         const elementoFaturamento = document.getElementById('faturamento-hoje');
         if (elementoFaturamento) {
-            // Fallback blindado caso fmSeguro não exista na tela Home
             const formatarBRL = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const formatador = typeof window.fmSeguro === 'function' ? window.fmSeguro : formatarBRL;
             elementoFaturamento.innerText = `R$ ${formatador(totalFaturado)}`;
@@ -325,8 +330,8 @@ window.atualizarFaturamentoHoje = async function() {
 
     } catch (e) {
         console.error("[DASHBOARD] Erro ao calcular faturamento:", e);
-        const elementoFaturamento = document.getElementById('faturamento-hoje');
-        if (elementoFaturamento) elementoFaturamento.innerText = "R$ 0,00";
+        const el = document.getElementById('faturamento-hoje');
+        if (el) el.innerText = "R$ 0,00";
     }
 };
 

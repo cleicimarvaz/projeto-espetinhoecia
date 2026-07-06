@@ -322,14 +322,21 @@ window.carregarResumoHome = async function() {
     }
 
     try {
+        // 1. Buscamos agora o 'status' junto com o 'total'
         const [{ data: vendas, error }, { data: comandas }] = await Promise.all([
-            _supabase.from('historico_vendas').select('total').eq('id_caixa', idCaixaAtual),
+            _supabase.from('historico_vendas').select('total, status').eq('id_caixa', idCaixaAtual),
             _supabase.from('comandas').select('id').eq('status', 'aberta')
         ]);
 
         if (error) throw error;
 
-        const totalFaturamento = (vendas || []).reduce((acc, v) => acc + (parseFloat(v.total) || 0), 0);
+        // 2. Filtro de Segurança: Só soma o que NÃO for 'estornada'
+        const totalFaturamento = (vendas || []).reduce((acc, v) => {
+            const status = (v.status || '').toLowerCase().trim();
+            if (status === 'estornada' || status === 'cancelada') return acc;
+            return acc + (parseFloat(v.total) || 0);
+        }, 0);
+
         cardFaturamento.innerText = `R$ ${typeof formatarMoeda === 'function' ? formatarMoeda(totalFaturamento) : totalFaturamento.toFixed(2)}`;
 
         if (badgeComandas && comandas) {
