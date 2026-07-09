@@ -76,27 +76,29 @@
     <div id="cardapio" class="grid grid-cols-2 gap-4 px-4 pb-10"></div>
 
     <!-- Modal Detalhes (Sem botões de carrinho/quantidade) -->
-    <div id="modal-detalhes" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] flex items-end sm:items-center justify-center transition-all">
-        <div onclick="event.stopPropagation()" class="bg-white w-full sm:max-w-md max-h-[85vh] rounded-t-[2.5rem] flex flex-col relative overflow-hidden shadow-2xl">
-            <button onclick="window.fecharDetalhes()" class="absolute top-4 right-4 bg-black/20 backdrop-blur p-2 rounded-full z-50 text-white hover:bg-black/40 transition-colors">✕</button>
-            
-            <div class="flex-1 overflow-y-auto modal-scroll bg-slate-50">
-                <div class="relative h-56 sm:h-72 bg-slate-200 overflow-hidden shrink-0">
-                    <div id="galeria-fotos-container" class="flex h-full w-full overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"></div>
-                    <div id="indicador-fotos" class="absolute bottom-12 right-6 bg-black/50 backdrop-blur-md text-white text-[10px] font-black px-3 py-1 rounded-full z-20 uppercase tracking-widest hidden">1 / 1</div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-50 via-transparent to-transparent pointer-events-none"></div>
-                </div>
+<div id="modal-detalhes" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] flex items-end sm:items-center justify-center transition-all">
+    <div onclick="event.stopPropagation()" class="bg-white w-full sm:max-w-md max-h-[85vh] rounded-t-[2.5rem] flex flex-col relative overflow-hidden shadow-2xl">
+        <button onclick="window.fecharDetalhes()" class="absolute top-4 right-4 bg-black/20 backdrop-blur p-2 rounded-full z-50 text-white hover:bg-black/40 transition-colors">✕</button>
+        
+        <div class="flex-1 overflow-y-auto modal-scroll bg-slate-50">
+            <div class="relative h-56 sm:h-72 bg-slate-200 overflow-hidden shrink-0">
+                <div id="galeria-fotos-container" class="flex h-full w-full overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"></div>
+                <div id="indicador-fotos" class="absolute bottom-12 right-6 bg-black/50 backdrop-blur-md text-white text-[10px] font-black px-3 py-1 rounded-full z-20 uppercase tracking-widest hidden">1 / 1</div>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-50 via-transparent to-transparent pointer-events-none"></div>
+            </div>
 
-                <div class="px-5 -mt-8 relative z-10 pb-6">
-                    <div class="bg-white rounded-[2rem] p-6 shadow-lg border border-slate-100">
-                        <h2 id="det-nome" class="text-xl sm:text-2xl font-black text-slate-800 uppercase italic leading-tight tracking-tighter break-words">---</h2>
-                        <span id="det-preco" class="text-3xl sm:text-4xl font-black text-red-600 block mt-1 italic tracking-tighter">R$ 0,00</span>
-                        <p id="det-desc" class="text-[11px] font-bold text-slate-400 mt-3 uppercase leading-relaxed"></p>
-                    </div>
+            <div class="px-5 -mt-8 relative z-10 pb-6">
+                <div class="bg-white rounded-[2rem] p-6 shadow-lg border border-slate-100">
+                    <h2 id="det-nome" class="text-xl sm:text-2xl font-black text-slate-800 uppercase italic leading-tight tracking-tighter break-words">---</h2>
+                    <span id="det-preco" class="text-3xl sm:text-4xl font-black text-red-600 block mt-1 italic tracking-tighter">R$ 0,00</span>
+                    <p id="det-desc" class="text-[11px] font-bold text-slate-400 mt-3 uppercase leading-relaxed"></p>
+                    
+                    <div id="det-obs-container" class="hidden"></div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Scripts de Sistema (Na ordem correta) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
