@@ -80,39 +80,70 @@ window.carregarDados = async function() {
 window.render = function(lista) {
     const container = document.getElementById('cardapio');
     if (!container) return;
+    
+    // Armazena a lista atual para os filtros funcionarem corretamente
+    window.PRODUTOS_FILTRADOS = lista;
+
     if (lista.length === 0) { 
-        container.innerHTML = `<p class="col-span-2 text-center py-20 font-black text-slate-300 uppercase italic text-xs">Nenhum item disponível.</p>`; 
+        container.innerHTML = `<p class="col-span-full text-center py-20 font-black text-slate-300 uppercase italic text-xs">Nenhum item disponível.</p>`; 
         return; 
     }
     
-    // Dicionário para garantir o emoji correto caso o produto não tenha foto
     const emojis = { 
         'espetos': '🍢', 'espetinhos': '🍢', 
         'cervejas': '🍺', 'bebidas': '🥤', 
         'refeicao': '🍽️', 'jantinhas': '🍽️', 
         'acompanhamentos': '🍚', 'combos': '🍻' 
     };
-    
-    container.innerHTML = lista.map(p => {
-        const catLimpa = (p.categoria || '').toLowerCase().trim();
-        const emojiPadrao = emojis[catLimpa] || '🍢';
-        
-        return `
-        <div onclick="window.abrirDetalhes(${p.id})" class="bg-white p-2.5 rounded-[2rem] shadow-sm border border-slate-100 active:scale-95 transition-all cursor-pointer group hover:border-red-100 flex flex-col h-full">
-            <div class="h-32 sm:h-36 bg-slate-50 rounded-[1.5rem] overflow-hidden relative mb-3 shrink-0 flex items-center justify-center text-4xl">
-                ${p.foto ? `<img src="${p.foto}" class="w-full h-full object-cover">` : `<span>${emojiPadrao}</span>`}
-            </div>
-            <div class="px-2 pb-2 flex flex-col flex-1 justify-between">
-                <div class="mb-2">
-                    <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">/ ${p.categoria || 'Geral'}</p>
-                    <h4 class="font-black text-xs uppercase text-slate-800 leading-tight italic break-words">${p.nome}</h4>
+
+    // MODO GRADE (BLOCO)
+    if (MODO_VISUALIZACAO === 'grid') {
+        container.className = "grid grid-cols-2 gap-4 px-4 pb-10";
+        container.innerHTML = lista.map(p => {
+            const catLimpa = (p.categoria || '').toLowerCase().trim();
+            const emojiPadrao = emojis[catLimpa] || '🍢';
+            // Verifica o campo observacao conforme sua tabela
+            const temObs = p.observacao && p.observacao.trim() !== "";
+            
+            return `
+            <div onclick="window.abrirDetalhes(${p.id})" class="bg-white p-2.5 rounded-[2rem] shadow-sm border border-slate-100 active:scale-95 transition-all cursor-pointer group hover:border-red-100 flex flex-col h-full relative">
+                ${temObs ? '<div class="absolute top-4 left-4 bg-blue-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm uppercase italic">Opções</div>' : ''}
+                <div class="h-32 sm:h-36 bg-slate-50 rounded-[1.5rem] overflow-hidden mb-3 shrink-0 flex items-center justify-center text-4xl">
+                    ${p.foto ? `<img src="${p.foto}" class="w-full h-full object-cover">` : `<span>${emojiPadrao}</span>`}
                 </div>
-                <div>
-                    <span class="bg-red-600 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-md italic inline-block">R$ ${parseFloat(p.preco).toFixed(2).replace('.', ',')}</span>
+                <div class="px-2 pb-2 flex-1 flex flex-col justify-between">
+                    <div class="mb-2">
+                        <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">/ ${p.categoria || 'Geral'}</p>
+                        <h4 class="font-black text-xs uppercase text-slate-800 leading-tight italic truncate">${p.nome}</h4>
+                    </div>
+                    <div>
+                        <span class="bg-red-600 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-md italic inline-block">R$ ${parseFloat(p.preco).toFixed(2).replace('.', ',')}</span>
+                    </div>
                 </div>
-            </div>
-        </div>`;
-    }).join('');
+            </div>`;
+        }).join('');
+    } 
+    // MODO LISTA
+    else {
+        container.className = "flex flex-col gap-3 px-4 pb-10";
+        container.innerHTML = lista.map(p => {
+            const temObs = p.observacao && p.observacao.trim() !== "";
+            
+            return `
+            <div onclick="window.abrirDetalhes(${p.id})" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-red-100 transition-all">
+                <div class="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl border border-slate-100">
+                    ${p.foto ? `<img src="${p.foto}" class="w-full h-full object-cover">` : '🍢'}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-black text-xs uppercase text-slate-800 italic truncate">${p.nome}
+                        ${temObs ? '<span class="ml-2 bg-blue-100 text-blue-600 text-[8px] px-1.5 py-0.5 rounded italic uppercase">Opções</span>' : ''}
+                    </h4>
+                    <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">/ ${p.categoria || 'Geral'}</p>
+                </div>
+                <span class="font-black text-red-600 text-xs italic shrink-0">R$ ${parseFloat(p.preco).toFixed(2).replace('.', ',')}</span>
+            </div>`;
+        }).join('');
+    }
 }
 
 // =============================================================
@@ -160,18 +191,29 @@ window.abrirDetalhes = function(id) {
         }
     }
 
-    // Validação defensiva de elementos da interface
+    // Elementos da interface
     const elNome = document.getElementById('det-nome');
     const elDesc = document.getElementById('det-desc');
     const elPreco = document.getElementById('det-preco');
-    const elObs = document.getElementById('det-obs');
-    const elQtd = document.getElementById('det-qtd');
+    const elObsContainer = document.getElementById('det-obs-container'); // Onde os sabores aparecerão
 
     if(elNome) elNome.innerText = item.nome;
     if(elDesc) elDesc.innerText = item.descricao || 'Esse produto não possui uma descrição detalhada.';
     if(elPreco) elPreco.innerText = `R$ ${parseFloat(item.preco).toFixed(2).replace('.', ',')}`;
-    if(elObs) elObs.value = '';
-    if(elQtd) elQtd.innerText = 1;
+
+    // Exibe as observações/sabores de forma clara e sem ocultar
+    if(elObsContainer) {
+        if(item.observacao && item.observacao.trim() !== "") {
+            elObsContainer.innerHTML = `
+                <div class="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Sabores / Opções:</p>
+                    <p class="text-xs font-black text-slate-700 leading-relaxed uppercase italic">${item.observacao.trim()}</p>
+                </div>`;
+            elObsContainer.classList.remove('hidden');
+        } else {
+            elObsContainer.classList.add('hidden');
+        }
+    }
 
     // Reseta caixas do modal antigo caso ainda existam no HTML
     const bS = document.getElementById('box-sabores'), lS = document.getElementById('lista-sabores');
@@ -249,38 +291,58 @@ window.render = function(lista) {
     const container = document.getElementById('cardapio');
     if (!container) return;
     
-    // Armazena a lista atual para o filtro funcionar após trocar o modo
     window.PRODUTOS_FILTRADOS = lista;
 
-    if (lista.length === 0) {
-        container.innerHTML = `<p class="col-span-full text-center py-20 font-black text-slate-300 uppercase italic text-xs">Nenhum item disponível.</p>`;
-        return;
+    if (lista.length === 0) { 
+        container.innerHTML = `<p class="col-span-full text-center py-20 font-black text-slate-300 uppercase italic text-xs">Nenhum item disponível.</p>`; 
+        return; 
     }
-
+    
+    // MODO GRADE (BLOCO)
     if (MODO_VISUALIZACAO === 'grid') {
         container.className = "grid grid-cols-2 gap-4 px-4 pb-10";
-        container.innerHTML = lista.map(p => `
-            <div onclick="window.abrirDetalhes(${p.id})" class="bg-white p-2.5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col h-full cursor-pointer hover:border-red-100 transition-all">
-                <div class="h-32 bg-slate-50 rounded-[1.5rem] overflow-hidden mb-3 flex items-center justify-center text-4xl">
+        container.innerHTML = lista.map(p => {
+            const temObs = p.observacao && p.observacao.trim() !== "";
+            
+            return `
+            <div onclick="window.abrirDetalhes(${p.id})" class="bg-white p-2.5 rounded-[2rem] shadow-sm border border-slate-100 active:scale-95 transition-all cursor-pointer group hover:border-red-100 flex flex-col h-full relative">
+                ${temObs ? '<div class="absolute top-4 left-4 bg-slate-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm uppercase italic">Opções</div>' : ''}
+                <div class="h-32 sm:h-36 bg-slate-50 rounded-[1.5rem] overflow-hidden mb-3 shrink-0 flex items-center justify-center text-4xl">
                     ${p.foto ? `<img src="${p.foto}" class="w-full h-full object-cover">` : '🍢'}
                 </div>
                 <div class="px-2 pb-2 flex-1 flex flex-col justify-between">
-                    <h4 class="font-black text-xs uppercase text-slate-800 leading-tight italic truncate">${p.nome}</h4>
-                    <span class="bg-red-600 text-white font-black text-xs px-3 py-1 mt-2 rounded-xl inline-block self-start italic">R$ ${parseFloat(p.preco).toFixed(2).replace('.', ',')}</span>
+                    <div class="mb-2">
+                        <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">/ ${p.categoria || 'Geral'}</p>
+                        <h4 class="font-black text-xs uppercase text-slate-800 leading-tight italic truncate">${p.nome}</h4>
+                    </div>
+                    <div>
+                        <span class="bg-red-600 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-md italic inline-block">R$ ${parseFloat(p.preco).toFixed(2).replace('.', ',')}</span>
+                    </div>
                 </div>
-            </div>`).join('');
-    } else {
+            </div>`;
+        }).join('');
+    } 
+    // MODO LISTA
+    else {
         container.className = "flex flex-col gap-3 px-4 pb-10";
-        container.innerHTML = lista.map(p => `
+        container.innerHTML = lista.map(p => {
+            const temObs = p.observacao && p.observacao.trim() !== "";
+            
+            return `
             <div onclick="window.abrirDetalhes(${p.id})" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-red-100 transition-all">
-                <div class="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl">
+                <div class="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl border border-slate-100">
                     ${p.foto ? `<img src="${p.foto}" class="w-full h-full object-cover">` : '🍢'}
                 </div>
-                <div class="flex-1">
-                    <h4 class="font-black text-xs uppercase text-slate-800 italic">${p.nome}</h4>
-                    <p class="text-[9px] font-black text-slate-300 uppercase">${p.categoria}</p>
-                </div>
-                <span class="font-black text-red-600 text-xs italic">R$ ${parseFloat(p.preco).toFixed(2).replace('.', ',')}</span>
-            </div>`).join('');
+
+
+<div class="flex-1 min-w-0">
+    <h4 class="font-black text-xs uppercase text-slate-800 italic truncate">${p.nome}</h4>
+    <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">/ ${p.categoria || 'Geral'}</p>
+    
+    ${temObs ? `<p class="text-[9px] font-black text-slate-500 italic mt-1 uppercase whitespace-normal break-words">${p.observacao.trim()}</p>` : ''}
+</div>
+                <span class="font-black text-red-600 text-xs italic shrink-0">R$ ${parseFloat(p.preco).toFixed(2).replace('.', ',')}</span>
+            </div>`;
+        }).join('');
     }
 }
